@@ -57,13 +57,13 @@ class BatchModifyModule(Component):
     
     fields_as_list = ListOption("batchmod", "fields_as_list", 
                 default="keywords", 
-                doc="field names modified as a value list(separated by ',')")
+                doc="Field names modified as a value list")
     list_separator_regex = Option("batchmod", "list_separator_regex",
                 default='[,\s]+',
-                doc="separator regex used for 'list' fields")
+                doc="Separator regex used for 'list' fields.")
     list_connector_string = Option("batchmod", "list_connector_string",
-                default=',',
-                doc="connector string for 'list' fields")
+                default=' ',
+                doc="Connector string for 'list' fields. Defaults to a space")
 
     # IPermissionRequestor methods
 

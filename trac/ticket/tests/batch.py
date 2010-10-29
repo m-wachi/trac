@@ -122,24 +122,24 @@ class BatchModifyTestCase(unittest.TestCase):
         self.assertEqual(selected_tickets, [])
         
     def test_merge_keywords_adds_new_keywords_to_empty_list(self):
-        combined = self._merge_keywords_test_helper('', 'foo, bar')
-        self.assertEqual(combined, 'foo,bar')
+        combined = self._merge_keywords_test_helper('', 'foo bar')
+        self.assertEqual(combined, 'foo bar')
     
     def test_merge_keywords_appends_new_keyword_to_non_empty_list(self):
-        combined = self._merge_keywords_test_helper('foo,bar', 'baz')
-        self.assertEqual(combined, 'foo,bar,baz')
+        combined = self._merge_keywords_test_helper('foo bar', 'baz')
+        self.assertEqual(combined, 'foo bar baz')
     
     def test_merge_keywords_does_not_duplicate_existing_keywords(self):
-        combined = self._merge_keywords_test_helper('foo,bar', 'bar,baz')
-        self.assertEqual(combined, 'foo,bar,baz')
+        combined = self._merge_keywords_test_helper('foo bar', 'bar baz')
+        self.assertEqual(combined, 'foo bar baz')
         
     def test_merge_keywords_removes_keywords_beginning_with_dash(self):
-        combined = self._merge_keywords_test_helper('foo,bar', '-bar')
+        combined = self._merge_keywords_test_helper('foo bar', '-bar')
         self.assertEqual(combined, 'foo')
     
     def test_merge_keywords_ignores_removing_keywords_that_are_not_in_original_list(self):
-        combined = self._merge_keywords_test_helper('foo,bar', '-baz')
-        self.assertEqual(combined, 'foo,bar')
+        combined = self._merge_keywords_test_helper('foo bar', '-baz')
+        self.assertEqual(combined, 'foo bar')
     
     def test_merge_keywords_can_use_custom_separator_and_connector_strings(self):
         self.env.config.set('batchmod', 'list_separator_regex', '|')
@@ -176,20 +176,20 @@ class BatchModifyTestCase(unittest.TestCase):
                             'keywords,stakeholders')
         self.env.config.set('ticket-custom', 'stakeholders', 'text')
         first_ticket_id = self._insert_ticket('Test 1', reporter='joe', 
-                                              keywords="foo,bar",
+                                              keywords="foo bar",
                                               stakeholders="shirley")
         second_ticket_id = self._insert_ticket('Test 2', reporter='joe',
                                                keywords="foo", 
                                                stakeholders="jim")
         selected_tickets = [first_ticket_id, second_ticket_id]
-        values = { "keywords" : "bar,baz", "stakeholders" : "joe" }
+        values = { "keywords" : "bar baz", "stakeholders" : "joe" }
         
         batch = BatchModifyModule(self.env)
         batch._save_ticket_changes(self.req, selected_tickets, values, "")
         
-        self.assertFieldChanged(first_ticket_id, "stakeholders", "shirley,joe")
-        self.assertFieldChanged(second_ticket_id, "keywords", "foo,bar")
-        self.assertFieldChanged(second_ticket_id, "stakeholders", "jim,joe")
+        self.assertFieldChanged(first_ticket_id, "stakeholders", "shirley joe")
+        self.assertFieldChanged(second_ticket_id, "keywords", "foo bar")
+        self.assertFieldChanged(second_ticket_id, "stakeholders", "jim joe")
     
 def suite():
     suite = unittest.TestSuite()
