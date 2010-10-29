@@ -55,7 +55,7 @@ class BatchModifyTestCase(unittest.TestCase):
         values = batch._get_new_ticket_values(self.req)
         self.assertEqual(values['milestone'], 'milestone1')
         
-    def test_get_new_ticket_values_replaces_sets_owner_to_session_email_if_not_authenticated(self):
+    def test_get_new_ticket_values_sets_owner_to_session_email_if_not_authenticated(self):
         """If the owner field is set to $USER and there is no authenticated
         user, then use the email address in the session."""
         batch = BatchModifyModule(self.env)
@@ -65,7 +65,7 @@ class BatchModifyTestCase(unittest.TestCase):
         values = batch._get_new_ticket_values(self.req)
         self.assertEqual(values['owner'], 'joe@example.com')
         
-    def test_get_new_ticket_values_replaces_sets_owner_to_session_name_if_not_authenticated_and_no_email(self):
+    def test_get_new_ticket_values_sets_owner_to_session_name_if_not_authenticated_and_no_email(self):
         """If the owner field is set to $USER and there is no authenticated
         user or email address, then use the name in the session."""
         batch = BatchModifyModule(self.env)
@@ -75,7 +75,7 @@ class BatchModifyTestCase(unittest.TestCase):
         values = batch._get_new_ticket_values(self.req)
         self.assertEqual(values['owner'], 'joe')
     
-    def test_get_new_ticket_values_replaces_sets_owner_to_authenticated_user(self):
+    def test_get_new_ticket_values_sets_owner_to_authenticated_user(self):
         """If the owner field is set to $USER and there is an authenticated
         user, then set the owner to that user."""
         batch = BatchModifyModule(self.env)
