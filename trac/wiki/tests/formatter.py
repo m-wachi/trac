@@ -10,11 +10,11 @@ except ImportError:
     Locale = None
 
 from trac.core import *
-from trac.mimeview import Context
 from trac.test import Mock, MockPerm, EnvironmentStub
 from trac.util.datefmt import utc
 from trac.util.html import html
 from trac.util.text import to_unicode
+from trac.web.chrome import web_context
 from trac.web.href import Href
 from trac.wiki.api import IWikiSyntaxProvider
 from trac.wiki.formatter import HtmlFormatter, InlineHtmlFormatter
@@ -119,13 +119,13 @@ class WikiTestCase(unittest.TestCase):
         self._teardown = teardown
 
         req = Mock(href=Href('/'), abs_href=Href('http://www.example.com/'),
-                   authname='anonymous', perm=MockPerm(), args={}, tz=utc,
+                   authname='anonymous', perm=MockPerm(), tz=utc, args={},
                    locale=Locale and Locale.parse('en_US') or None)
         if context:
             if isinstance(context, tuple):
-                context = Context.from_request(req, *context)
+                context = web_context(req, *context)
         else:
-            context = Context.from_request(req, 'wiki', 'WikiStart')
+            context = web_context(req, 'wiki', 'WikiStart')
         self.context = context
 
         all_test_components = [
@@ -144,6 +144,10 @@ class WikiTestCase(unittest.TestCase):
         self.env.config.set('intertrac', 'th.url',
                             "http://trac-hacks.org")
         self.env.config.set('intertrac', 'th.compat', 'false')
+        # -- safe schemes
+        self.env.config.set('wiki', 'safe_schemes',
+                            'file,ftp,http,https,svn,svn+ssh,'
+                            'rfc-2396.compatible,rfc-2396+under_score')
 
         # TODO: remove the following lines in order to discover
         #       all the places were we should use the req.href

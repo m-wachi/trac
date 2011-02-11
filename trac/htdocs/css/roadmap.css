@@ -23,15 +23,13 @@ table.progress td.new { background: #f5f5b5 }
 table.progress td.closed { background: #bae0ba }
 table.progress td :hover { background: none }
 p.percent { 
- font-size: 10px; 
- line-height: 2.4em; 
- margin: 0.9em 0 .1em 1.2em; 
- float: left; 
+ line-height: 1.2em;
+ margin: 0;
 }
 
 /* Styles for the roadmap view */
-ul.milestones { margin: 2em 0 0; padding: 0 }
-li.milestone { list-style: none; margin-bottom: 4em }
+.milestones { margin: 2em 0 0; padding: 0 }
+.milestone { margin-bottom: 4em }
 .milestone .info { white-space: nowrap }
 .milestone .info h2 {
  background: #f7f7f7;
@@ -51,13 +49,13 @@ li.milestone { list-style: none; margin-bottom: 4em }
  color: #888;
  font-size: 11px;
  font-style: italic;
- margin: 0;
+ margin: 0 0 1em 0;
 }
-.milestone .info .progress { margin: 1em 0 0 1em; width: 40em; max-width: 70% }
+.milestone .info .progress { margin: 0 1em; width: 40em; max-width: 70% }
 .milestone .info dl {
  font-size: 10px;
  font-style: italic;
- margin: 0 1em 2em;
+ margin: 1em 1em 2em;
  white-space: nowrap;
  clear: left;
 }
@@ -77,15 +75,15 @@ li.milestone { list-style: none; margin-bottom: 4em }
 #stats th { text-align: right; }
 #stats th :link, #stats th :visited { border: none }
 #stats td { padding-left: 0.5em; width: 100% }
-#stats td table.progress { margin: 3px 4px 3px 0 }
+#stats td table.progress { margin: 3px 1em 3px 0 }
 #stats td table.progress td { padding: 0 }
-#stats td p.percent { line-height: 1.2em; margin-top: 3px }
+#stats td p.percent { margin-top: 3px }
 
 /* Styles for the milestone edit form */
 #edit fieldset { margin: 1em 0 }
 #edit em { color: #888; font-size: smaller }
 #edit .disabled em { color: #d7d7d7 }
-#edit .field { margin-top: 1.3em }
+#edit .field { margin: 0.5em 0 }
 #edit label { padding-left: .2em }
 #edit fieldset.iefix { margin-left: 1px; margin-right: 1px }
 #edit textarea#description { margin-left: -1px; margin-right: -1px; padding: 0; width: 100% }

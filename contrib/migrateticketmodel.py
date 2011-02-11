@@ -9,6 +9,8 @@
 # 
 # Make sure to make a backup of the Trac environment before running this!
 
+from __future__ import with_statement
+
 import os
 import sys
 
@@ -30,17 +32,14 @@ def main():
         sys.exit(2)
 
     env = open_environment(sys.argv[1])
-    db = env.get_db_cnx()
+    with env.db_transaction:
+        for oldprio, newprio in priority_mapping.items():
+            priority = Priority(env, oldprio)
+            priority.name = newprio
+            priority.update()
 
-    for oldprio, newprio in priority_mapping.items():
-        priority = Priority(env, oldprio, db)
-        priority.name = newprio
-        priority.update(db)
-
-    for severity in list(Severity.select(env, db)):
-        severity.delete(db)
-
-    db.commit()
+        for severity in list(Severity.select(env)):
+            severity.delete()
 
 if __name__ == '__main__':
     main()

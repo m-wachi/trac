@@ -27,7 +27,7 @@ wiki:abc
 <a class="wiki" href="/wiki/TestPage">TestPage</a>
 <a class="wiki" href="/wiki/TestPage">/TestPage</a>
 <a class="wiki" href="/wiki/Space%201%2023">wiki:"Space 1 23"</a>
-<a class="wiki" href="/wiki/C%27est%20l%27%C3%A9t%C3%A9">wiki:"C'est l'\xe9t\xe9"</a>
+<a class="wiki" href="/wiki/C'est%20l'%C3%A9t%C3%A9">wiki:"C'est l'\xe9t\xe9"</a>
 <a class="missing wiki" href="/wiki/MissingPage" rel="nofollow">wiki:MissingPage?</a>
 <a class="missing wiki" href="/wiki/12" rel="nofollow">wiki:12?</a>
 <a class="missing wiki" href="/wiki/abc" rel="nofollow">wiki:abc?</a>
@@ -64,9 +64,13 @@ and so should <a class="missing wiki" href="/wiki/%C3%9Cberfl%C3%BCssigkeitsTheo
 ------------------------------
 ============================== More WikiPageNames conformance
 CamelCase,CamelCase.CamelCase: CamelCase
+But not CamelCase2
+nor CamelCase_
 ------------------------------
 <p>
 <a class="missing wiki" href="/wiki/CamelCase" rel="nofollow">CamelCase?</a>,<a class="missing wiki" href="/wiki/CamelCase" rel="nofollow">CamelCase?</a>.<a class="missing wiki" href="/wiki/CamelCase" rel="nofollow">CamelCase?</a>: <a class="missing wiki" href="/wiki/CamelCase" rel="nofollow">CamelCase?</a>
+But not CamelCase2
+nor CamelCase_
 </p>
 ------------------------------
 ============================== Escaping WikiPageNames
@@ -144,14 +148,14 @@ BillOfMaterials#get_bill_of_materials_from_room_xml(fpxml=nil)
 </p>
 ------------------------------
 ============================== WikiPageNames counter examples (paths)
-/absolute/path/is/NotWiki and relative/path/is/NotWiki
-/ThisIsNotWikiEither and /ThisIs/NotWikiEither but ThisIs/SubWiki
-and now This/Also.
+/absolute/path/is/NotWiki and relative/path/is/NotWiki and ../higher/is/NotWiki
+but ThisIs/SubWiki and now This/Also
+and ../Relative/Camel or /Absolute/Camel as well
 ------------------------------
 <p>
-/absolute/path/is/NotWiki and relative/path/is/NotWiki
-/ThisIsNotWikiEither and /ThisIs/NotWikiEither but <a class="missing wiki" href="/wiki/ThisIs/SubWiki" rel="nofollow">ThisIs/SubWiki?</a>
-and now <a class="missing wiki" href="/wiki/This/Also" rel="nofollow">This/Also?</a>.
+/absolute/path/is/NotWiki and relative/path/is/NotWiki and ../higher/is/NotWiki
+but <a class="missing wiki" href="/wiki/ThisIs/SubWiki" rel="nofollow">ThisIs/SubWiki?</a> and now <a class="missing wiki" href="/wiki/This/Also" rel="nofollow">This/Also?</a>
+and <a class="missing wiki" href="/wiki/Relative/Camel" rel="nofollow">../Relative/Camel?</a> or <a class="missing wiki" href="/wiki/Absolute/Camel" rel="nofollow">/Absolute/Camel?</a> as well
 </p>
 ------------------------------
 ============================== WikiPageNames counter examples (numbers)
@@ -216,10 +220,14 @@ This is a <a class="missing wiki" href="/wiki/Wiki?version=12" rel="nofollow">Wi
 ============================== WikiPageName with label
 See details of the [WikiPageNames wiki page name] syntax.
 Here's a [BadExample\fbad] example with special whitespace.
+We can also [WikiLabels '"use [quotes]"']
+or [WikiLabels "'use [quotes]'"]
 ------------------------------
 <p>
 See details of the <a class="missing wiki" href="/wiki/WikiPageNames" rel="nofollow">wiki page name?</a> syntax.
 Here's a <a class="missing wiki" href="/wiki/BadExample" rel="nofollow">bad?</a> example with special whitespace.
+We can also <a class="missing wiki" href="/wiki/WikiLabels" rel="nofollow">"use [quotes]"?</a>
+or <a class="missing wiki" href="/wiki/WikiLabels" rel="nofollow">'use [quotes]'?</a>
 </p>
 ------------------------------
 ============================== WikiPageName with label should be strict...
@@ -267,6 +275,9 @@ complex link complex:a:test with positional arguments
 complex link complex:a (not enough arguments)
 complex link complex:a:test:more (too many arguments)
 
+in trac.ini inter:b:resource
+in trac.ini over:c:something overrides wiki
+
 NoLink:ignored
 NoLink:
 NoLink: ...
@@ -279,6 +290,10 @@ Checkout the <a class="ext-link" href="tsvn:http://svn.edgewall.com/repos/trac" 
 complex link <a class="ext-link" href="http://server/a/page/test?format=txt" title="resource test in a"><span class="icon">\xa0</span>complex:a:test</a> with positional arguments
 complex link <a class="ext-link" href="http://server/a/page/?format=txt" title="resource  in a"><span class="icon">\xa0</span>complex:a</a> (not enough arguments)
 complex link <a class="ext-link" href="http://server/a/page/test:more?format=txt" title="resource test:more in a"><span class="icon">\xa0</span>complex:a:test:more</a> (too many arguments)
+</p>
+<p>
+in trac.ini <a class="ext-link" href="http://inter/b/page/resource" title="Resource resource in b"><span class="icon">\xa0</span>inter:b:resource</a>
+in trac.ini <a class="ext-link" href="http://over/c/page/something" title="c:something in over"><span class="icon">\xa0</span>over:c:something</a> overrides wiki
 </p>
 <p>
 NoLink:ignored
@@ -299,6 +314,13 @@ and <a class="ext-link" href="http://www.usemod.com/cgi-bin/mb.pl?InterMapTxt&am
 <p>
 complex link <a class="ext-link" href="http://server/a/page/test?format=txt&amp;go#there" title="resource test in a"><span class="icon">\xa0</span>complex:a:test?go#there</a> with positional arguments
 </p>
+------------------------------
+============================== Regression for #9712
+This is not a link: x,://localhost
+------------------------------
+<p>
+This is not a link: x,:<em>localhost
+</em></p>
 ------------------------------
 """ #" Emacs likes it that way better
 
@@ -414,6 +436,21 @@ RELATIVE_LINKS_TESTS = u"""
 <a class="missing wiki" href="/wiki/Main/Other" rel="nofollow">Other?</a>
 <a class="missing wiki" href="/wiki/Main/Other?param=1#fragment" rel="nofollow">Other?</a>
 <a class="missing wiki" href="/wiki/Other" rel="nofollow">Other?</a>
+</p>
+------------------------------
+============================== Relative to the current page, as CamelCase
+OnePage/SubPage
+./SubPage
+../SiblingPage
+.././../HigherPage
+/TopPage
+------------------------------
+<p>
+<a class="missing wiki" href="/wiki/Main/OnePage/SubPage" rel="nofollow">OnePage/SubPage?</a>
+<a class="missing wiki" href="/wiki/Main/Sub/SubPage" rel="nofollow">./SubPage?</a>
+<a class="missing wiki" href="/wiki/Main/SiblingPage" rel="nofollow">../SiblingPage?</a>
+<a class="missing wiki" href="/wiki/HigherPage" rel="nofollow">.././../HigherPage?</a>
+<a class="missing wiki" href="/wiki/TopPage" rel="nofollow">/TopPage?</a>
 </p>
 ------------------------------
 ============================== Relative to the current page with query strings and fragments
@@ -593,6 +630,7 @@ MissingFirstLevel/MissingPage
 
 
 def wiki_setup(tc):
+    tc.env.config.set('wiki', 'render_unsafe_content', True) # for #9712
     now = datetime.now(utc)
     wiki0 = WikiPage(tc.env)
     wiki0.name = 'Main/Sub'
@@ -623,6 +661,7 @@ This is the InterMapTxt
 MeatBall 	http://www.usemod.com/cgi-bin/mb.pl? # $1 in MeatBall...
 tsvn            tsvn:
 complex         http://server/$1/page/$2?format=txt  # resource $2 in $1
+over        http://unused/? # Overridden in trac.ini
 }}}
 ----
 {{{
@@ -630,6 +669,10 @@ nolink          http://noweb
 }}}
 """ 
     imt.save('joe', 'test InterWiki links', '::1', now)
+    tc.env.config.set('interwiki', 'inter',
+                      'http://inter/$1/page/$2 Resource $2 in $1')
+    tc.env.config.set('interwiki', 'over',
+                      'http://over/$1/page/$2')
 
     w = WikiPage(tc.env)
     w.name = 'FirstLevel'

@@ -30,8 +30,8 @@
         </div>
       </form>
 
-      <ul class="milestones">
-        <li py:for="idx, milestone in enumerate(milestones)" class="milestone">
+      <div class="milestones">
+        <div py:for="idx, milestone in enumerate(milestones)" class="milestone">
 
           <div class="info" py:with="mstats = milestone_stats[idx]">
             <h2><a href="${href.milestone(milestone.name)}">
@@ -40,17 +40,17 @@
             <py:choose>
               <p py:when="milestone.completed" class="date">
                 <i18n:msg params="duration, date">
-                  Completed ${dateinfo(milestone.completed)} ago (${format_date(milestone.completed)})
+                  Completed ${dateinfo(milestone.completed)} ago (${format_datetime(milestone.completed)})
                 </i18n:msg>
               </p>
               <p py:when="milestone.is_late" class="date">
                 <i18n:msg params="duration, date">
-                  <strong>${dateinfo(milestone.due)} late</strong> (${format_date(milestone.due)})
+                  <strong>${dateinfo(milestone.due)} late</strong> (${format_datetime(milestone.due)})
                 </i18n:msg>
               </p>
               <p py:when="milestone.due" class="date">
                 <i18n:msg params="duration, date">
-                  Due in ${dateinfo(milestone.due)} (${format_date(milestone.due)})
+                  Due in ${dateinfo(milestone.due)} (${format_datetime(milestone.due)})
                 </i18n:msg>
               </p>
               <p py:otherwise="" class="date">
@@ -63,11 +63,11 @@
           </div>
 
           <div class="description" xml:space="preserve">
-            ${wiki_to_html(context(milestone.resource), milestone.description)}
+            ${wiki_to_html(context.child(milestone.resource), milestone.description)}
           </div>
 
-        </li>
-      </ul>
+        </div>
+      </div>
 
       <div py:if="'MILESTONE_CREATE' in perm" class="buttons">
        <form method="get" action="${href.milestone()}"><div>

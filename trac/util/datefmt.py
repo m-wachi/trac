@@ -167,10 +167,8 @@ def format_datetime(t=None, format='%x %X', tzinfo=None):
         text = text.replace('+0000', 'Z')
         if not text.endswith('Z'):
             text = text[:-2] + ":" + text[-2:]
-    encoding = locale.getpreferredencoding() or sys.getdefaultencoding()
-    if sys.platform != 'win32' or sys.version_info[:2] > (2, 3):
-        encoding = locale.getlocale(locale.LC_TIME)[1] or encoding
-        # Python 2.3 on windows doesn't know about 'XYZ' alias for 'cpXYZ'
+    encoding = locale.getlocale(locale.LC_TIME)[1] \
+               or locale.getpreferredencoding() or sys.getdefaultencoding()
     return unicode(text, encoding, 'replace')
 
 def format_date(t=None, format='%x', tzinfo=None):
@@ -323,7 +321,7 @@ def _parse_date_iso8601(text, tzinfo):
 
     return None
 
-def parse_date(text, tzinfo=None):
+def parse_date(text, tzinfo=None, hint='date'):
     tzinfo = tzinfo or localtz
     text = text.strip()
     dt = _parse_date_iso8601(text, tzinfo)
@@ -339,7 +337,8 @@ def parse_date(text, tzinfo=None):
     if dt is None:
         dt = _parse_relative_time(text, tzinfo)
     if dt is None:
-        hint = get_date_format_hint()        
+        hint = {'datetime': get_datetime_format_hint,
+                'date': get_date_format_hint}.get(hint, lambda: hint)()
         raise TracError(_('"%(date)s" is an invalid date, or the date format '
                           'is not known. Try "%(hint)s" instead.', 
                           date=text, hint=hint), _('Invalid Date'))
@@ -424,15 +423,15 @@ def _i18n_parse_date_patterns():
 
 _I18N_PARSE_DATE_PATTERNS = _i18n_parse_date_patterns()
 
-def i18n_parse_date(text, tzinfo=None, locale=None):
+def i18n_parse_date(text, tzinfo=None, locale=None, hint='date'):
     text = text.strip()
 
     if babel is None or locale is None:
-        return parse_date(text, tzinfo=tzinfo)
+        return parse_date(text, tzinfo, hint)
 
     pattern = _I18N_PARSE_DATE_PATTERNS.get(str(locale))
     if not pattern:
-        return parse_date(text, tzinfo=tzinfo)
+        return parse_date(text, tzinfo)
 
     dt = _parse_date_iso8601(text, tzinfo)
     if dt is None:
@@ -446,7 +445,9 @@ def i18n_parse_date(text, tzinfo=None, locale=None):
         dt = _parse_relative_time(text, tzinfo)
 
     if dt is None:
-        hint = i18n_get_date_format_hint(locale=locale)
+        hint = {'datetime': i18n_get_datetime_format_hint,
+                'date': i18n_get_date_format_hint
+               }.get(hint, lambda: hint)(locale)
         raise TracError(_('"%(date)s" is an invalid date, or the date format '
                           'is not known. Try "%(hint)s" instead.', 
                           date=text, hint=hint), _('Invalid Date'))
@@ -691,6 +692,7 @@ try:
                          if tz.zone != 'UTC'])
 
     def timezone(tzname):
+        """Fetch timezone instance by name or raise `KeyError`"""
         tz = get_timezone(tzname)
         if not tz:
             raise KeyError(tzname)

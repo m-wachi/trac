@@ -28,8 +28,8 @@ from trac.util.compat import close_fds
 #       lighty+fastcgi, lighty+cgi, cherrypy+wsgi
 #
 #     Backends::
-#       sqlite2+pysqlite, sqlite3+pysqlite2, postgres python bindings #1,
-#       postgres python bindings #2, mysql with server v4, mysql with server v5
+#       sqlite3+pysqlite2, postgres+psycopg2 python bindings,
+#       mysql+mysqldb with server v4, mysql+mysqldb with server v5
 #       (those need to test search escaping, among many other things like long
 #       paths in browser and unicode chars being allowed/translating...)
 
@@ -38,10 +38,11 @@ class FunctionalTestEnvironment(object):
     environment on Trac.  Subclass this and override some methods if you are
     using a different :term:`VCS`.
     
-    :class:`FunctionalTestEnvironment` requires a `dirname` in which the test
-    repository and Trac environment will be created, `port` for the
-    :command:`tracd` webserver to run on, and the `url` which can
-    access this (usually ``localhost``)."""
+    :class:`FunctionalTestEnvironment` requires a `dirname` in which
+    the test repository and Trac environment will be created, `port`
+    for the :command:`tracd` webserver to run on, and the `url` which
+    can access this (usually ``localhost``).
+    """
 
     def __init__(self, dirname, port, url):
         """Create a :class:`FunctionalTestEnvironment`, see the class itself
@@ -55,15 +56,23 @@ class FunctionalTestEnvironment(object):
         self.pid = None
         self.init()
         self.destroy()
+        time.sleep(0.1) # Avoid race condition on Windows
         self.create()
         locale.setlocale(locale.LC_ALL, '')
 
     trac_src = '.'
-    dburi = property(lambda x: get_dburi())
+
+    @property
+    def dburi(self):
+        dburi = get_dburi()
+        if dburi == 'sqlite::memory:':
+            # functional tests obviously can't work with the in-memory database
+            dburi = 'sqlite:db/trac.db'
+        return dburi
 
     def destroy(self):
         """Remove all of the test environment data."""
-        env = EnvironmentStub()
+        env = EnvironmentStub(path=self.tracdir, destroying=True)
         env.destroy_db()
         env.shutdown()
 
@@ -108,12 +117,10 @@ class FunctionalTestEnvironment(object):
         This sets up Trac, calls :meth:`create_repo` and sets up
         authentication.
         """
-        if os.mkdir(self.dirname):
-            raise Exception('unable to create test environment')
+        os.mkdir(self.dirname)
         self.create_repo()
 
-        self._tracadmin('initenv', 'testenv%s' % self.port,
-                        self.dburi, self.repotype,
+        self._tracadmin('initenv', self.tracdir, self.dburi, self.repotype,
                         self.repo_path_for_initenv())
         if call([sys.executable,
                  os.path.join(self.trac_src, 'contrib', 'htpasswd.py'), "-c",
@@ -197,7 +204,7 @@ class FunctionalTestEnvironment(object):
                 res = call(["taskkill", "/f", "/pid", str(self.pid)],
                      stdin=PIPE, stdout=PIPE, stderr=PIPE)
             else:
-                os.kill(self.pid, signal.SIGINT)
+                os.kill(self.pid, signal.SIGTERM)
                 try:
                     os.waitpid(self.pid, 0)
                 except OSError, e:
@@ -227,5 +234,3 @@ class FunctionalTestEnvironment(object):
 
         logfile.write(data)
         return data
-
-

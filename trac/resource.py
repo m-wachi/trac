@@ -53,7 +53,7 @@ class IResourceManager(Interface):
                        `'default'`, `'compact'` or `'summary'`.
         :param context: an optional rendering context to allow rendering rich
                         output (like markup containing links)
-        :type context: `Context`
+        :type context: `ResourceContext`
 
         Additional keyword arguments can be given as extra information for
         some formats. 
@@ -77,7 +77,7 @@ class IResourceManager(Interface):
 
         Attempting to retrieve the model object for a non-existing
         resource should raise a `ResourceNotFound` exception.
-        (since 0.11.7.1)
+        (''since 0.11.8'')
         """
 
 

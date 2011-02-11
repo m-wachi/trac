@@ -19,7 +19,7 @@ class FunctionalTester(object):
     test environment.
 
     It makes assumptions such as knowing what ticket number is next, so
-    avoid doing things manually in :class:`FunctionalTestCase`s when you can.
+    avoid doing things manually in a :class:`FunctionalTestCase` when you can.
     """
 
     def __init__(self, url):
@@ -54,9 +54,9 @@ class FunctionalTester(object):
         """Create a new (random) ticket in the test environment.  Returns
         the new ticket number.
 
-        :summary:
+        :param summary:
             may optionally be set to the desired summary
-        :info:
+        :param info:
             may optionally be set to a dictionary of field value pairs for
             populating the ticket.  ``info['summary']`` overrides summary.
 
@@ -147,7 +147,9 @@ class FunctionalTester(object):
         tc.formvalue('propertyform', 'comment', comment)
         tc.submit("submit")
         # Verify we're where we're supposed to be.
-        tc.url(self.url + '/ticket/%s#comment:.*' % ticketid)
+        # The fragment is stripped since Python 2.7.1, see:
+        # http://trac.edgewall.org/ticket/9990#comment:18
+        tc.url(self.url + '/ticket/%s(?:#comment:.*)?$' % ticketid)
         return comment
 
     def attach_file_to_ticket(self, ticketid, data=None, tempfilename=None,

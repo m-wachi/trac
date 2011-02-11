@@ -11,8 +11,11 @@
 # individuals. For the exact contribution history, see the revision
 # history and logs, available at http://trac.edgewall.org/.
 
-from trac.core import Component
-from trac.util.concurrency import ThreadLocal, threading
+from __future__ import with_statement
+
+from .core import Component
+from .util import arity
+from .util.concurrency import ThreadLocal, threading
 
 __all__ = ["CacheManager", "cached"]
 
@@ -22,8 +25,9 @@ class CachedProperty(object):
     
     def __init__(self, retriever, id_attr=None):
         self.retriever = retriever
-        self.id_attr = id_attr
         self.__doc__ = retriever.__doc__
+        self.id_attr = id_attr
+        self.id = None
         
     def __get__(self, instance, owner):
         if instance is None:
@@ -31,19 +35,27 @@ class CachedProperty(object):
         if self.id_attr is not None:
             id = getattr(instance, self.id_attr)
         else:
-            id = "%s.%s.%s" % (owner.__module__,
-                               owner.__name__,
-                               self.retriever.__name__)
+            id = self.id
+            if id is None:
+                id = self.id = self.make_id(owner)
         return CacheManager(instance.env).get(id, self.retriever, instance)
         
     def __delete__(self, instance):
         if self.id_attr is not None:
             id = getattr(instance, self.id_attr)
         else:
-            id = '%s.%s.%s' % (instance.__class__.__module__,
-                               instance.__class__.__name__,
-                               self.retriever.__name__)
+            id = self.id
+            if id is None:
+                id = self.id = self.make_id(instance.__class__)
         CacheManager(instance.env).invalidate(id)
+
+    def make_id(self, cls):
+        attr = self.retriever.__name__
+        for base in cls.mro():
+            if base.__dict__.get(attr) is self:
+                cls = base
+                break
+        return '%s.%s.%s' % (cls.__module__, cls.__name__, attr)
 
 
 def cached(fn_or_id=None):
@@ -53,10 +65,6 @@ def cached(fn_or_id=None):
     Accessing the cached attribute gives back the cached value. The data
     retrieval method is called as needed by the CacheManager. Invalidating
     the cache for this value is done by `del`eting the attribute.
-    
-    The data retrieval method is called with a single argument `db` containing
-    a reference to a database connection. All data retrieval should be done
-    through this connection.
     
     Note that the cache validity is maintained using a table in the database.
     Cache invalidation is performed within a transaction block, and can be
@@ -79,6 +87,14 @@ def cached(fn_or_id=None):
     
     This decorator requires that the object on which it is used has an `env`
     attribute containing the application `Environment`.
+
+    :since 0.13:
+    The data retrieval method used to be called with a single argument `db`
+    containing a reference to a database connection.
+    This is the same connection that can be retrieved via the normal
+    `Environment.db_query` or `Environment.db_transaction`, so this is no
+    longer needed, though methods supporting that argument are still supported
+    (will be removed in version 0.14). 
     """
     if not hasattr(fn_or_id, '__call__'):
         def decorator(fn):
@@ -112,13 +128,9 @@ class CacheManager(Component):
         if local_meta is None:
             # First cache usage in this request, retrieve cache metadata
             # from the database and make a thread-local copy of the cache
-            db = self.env.get_read_db()
-            cursor = db.cursor()
-            cursor.execute("SELECT id,generation FROM cache")
-            self._local.meta = local_meta = dict(cursor)
+            meta = self.env.db_query("SELECT id, generation FROM cache")
+            self._local.meta = local_meta = dict(meta)
             self._local.cache = local_cache = self._cache.copy()
-        else:
-            db = None
         
         db_generation = local_meta.get(id, -1)
         
@@ -130,68 +142,58 @@ class CacheManager(Component):
         except KeyError:
             pass
         
-        if db is None:
-            db = self.env.get_read_db()
-        self._lock.acquire()
-        try:
-            # Get data from the process cache
-            try:
-                (data, generation) = local_cache[id] = self._cache[id]
-                if generation == db_generation:
+        with self.env.db_query as db:
+            with self._lock:
+                # Get data from the process cache
+                try:
+                    (data, generation) = local_cache[id] = self._cache[id]
+                    if generation == db_generation:
+                        return data
+                except KeyError:
+                    generation = None   # Force retrieval from the database
+                
+                # Check if the process cache has the newest version, as it may
+                # have been updated after the metadata retrieval
+                for db_generation, in db(
+                        "SELECT generation FROM cache WHERE id=%s", (id,)):
+                    break
+                else:
+                    db_generation = -1
+                if db_generation == generation:
                     return data
-            except KeyError:
-                generation = None   # Force retrieval from the database
-            
-            # Check if the process cache has the newest version, as it may
-            # have been updated after the metadata retrieval
-            cursor = db.cursor()
-            cursor.execute("SELECT generation FROM cache WHERE id=%s", (id,))
-            row = cursor.fetchone()
-            db_generation = not row and -1 or row[0]
-            if db_generation == generation:
+                
+                # Retrieve data from the database
+                if arity(retriever) == 2:
+                    data = retriever(instance, db)
+                else:
+                    data = retriever(instance)
+                local_cache[id] = self._cache[id] = (data, db_generation)
+                local_meta[id] = db_generation
                 return data
-            
-            # Retrieve data from the database
-            data = retriever(instance, db)
-            local_cache[id] = self._cache[id] = (data, db_generation)
-            local_meta[id] = db_generation
-            return data
-        finally:
-            self._lock.release()
         
     def invalidate(self, id):
         """Invalidate cached data for the given id."""
-        db = self.env.get_read_db() # prevent deadlock
-        self._lock.acquire()
-        try:
-            # Invalidate in other processes
+        with self.env.db_transaction as db:
+            with self._lock:
+                # Invalidate in other processes
 
-            # The row corresponding to the cache may not exist in the table
-            # yet.
-            #  - If the row exists, the UPDATE increments the generation, the
-            #    SELECT returns a row and we're done.
-            #  - If the row doesn't exist, the UPDATE does nothing, but starts
-            #    a transaction. The SELECT then returns nothing, and we can
-            #    safely INSERT a new row.
-            @self.env.with_transaction()
-            def do_invalidate(db):
-                cursor = db.cursor()
-                cursor.execute("""
-                    UPDATE cache SET generation=generation+1 WHERE id=%s
-                    """, (id,))
-                cursor.execute("SELECT generation FROM cache WHERE id=%s",
-                               (id,))
-                if not cursor.fetchone():
-                    cursor.execute("INSERT INTO cache VALUES (%s, %s)",
-                                   (id, 0))
+                # The row corresponding to the cache may not exist in the table
+                # yet.
+                #  - If the row exists, the UPDATE increments the generation,
+                #    the SELECT returns a row and we're done.
+                #  - If the row doesn't exist, the UPDATE does nothing, but 
+                #    starts a transaction. The SELECT then returns nothing, 
+                #    and we can safely INSERT a new row.
+                db("UPDATE cache SET generation=generation+1 WHERE id=%s",
+                   (id,))
+                if not db("SELECT generation FROM cache WHERE id=%s", (id,)):
+                    db("INSERT INTO cache VALUES (%s, %s)", (id, 0))
             
-            # Invalidate in this process
-            self._cache.pop(id, None)
-            
-            # Invalidate in this thread
-            try:
-                del self._local.cache[id]
-            except (KeyError, TypeError):
-                pass
-        finally:
-            self._lock.release()
+                # Invalidate in this process
+                self._cache.pop(id, None)
+                
+                # Invalidate in this thread
+                try:
+                    del self._local.cache[id]
+                except (KeyError, TypeError):
+                    pass

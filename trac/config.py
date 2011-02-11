@@ -12,20 +12,24 @@
 # individuals. For the exact contribution history, see the revision
 # history and logs, available at http://trac.edgewall.org/log/.
 
+from __future__ import with_statement
+
 from ConfigParser import ConfigParser
 from copy import deepcopy
 import os.path
 
-from trac.admin import IAdminCommandProvider
+from trac.admin import AdminCommandError, IAdminCommandProvider
 from trac.core import *
-from trac.util import AtomicFile
+from trac.util import AtomicFile, as_bool
 from trac.util.text import printout, to_unicode, CRLF
 from trac.util.translation import _, N_
 
-__all__ = ['Configuration', 'Option', 'BoolOption', 'IntOption', 'FloatOption',
-           'ListOption', 'ChoiceOption', 'PathOption', 'ExtensionOption',
-           'OrderedExtensionsOption', 'ConfigurationError']
+__all__ = ['Configuration', 'ConfigSection', 'Option', 'BoolOption',
+           'IntOption', 'FloatOption', 'ListOption', 'ChoiceOption',
+           'PathOption', 'ExtensionOption', 'OrderedExtensionsOption',
+           'ConfigurationError']
 
+# Retained for backward-compatibility, use as_bool() instead
 _TRUE_VALUES = ('yes', 'true', 'enabled', 'on', 'aye', '1', 1, True)
 
 _use_default = object()
@@ -229,8 +233,7 @@ class Configuration(object):
 
         # At this point, all the strings in `sections` are UTF-8 encoded `str`
         try:
-            fileobj = AtomicFile(self.filename, 'w')
-            try:
+            with AtomicFile(self.filename, 'w') as fileobj:
                 fileobj.write('# -*- coding: utf-8 -*-\n\n')
                 for section, options in sections:
                     fileobj.write('[%s]\n' % section)
@@ -242,8 +245,6 @@ class Configuration(object):
                                              .replace('\n', '\n ')
                             fileobj.write('%s = %s\n' % (key_str, val_str))
                     fileobj.write('\n')
-            finally:
-                fileobj.close()
             self._old_sections = deepcopy(self.parser._sections)
         except Exception:
             # Revert all changes to avoid inconsistencies
@@ -285,6 +286,21 @@ class Configuration(object):
         if self.filename and os.path.isfile(self.filename) \
            and os.access(self.filename, os.W_OK):
             os.utime(self.filename, None)
+
+    def set_defaults(self, compmgr=None):
+        """Retrieve all default values and store them explicitly in the
+        configuration, so that they can be saved to file.
+        
+        Values already set in the configuration are not overridden.
+        """
+        for section, default_options in self.defaults(compmgr).items():
+            for name, value in default_options.items():
+                if not self.parser.has_option(_to_utf8(section),
+                                              _to_utf8(name)):
+                    if any(parent[section].contains(name, defaults=False)
+                           for parent in self.parents):
+                        value = None
+                    self.set(section, name, value)
 
 
 class Section(object):
@@ -337,7 +353,7 @@ class Section(object):
     __iter__ = iterate
     
     def __repr__(self):
-        return '<Section [%s]>' % (self.name)
+        return '<%s [%s]>' % (self.__class__.__name__, self.name)
 
     def get(self, key, default=''):
         """Return the value of the specified option.
@@ -375,14 +391,12 @@ class Section(object):
         """Return the value of the specified option as boolean.
         
         This method returns `True` if the option value is one of "yes", "true",
-        "enabled", "on", or "1", ignoring case. Otherwise `False` is returned.
+        "enabled", "on", or non-zero numbers, ignoring case. Otherwise `False`
+        is returned.
 
         Valid default input is a string or a bool. Returns a bool.
         """
-        value = self.get(key, default)
-        if isinstance(value, basestring):
-            value = value.lower() in _TRUE_VALUES
-        return bool(value)
+        return as_bool(self.get(key, default))
 
     def getint(self, key, default=''):
         """Return the value of the specified option as integer.
@@ -492,8 +506,61 @@ class Section(object):
             self.config.parser.remove_option(_to_utf8(self.name), _to_utf8(key))
 
 
+def _get_registry(cls, compmgr=None):
+    """Return the descriptor registry.
+    
+    If `compmgr` is specified, only return descriptors for components that
+    are enabled in the given `ComponentManager`.
+    """
+    if compmgr is None:
+        return cls.registry
+
+    from trac.core import ComponentMeta
+    components = {}
+    for comp in ComponentMeta._components:
+        for attr in comp.__dict__.itervalues():
+            if isinstance(attr, cls):
+                components[attr] = comp
+
+    return dict(each for each in cls.registry.iteritems()
+                if each[1] not in components
+                   or compmgr.is_enabled(components[each[1]]))
+
+
+class ConfigSection(object):
+    """Descriptor for configuration sections."""
+    
+    registry = {}
+    
+    @staticmethod
+    def get_registry(compmgr=None):
+        """Return the section registry, as a `dict` mapping section names to
+        `ConfigSection` objects.
+        
+        If `compmgr` is specified, only return sections for components that are
+        enabled in the given `ComponentManager`.
+        """
+        return _get_registry(ConfigSection, compmgr)
+
+    def __init__(self, name, doc):
+        """Create the configuration section."""
+        self.name = name
+        self.registry[self.name] = self
+        self.__doc__ = doc
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        config = getattr(instance, 'config', None)
+        if config and isinstance(config, Configuration):
+            return config[self.name]
+
+    def __repr__(self):
+        return '<%s [%s]>' % (self.__class__.__name__, self.name)
+
+
 class Option(object):
-    """Descriptor for configuration options on `Configurable` subclasses."""
+    """Descriptor for configuration options."""
 
     registry = {}
     accessor = Section.get
@@ -506,20 +573,8 @@ class Option(object):
         If `compmgr` is specified, only return options for components that are
         enabled in the given `ComponentManager`.
         """
-        if compmgr is None:
-            return Option.registry
-        
-        from trac.core import ComponentMeta
-        components = {}
-        for cls in ComponentMeta._components:
-            for attr in cls.__dict__.itervalues():
-                if isinstance(attr, Option):
-                    components[attr] = cls
-        
-        return dict(each for each in Option.registry.items()
-                    if each[1] not in components
-                       or compmgr.is_enabled(components[each[1]]))
-    
+        return _get_registry(Option, compmgr)
+
     def __init__(self, section, name, default=None, doc=''):
         """Create the configuration option.
         
@@ -543,7 +598,6 @@ class Option(object):
             section = config[self.section]
             value = self.accessor(section, self.name, self.default)
             return value
-        return None
 
     def __set__(self, instance, value):
         raise AttributeError, 'can\'t set attribute'
@@ -681,7 +735,7 @@ class ConfigurationAdmin(Component):
         yield ('config set', '<section> <option> <value>',
                'Set the value for the given option in "trac.ini"',
                self._complete_config, self._do_set)
-    
+
     def _complete_config(self, args):
         if len(args) == 1:
             return self.config.sections()
@@ -689,8 +743,12 @@ class ConfigurationAdmin(Component):
             return [name for (name, value) in self.config[args[0]].options()]
 
     def _do_get(self, section, option):
+        if not self.config.has_option(section, option):
+            raise AdminCommandError(
+                _("Option '%(option)s' doesn't exist in section '%(section)s'",
+                  option=option, section=section))
         printout(self.config.get(section, option))
-        
+
     def _do_set(self, section, option, value):
         self.config.set(section, option, value)
         self.config.save()
@@ -698,6 +756,10 @@ class ConfigurationAdmin(Component):
             self.config.parse_if_needed(force=True) # Full reload
 
     def _do_remove(self, section, option):
+        if not self.config.has_option(section, option):
+            raise AdminCommandError(
+                _("Option '%(option)s' doesn't exist in section '%(section)s'",
+                  option=option, section=section))
         self.config.remove(section, option)
         self.config.save()
         if section == 'inherit' and option == 'file':

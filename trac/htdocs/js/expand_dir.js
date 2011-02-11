@@ -41,7 +41,7 @@
         var expander = $('<span class="expander">&nbsp;</span>')
           .attr("title", _("Expand sub-directory in place"))
           .click(function() { toggleDir($(this), qargs); })
-        a.wrap('<div></div>').before(expander);
+        a.before(expander);
         if (autoexpand && a.text() == autoexpand[0])
           autoexpand_expander = expander;
       }
@@ -76,8 +76,8 @@
     var a = expander.next("a");
     if ( !autoexpand )
       window.location.hash = a.attr("href")
-        .substr(window.location.pathname.length+1)
-        .replace(/([^?]*)(\?.*)?$/, '$1');    
+        .substr(window.location.pathname.replace(/\/+$/, '').length + 1)
+        .replace(/([^?]*)(\?.*)?$/, '$1');
 
     // update sort links in column headers
     tr.parents("table:first").find("thead tr:first").find("a").each(function(){
@@ -103,7 +103,7 @@
       tr.addClass("expanded");
       // insert "Loading ..." row
       var loading_row = $($.htmlFormat(
-        '<tr>'+
+        '<tr>' +
         ' <td class="$td_class" colspan="$colspan" ' +
         '     style="padding-left: ${depth}px">' +
         '  <span class="loading">${loading}</span>' +
@@ -112,7 +112,7 @@
         td_class: td_class, 
         colspan: tr.children("td").length, 
         depth: depth, 
-        loading: babel.format(_("Loading %(entry)s..."), {entry: a.text()}),
+        loading: babel.format(_("Loading %(entry)s..."), {entry: a.text()})
       }));
       tr.after(loading_row);
   

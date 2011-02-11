@@ -4,8 +4,15 @@ import re
 
 from datetime import datetime, timedelta
 
+try:
+    import babel
+    locale_en = babel.Locale('en_US')
+except ImportError:
+    babel = None
+    locale_en = None
+
 from trac.tests.functional import *
-from trac.util.datefmt import utc, localtz, format_date
+from trac.util.datefmt import utc, localtz, format_date, i18n_format_datetime
 
 
 class TestTickets(FunctionalTwillTestCaseSetup):
@@ -72,7 +79,7 @@ class TestTicketCSVFormat(FunctionalTestCaseSetup):
         self._tester.go_to_ticket(ticketid)
         tc.follow('Comma-delimited Text')
         csv = b.get_html()
-        if not csv.startswith('id,summary,'):
+        if not csv.startswith('\xef\xbb\xbfid,summary,'): # BOM
             raise AssertionError('Bad CSV format')
 
 
@@ -84,7 +91,7 @@ class TestTicketTabFormat(FunctionalTestCaseSetup):
         self._tester.go_to_ticket(ticketid)
         tc.follow('Tab-delimited Text')
         tab = b.get_html()
-        if not tab.startswith('id\tsummary\t'):
+        if not tab.startswith('\xef\xbb\xbfid\tsummary\t'): # BOM
             raise AssertionError('Bad tab delimitted format')
 
 
@@ -394,7 +401,8 @@ class TestAdminMilestoneDue(FunctionalTwillTestCaseSetup):
         """Admin milestone duedate"""
         name = "DueMilestone"
         duedate = datetime.now(tz=utc)
-        duedate_string = format_date(duedate, tzinfo=utc)
+        duedate_string = i18n_format_datetime(duedate, tzinfo=utc,
+                                              locale=locale_en)
         self._tester.create_milestone(name, due=duedate_string)
         tc.find(duedate_string)
 
@@ -413,7 +421,8 @@ class TestAdminMilestoneDetailDue(FunctionalTwillTestCaseSetup):
         tc.follow(name)
         tc.url(milestone_url + '/' + name)
         duedate = datetime.now(tz=utc)
-        duedate_string = format_date(duedate, tzinfo=utc)
+        duedate_string = i18n_format_datetime(duedate, tzinfo=utc,
+                                              locale=locale_en)
         tc.formvalue('modifymilestone', 'due', duedate_string)
         tc.submit('save')
         tc.url(milestone_url + '$')
@@ -856,24 +865,25 @@ class TestNewReport(FunctionalTwillTestCaseSetup):
     def runTest(self):
         """Create a new report"""
         self._tester.create_report(
-            'Closed tickets, modified in the past 7 days by owner.',
-            'SELECT DISTINCT p.value AS __color__,'
-            '   id AS ticket,'
-            '   summary, component, milestone, t.type AS type,'
-            '   reporter, time AS created,'
-            '   changetime AS modified, description AS _description,'
-            '   priority,'
-            '   round(julianday(\'now\') - '
-            '         julianday(changetime, \'unixepoch\')) as days,'
-            '   resolution,'
-            '   owner as __group__'
-            '  FROM ticket t'
-            '  LEFT JOIN enum p ON p.name = t.priority AND '
-            '                      p.type = \'priority\''
-            '  WHERE ((julianday(\'now\') -'
-            '          julianday(changetime, \'unixepoch\')) < 7)'
-            '   AND status = \'closed\''
-            '  ORDER BY __group__, changetime, p.value',
+            'Closed tickets, modified in the past 7 days by owner.', """
+              SELECT DISTINCT p.value AS __color__,
+               id AS ticket,
+               summary, component, milestone, t.type AS type,
+               reporter, time AS created,
+               changetime AS modified, description AS _description,
+               priority,
+               round(julianday('now') - 
+                     julianday(changetime, 'unixepoch')) as days,
+               resolution,
+               owner as __group__
+              FROM ticket t
+              LEFT JOIN enum p ON p.name = t.priority AND 
+                                  p.type = 'priority'
+              WHERE ((julianday('now') -
+                      julianday(changetime, 'unixepoch')) < 7)
+               AND status = 'closed'
+              ORDER BY __group__, changetime, p.value
+            """,
             'List of all tickets that are closed, and have been modified in'
             ' the past 7 days, grouped by owner.\n\n(So they have probably'
             ' been closed this week.)')

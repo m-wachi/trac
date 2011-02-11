@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2003-2009 Edgewall Software
+# Copyright (C) 2003-2011 Edgewall Software
 # Copyright (C) 2003-2004 Jonas Borgström <jonas@edgewall.com>
 # Copyright (C) 2004-2005 Christopher Lenz <cmlenz@gmx.de>
 # All rights reserved.
@@ -33,11 +33,11 @@ class TracError(Exception):
     title = N_('Trac Error')
     
     def __init__(self, message, title=None, show_traceback=False):
-        """If message is a genshi.builder.tag object, everything up to the
-        first <p> will be displayed in the red box, and everything after will
-        be displayed below the red box.
-        If title is given, it will be displayed as the large header above the
-        error message.
+        """If message is a genshi.builder.tag object, everything up to
+        the first <p> will be displayed in the red box, and everything
+        after will be displayed below the red box.  If title is given,
+        it will be displayed as the large header above the error
+        message.
         """
         from trac.util.translation import gettext
         Exception.__init__(self, message)
@@ -62,20 +62,21 @@ class ExtensionPoint(property):
     def __init__(self, interface):
         """Create the extension point.
         
-        @param interface: the `Interface` subclass that defines the protocol
-            for the extension point
+        :param interface: the `Interface` subclass that defines the
+                          protocol for the extension point
         """
         property.__init__(self, self.extensions)
         self.interface = interface
-        self.__doc__ = 'List of components that implement `%s`' % \
-                       self.interface.__name__
+        self.__doc__ = ("List of components that implement `%s`" %
+                        self.interface.__name__)
 
     def extensions(self, component):
-        """Return a list of components that declare to implement the extension
-        point interface.
+        """Return a list of components that declare to implement the
+        extension point interface.
         """
-        extensions = ComponentMeta._registry.get(self.interface, ())
-        return filter(None, [component.compmgr[cls] for cls in extensions])
+        classes = ComponentMeta._registry.get(self.interface, ())
+        components = [component.compmgr[cls] for cls in classes]
+        return [c for c in components if c]
 
     def __repr__(self):
         """Return a textual representation of the extension point."""
@@ -98,31 +99,6 @@ class ComponentMeta(type):
             # Don't put the Component base class in the registry
             return new_class
 
-        # Only override __init__ for Components not inheriting ComponentManager
-        if True not in [issubclass(x, ComponentManager) for x in bases]:
-            # Allow components to have a no-argument initializer so that
-            # they don't need to worry about accepting the component manager
-            # as argument and invoking the super-class initializer
-            init = d.get('__init__')
-            if not init:
-                # Because we're replacing the initializer, we need to make sure
-                # that any inherited initializers are also called.
-                for init in [b.__init__._original for b in new_class.mro()
-                             if issubclass(b, Component)
-                             and '__init__' in b.__dict__]:
-                    break
-            def maybe_init(self, compmgr, init=init, cls=new_class):
-                if cls not in compmgr.components:
-                    compmgr.components[cls] = self
-                    if init:
-                        try:
-                            init(self)
-                        except:
-                            del compmgr.components[cls]
-                            raise
-            maybe_init._original = init
-            new_class.__init__ = maybe_init
-
         if d.get('abstract'):
             # Don't put abstract component classes in the registry
             return new_class
@@ -137,38 +113,46 @@ class ComponentMeta(type):
 
         return new_class
 
-
-class Component(object):
-    """Base class for components.
-
-    Every component can declare what extension points it provides, as well as
-    what extension points of other components it extends.
-    """
-    __metaclass__ = ComponentMeta
-
-    def __new__(cls, *args, **kwargs):
-        """Return an existing instance of the component if it has already been
-        activated, otherwise create a new instance.
+    def __call__(cls, *args, **kwargs):
+        """Return an existing instance of the component if it has
+        already been activated, otherwise create a new instance.
         """
         # If this component is also the component manager, just invoke that
         if issubclass(cls, ComponentManager):
-            self = super(Component, cls).__new__(cls)
+            self = cls.__new__(cls)
             self.compmgr = self
+            self.__init__(*args, **kwargs)
             return self
 
         # The normal case where the component is not also the component manager
         compmgr = args[0]
         self = compmgr.components.get(cls)
+        # Note that this check is racy, we intentionally don't use a
+        # lock in order to keep things simple and avoid the risk of
+        # deadlocks, as the impact of having temporarily two (or more)
+        # instances for a given `cls` is negligible.
         if self is None:
-            self = super(Component, cls).__new__(cls)
+            self = cls.__new__(cls)
             self.compmgr = compmgr
             compmgr.component_activated(self)
+            self.__init__()
+            # Only register the instance once it is fully initialized (#9418)
+            compmgr.components[cls] = self
         return self
+
+
+class Component(object):
+    """Base class for components.
+
+    Every component can declare what extension points it provides, as
+    well as what extension points of other components it extends.
+    """
+    __metaclass__ = ComponentMeta
 
     @staticmethod
     def implements(*interfaces):
-        """Can be used in the class definiton of `Component` subclasses to
-        declare the extension points that are extended.
+        """Can be used in the class definition of `Component`
+        subclasses to declare the extension points that are extended.
         """
         import sys
 
@@ -196,12 +180,14 @@ class ComponentManager(object):
             self.components[self.__class__] = self
 
     def __contains__(self, cls):
-        """Return wether the given class is in the list of active components."""
+        """Return wether the given class is in the list of active
+        components."""
         return cls in self.components
 
     def __getitem__(self, cls):
-        """Activate the component instance for the given class, or return the
-        existing instance if the component has already been activated.
+        """Activate the component instance for the given class, or
+        return the existing instance if the component has already been
+        activated.
         """
         if not self.is_enabled(cls):
             return None
@@ -225,7 +211,7 @@ class ComponentManager(object):
     def disable_component(self, component):
         """Force a component to be disabled.
         
-        The argument `component` can be a class or an instance.
+        :param component: can be a class or an instance.
         """
         if not isinstance(component, type):
             component = component.__class__
@@ -233,17 +219,17 @@ class ComponentManager(object):
         self.components[component] = None
 
     def component_activated(self, component):
-        """Can be overridden by sub-classes so that special initialization for
-        components can be provided.
+        """Can be overridden by sub-classes so that special
+        initialization for components can be provided.
         """
 
     def is_component_enabled(self, cls):
-        """Can be overridden by sub-classes to veto the activation of a
-        component.
+        """Can be overridden by sub-classes to veto the activation of
+        a component.
 
-        If this method returns `False`, the component was disabled explicitly.
-        If it returns `None`, the component was neither enabled nor disabled
-        explicitly. In both cases, the component with the given class will not
-        be available.
+        If this method returns `False`, the component was disabled
+        explicitly.  If it returns `None`, the component was neither
+        enabled nor disabled explicitly. In both cases, the component
+        with the given class will not be available.
         """
         return True

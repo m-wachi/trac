@@ -12,7 +12,17 @@
 # individuals. For the exact contribution history, see the revision
 # history and logs, available at http://trac.edgewall.org/log/.
 
+import sys
+
 from setuptools import setup, find_packages
+
+min_python = (2, 5)
+if sys.version_info < min_python:
+    print "Trac requires Python %d.%d or later" % min_python
+    sys.exit(1)
+if sys.version_info >= (3,):
+    print "Trac doesn't support Python 3 (yet)"
+    sys.exit(1)
 
 extra = {}
 
@@ -30,15 +40,22 @@ try:
         'tracopt': extractors,
     }
 
-    from trac.util.dist import get_l10n_js_cmdclass
+    from trac.dist import get_l10n_js_cmdclass
     extra['cmdclass'] = get_l10n_js_cmdclass()
 
-except ImportError, e:
+except ImportError:
     pass
+
+try:
+    import genshi
+except ImportError:
+    print "Genshi is needed by Trac setup, pre-installing"
+    # give some context to the warnings we might get when installing Genshi
+
 
 setup(
     name = 'Trac',
-    version = '0.12.1',
+    version = '0.13',
     description = 'Integrated SCM, wiki, issue tracker and project environment',
     long_description = """
 Trac is a minimalistic web-based software project management and bug/issue
@@ -75,6 +92,9 @@ facilities.
     test_suite = 'trac.test.suite',
     zip_safe = True,
 
+    setup_requires = [
+        'Genshi>=0.6',
+    ],
     install_requires = [
         'setuptools>=0.6b1',
         'Genshi>=0.6',
@@ -103,7 +123,6 @@ facilities.
         trac.mimeview.patch = trac.mimeview.patch
         trac.mimeview.pygments = trac.mimeview.pygments[Pygments]
         trac.mimeview.rst = trac.mimeview.rst[reST]
-        trac.mimeview.silvercity = trac.mimeview.silvercity[SilverCity]
         trac.mimeview.txtl = trac.mimeview.txtl[Textile]
         trac.prefs = trac.prefs.web_ui
         trac.search = trac.search.web_ui
@@ -127,6 +146,7 @@ facilities.
         trac.wiki.web_api = trac.wiki.web_api
         tracopt.mimeview.enscript = tracopt.mimeview.enscript
         tracopt.mimeview.php = tracopt.mimeview.php
+        tracopt.mimeview.silvercity = tracopt.mimeview.silvercity[SilverCity]
         tracopt.perm.authz_policy = tracopt.perm.authz_policy
         tracopt.perm.config_perm_provider = tracopt.perm.config_perm_provider
         tracopt.ticket.commit_updater = tracopt.ticket.commit_updater

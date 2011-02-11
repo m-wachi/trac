@@ -11,6 +11,7 @@
 # individuals. For the exact contribution history, see the revision
 # history and logs, available at http://trac.edgewall.org/log/.
 
+from HTMLParser import HTMLParser
 import re
 
 from genshi import Markup, escape, unescape
@@ -18,16 +19,27 @@ from genshi.core import stripentities, striptags, START, END
 from genshi.builder import Element, ElementFactory, Fragment
 from genshi.filters.html import HTMLSanitizer
 
-__all__ = ['escape', 'unescape', 'html', 'plaintext', 'TracHTMLSanitizer']
+__all__ = ['escape', 'unescape', 'html', 'plaintext', 'TracHTMLSanitizer',
+           'Deuglifier', 'FormTokenInjector']
 
 
 class TracHTMLSanitizer(HTMLSanitizer):
+    """Sanitize HTML constructions which are potentially vector of
+    phishing or XSS attacks, in user-supplied HTML.
+
+    See also `genshi.HTMLSanitizer`_.
+
+    .. _genshi.HTMLSanitizer:
+       http://genshi.edgewall.org/wiki/Documentation/filters.html#html-sanitizer
+    """
 
     UNSAFE_CSS = ['position']
 
-    def __init__(self):
-        safe_attrs = HTMLSanitizer.SAFE_ATTRS | set(['style'])
-        super(TracHTMLSanitizer, self).__init__(safe_attrs=safe_attrs)
+    def __init__(self, safe_schemes=HTMLSanitizer.SAFE_SCHEMES):
+        safe_attrs = HTMLSanitizer.SAFE_ATTRS | frozenset(['style'])
+        safe_schemes = frozenset(safe_schemes)
+        super(TracHTMLSanitizer, self).__init__(safe_attrs=safe_attrs,
+                                                safe_schemes=safe_schemes)
 
     def sanitize_css(self, text):
         decls = []
@@ -85,11 +97,20 @@ class TracHTMLSanitizer(HTMLSanitizer):
 
 
 class Deuglifier(object):
+    """Help base class used for cleaning up HTML riddled with ``<FONT
+    COLOR=...>`` tags and replace them with appropriate ``<span
+    class="...">``.
 
+    The subclass must define a `rules()` static method returning a
+    list of regular expression fragments, each defining a capture
+    group in which the name will be reused for the span's class. Two
+    special group names, ``font`` and ``endfont`` are used to emit
+    ``<span>`` and ``</span>``, respectively.
+    """
     def __new__(cls):
         self = object.__new__(cls)
         if not hasattr(cls, '_compiled_rules'):
-            cls._compiled_rules = re.compile('(?:' + '|'.join(cls.rules()) + ')')
+            cls._compiled_rules = re.compile('(?:%s)' % '|'.join(cls.rules()))
         self._compiled_rules = cls._compiled_rules
         return self
     
@@ -106,7 +127,54 @@ class Deuglifier(object):
                 return '<span class="code-%s">' % mtype
 
 
+class FormTokenInjector(HTMLParser):
+    """Identify and protect forms from CSRF attacks.
+
+    This filter works by adding a input type=hidden field to POST forms.
+    """
+    def __init__(self, form_token, out):
+        HTMLParser.__init__(self)
+        self.out = out
+        self.token = form_token
+
+    def handle_starttag(self, tag, attrs):
+        self.out.write(self.get_starttag_text())
+        if tag.lower() == 'form':
+            for name, value in attrs:
+                if name.lower() == 'method' and value.lower() == 'post':
+                    self.out.write('<input type="hidden" name="__FORM_TOKEN"'
+                                   ' value="%s"/>' % self.token)
+                    break
+                    
+    def handle_startendtag(self, tag, attrs):
+        self.out.write(self.get_starttag_text())
+        
+    def handle_charref(self, name):
+        self.out.write('&#%s;' % name)
+
+    def handle_entityref(self, name):
+        self.out.write('&%s;' % name)
+
+    def handle_comment(self, data):
+        self.out.write('<!--%s-->' % data)
+
+    def handle_decl(self, data):
+        self.out.write('<!%s>' % data)
+
+    def handle_pi(self, data):
+        self.out.write('<?%s?>' % data)
+
+    def handle_data(self, data):
+        self.out.write(data)
+
+    def handle_endtag(self, tag):
+        self.out.write('</' + tag + '>')
+
+
 class TransposingElementFactory(ElementFactory):
+    """A `genshi.builder.ElementFactory` which applies `func` to the
+    named attributes before creating a `genshi.builder.Element`.
+    """
 
     def __init__(self, func, namespace=None):
         ElementFactory.__init__(self, namespace=namespace)
@@ -115,8 +183,15 @@ class TransposingElementFactory(ElementFactory):
     def __getattr__(self, name):
         return ElementFactory.__getattr__(self, self.func(name))
 
+html = TransposingElementFactory(str.lower)
+
 
 def plaintext(text, keeplinebreaks=True):
+    """Extract the text elements from (X)HTML content
+
+    :param text: `unicode` or `genshi.builder.Fragment`
+    :param keeplinebreaks: optionally keep linebreaks
+    """
     if isinstance(text, Fragment):
         text = text.generate().render('text', encoding=None)
     else:
@@ -127,10 +202,10 @@ def plaintext(text, keeplinebreaks=True):
 
 
 def expand_markup(stream, ctxt=None):
-    """A Genshi stream filter for expanding Markup events.
+    """A Genshi stream filter for expanding `genshi.Markup` events.
 
-    Note: Expansion may not be possible if the fragment is badly formed, or
-    partial.
+    Note: Expansion may not be possible if the fragment is badly
+    formed, or partial.
     """
     for event in stream:
         if isinstance(event[1], Markup):
@@ -141,6 +216,3 @@ def expand_markup(stream, ctxt=None):
                 yield event
         else:
             yield event
-
-
-html = TransposingElementFactory(str.lower)

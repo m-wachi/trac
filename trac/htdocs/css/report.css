@@ -1,5 +1,55 @@
 @import url(code.css);
 
+/* Report listing */
+.report #trac-sort-order { 
+ float: right;
+ font-size: 11px;
+ font-weight: normal;
+}
+
+.report #trac-sort-order a { 
+ background-position: 100% 50%;
+ background-repeat: no-repeat;
+ margin-left: 4px;
+}
+.report #trac-sort-order a.asc { 
+ font-weight: bold;
+ padding-right: 12px;
+ background-image: url(../asc.png);
+}
+.report #trac-sort-order a.desc {
+ font-weight: bold;
+ padding-right: 12px;
+ background-image: url(../desc.png);
+}
+
+.report div.reports { clear: both }
+.report div.reports h2 {
+ border-bottom: 1px solid #eeeeee;
+ margin-top: 0;
+}
+.report div.reports h2 :link, .report div.reports h2 :visited {
+ color: #000;
+ border-bottom: none;
+}
+.report div.reports h2 em { 
+ color: #800;
+ font-style: normal;
+}
+
+.report form div.inlinebuttons {
+ float: right;
+ margin-top: -2px;
+ margin-left: 0.2em;
+}
+
+.report span.foldable { display: none }
+.report div.description {
+ font-size: 90%;
+ margin: 1em .5em .5em; 
+}
+
+/* Report results */
 #prefs .buttons { margin-top: 0 }
 #prefs fieldset { 
  margin-left: 1em;
@@ -9,7 +59,6 @@
  margin: 0;
  padding: 2px;
 }
-
 
 h1 .numrows, h2 .numrows {
  margin-left: 1em;
@@ -84,15 +133,36 @@ h2.report-result {
 
 /* Styles for the report list and the report results table
    (extends the styles for "table.listing") */
-.reports td.title { width: 100% }
-.tickets { border-bottom: none }
-.tickets thead th { text-transform: capitalize; white-space: nowrap; }
-.tickets tbody td, .reports tbody td { padding: .1em .5em !important }
+.reports td.title { width: 100%; white-space: normal; }
+.tickets tbody:first-child tr.trac-group h2 { margin-top: 0; }
+.tickets tr.trac-group { border: none; }
+.tickets tr.trac-group:hover { background: none !important; }
+.tickets tr.trac-group th { background: none; border: none; padding: 0 0 1em; }
+.tickets tr.trac-columns th { background: #f7f7f0 }
+.tickets tr.trac-columns th {
+ border: 1px solid #d7d7d7;
+ border-bottom-color: #999;
+ font-size: 11px;
+ font-weight: bold;
+ padding: 2px .5em;
+ vertical-align: bottom;
+ white-space: nowrap;
+}
+.tickets tr.trac-columns th :link:hover, .tickets tr.trac-columns th :visited:hover {
+ background-color: transparent;
+}
+.tickets tr.trac-columns th a { border: none; padding-right: 12px }
+.tickets tr.trac-columns th, .reports tr.trac-columns th {
+ text-transform: capitalize;
+ white-space: nowrap;
+}
+.tickets tbody td, .reports tbody td { padding: .1em .5em !important; }
 .tickets tbody td a, .reports tbody td a { border-bottom: none }
 .tickets tbody td.id :link, .tickets tbody td.id :visited {
  font-weight: bold;
 }
 .tickets tbody td.time a, .tickets tbody td.changetime a { white-space: nowrap }
+.tickets tbody tr { border-bottom: 1px solid #ddd }
 .tickets tbody tr:hover { background: #eed; color: #000 }
 .tickets tr.color1-odd  { background: #fdc; border-color: #e88; color: #a22 }
 .tickets tr.color1-even { background: #fed; border-color: #e99; color: #a22 }

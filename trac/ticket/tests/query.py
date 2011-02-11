@@ -1,7 +1,7 @@
-from trac.mimeview import Context
 from trac.test import Mock, EnvironmentStub, MockPerm
 from trac.ticket.query import Query, QueryModule, TicketQueryMacro
 from trac.util.datefmt import utc
+from trac.web.chrome import web_context
 from trac.web.href import Href
 from trac.wiki.formatter import LinkFormatter
 
@@ -37,7 +37,6 @@ class QueryTestCase(unittest.TestCase):
 
     def setUp(self):
         self.env = EnvironmentStub(default_data=True)
-        self.db = self.env.get_db_cnx()
         self.req = Mock(href=self.env.href, authname='anonymous', tz=utc,
                         locale=Locale and Locale.parse('en_US') or None)
         
@@ -96,7 +95,7 @@ ORDER BY COALESCE(t.id,0)=0,t.id""")
 FROM ticket AS t
   LEFT OUTER JOIN enum AS priority ON (priority.type='priority' AND priority.name=priority)
 ORDER BY COALESCE(priority.value,'')='',%(cast_priority)s,t.id""" % {
-          'cast_priority': self.env.get_db_cnx().cast('priority.value', 'int')})
+          'cast_priority': self.env.get_read_db().cast('priority.value', 'int')})
         self.assertEqual([], args)
         tickets = query.execute(self.req)
 
@@ -108,7 +107,7 @@ ORDER BY COALESCE(priority.value,'')='',%(cast_priority)s,t.id""" % {
 FROM ticket AS t
   LEFT OUTER JOIN enum AS priority ON (priority.type='priority' AND priority.name=priority)
 ORDER BY COALESCE(priority.value,'')='' DESC,%(cast_priority)s DESC,t.id""" % {
-          'cast_priority': self.env.get_db_cnx().cast('priority.value', 'int')})
+          'cast_priority': self.env.get_read_db().cast('priority.value', 'int')})
         self.assertEqual([], args)
         tickets = query.execute(self.req)
 
@@ -180,7 +179,7 @@ ORDER BY COALESCE(t.milestone,'')='' DESC,COALESCE(milestone.completed,0)=0 DESC
 FROM ticket AS t
   LEFT OUTER JOIN enum AS priority ON (priority.type='priority' AND priority.name=priority)
 ORDER BY COALESCE(priority.value,'')='',%(cast_priority)s,t.id""" % {
-          'cast_priority': self.env.get_db_cnx().cast('priority.value', 'int')})
+          'cast_priority': self.env.get_read_db().cast('priority.value', 'int')})
         self.assertEqual([], args)
         tickets = query.execute(self.req)
 
@@ -217,7 +216,7 @@ ORDER BY COALESCE(t.id,0)=0,t.id""")
 FROM ticket AS t
   LEFT OUTER JOIN enum AS priority ON (priority.type='priority' AND priority.name=priority)
 WHERE ((COALESCE(t.owner,'') %(like)s))
-ORDER BY COALESCE(t.id,0)=0,t.id""" % {'like': self.env.get_db_cnx().like()})
+ORDER BY COALESCE(t.id,0)=0,t.id""" % {'like': self.env.get_read_db().like()})
         self.assertEqual(['%someone%'], args)
         tickets = query.execute(self.req)
 
@@ -229,7 +228,7 @@ ORDER BY COALESCE(t.id,0)=0,t.id""" % {'like': self.env.get_db_cnx().like()})
 FROM ticket AS t
   LEFT OUTER JOIN enum AS priority ON (priority.type='priority' AND priority.name=priority)
 WHERE ((COALESCE(t.owner,'') NOT %(like)s))
-ORDER BY COALESCE(t.id,0)=0,t.id""" % {'like': self.env.get_db_cnx().like()})
+ORDER BY COALESCE(t.id,0)=0,t.id""" % {'like': self.env.get_read_db().like()})
         self.assertEqual(['%someone%'], args)
         tickets = query.execute(self.req)
 
@@ -241,7 +240,7 @@ ORDER BY COALESCE(t.id,0)=0,t.id""" % {'like': self.env.get_db_cnx().like()})
 FROM ticket AS t
   LEFT OUTER JOIN enum AS priority ON (priority.type='priority' AND priority.name=priority)
 WHERE ((COALESCE(t.owner,'') %(like)s))
-ORDER BY COALESCE(t.id,0)=0,t.id""" % {'like': self.env.get_db_cnx().like()})
+ORDER BY COALESCE(t.id,0)=0,t.id""" % {'like': self.env.get_read_db().like()})
         self.assertEqual(['someone%'], args)
         tickets = query.execute(self.req)
 
@@ -253,7 +252,7 @@ ORDER BY COALESCE(t.id,0)=0,t.id""" % {'like': self.env.get_db_cnx().like()})
 FROM ticket AS t
   LEFT OUTER JOIN enum AS priority ON (priority.type='priority' AND priority.name=priority)
 WHERE ((COALESCE(t.owner,'') %(like)s))
-ORDER BY COALESCE(t.id,0)=0,t.id""" % {'like': self.env.get_db_cnx().like()})
+ORDER BY COALESCE(t.id,0)=0,t.id""" % {'like': self.env.get_read_db().like()})
         self.assertEqual(['%someone'], args)
         tickets = query.execute(self.req)
 
@@ -261,7 +260,7 @@ ORDER BY COALESCE(t.id,0)=0,t.id""" % {'like': self.env.get_db_cnx().like()})
         self.env.config.set('ticket-custom', 'foo', 'text')
         query = Query.from_string(self.env, 'foo=something', order='id')
         sql, args = query.get_sql()
-        foo = self.db.quote('foo')
+        foo = self.env.get_read_db().quote('foo')
         self.assertEqualSQL(sql,
 """SELECT t.id AS id,t.summary AS summary,t.owner AS owner,t.type AS type,t.status AS status,t.priority AS priority,t.milestone AS milestone,t.time AS time,t.changetime AS changetime,priority.value AS priority_value,%s.value AS %s
 FROM ticket AS t
@@ -276,7 +275,7 @@ ORDER BY COALESCE(t.id,0)=0,t.id""" % ((foo,) * 6))
         self.env.config.set('ticket-custom', 'foo', 'text')
         query = Query(self.env, group='foo', order='id')
         sql, args = query.get_sql()
-        foo = self.db.quote('foo')
+        foo = self.env.get_read_db().quote('foo')
         self.assertEqualSQL(sql,
 """SELECT t.id AS id,t.summary AS summary,t.owner AS owner,t.type AS type,t.status AS status,t.priority AS priority,t.milestone AS milestone,t.time AS time,t.changetime AS changetime,priority.value AS priority_value,%s.value AS %s
 FROM ticket AS t
@@ -323,7 +322,7 @@ ORDER BY COALESCE(t.id,0)=0,t.id""")
 FROM ticket AS t
   LEFT OUTER JOIN enum AS priority ON (priority.type='priority' AND priority.name=priority)
 WHERE ((COALESCE(t.owner,'') %(like)s OR COALESCE(t.owner,'') %(like)s))
-ORDER BY COALESCE(t.id,0)=0,t.id""" % {'like': self.env.get_db_cnx().like()})
+ORDER BY COALESCE(t.id,0)=0,t.id""" % {'like': self.env.get_read_db().like()})
         tickets = query.execute(self.req)
 
     def test_constrained_by_empty_value_contains(self):
@@ -368,7 +367,7 @@ FROM ticket AS t
   LEFT OUTER JOIN enum AS priority ON (priority.type='priority' AND priority.name=priority)
 WHERE (((%(cast_time)s>=%%s AND %(cast_time)s<%%s)))
 ORDER BY COALESCE(t.id,0)=0,t.id""" % {
-          'cast_time': self.env.get_db_cnx().cast('t.time', 'int64')})
+          'cast_time': self.env.get_read_db().cast('t.time', 'int64')})
         self.assertEqual([1217548800000000L, 1220227200000000L], args)
         tickets = query.execute(self.req)
 
@@ -381,7 +380,7 @@ FROM ticket AS t
   LEFT OUTER JOIN enum AS priority ON (priority.type='priority' AND priority.name=priority)
 WHERE ((NOT (%(cast_time)s>=%%s AND %(cast_time)s<%%s)))
 ORDER BY COALESCE(t.id,0)=0,t.id""" % {
-          'cast_time': self.env.get_db_cnx().cast('t.time', 'int64')})
+          'cast_time': self.env.get_read_db().cast('t.time', 'int64')})
         self.assertEqual([1217548800000000L, 1220227200000000L], args)
         tickets = query.execute(self.req)
 
@@ -394,7 +393,7 @@ FROM ticket AS t
   LEFT OUTER JOIN enum AS priority ON (priority.type='priority' AND priority.name=priority)
 WHERE ((%(cast_time)s>=%%s))
 ORDER BY COALESCE(t.id,0)=0,t.id""" % {
-          'cast_time': self.env.get_db_cnx().cast('t.time', 'int64')})
+          'cast_time': self.env.get_read_db().cast('t.time', 'int64')})
         self.assertEqual([1217548800000000L], args)
         tickets = query.execute(self.req)
 
@@ -407,7 +406,7 @@ FROM ticket AS t
   LEFT OUTER JOIN enum AS priority ON (priority.type='priority' AND priority.name=priority)
 WHERE ((%(cast_time)s<%%s))
 ORDER BY COALESCE(t.id,0)=0,t.id""" % {
-          'cast_time': self.env.get_db_cnx().cast('t.time', 'int64')})
+          'cast_time': self.env.get_read_db().cast('t.time', 'int64')})
         self.assertEqual([1220227200000000L], args)
         tickets = query.execute(self.req)
 
@@ -420,7 +419,7 @@ FROM ticket AS t
   LEFT OUTER JOIN enum AS priority ON (priority.type='priority' AND priority.name=priority)
 WHERE (((%(cast_changetime)s>=%%s AND %(cast_changetime)s<%%s)))
 ORDER BY COALESCE(t.id,0)=0,t.id""" % {
-          'cast_changetime': self.env.get_db_cnx().cast('t.changetime', 'int64')})
+          'cast_changetime': self.env.get_read_db().cast('t.changetime', 'int64')})
         self.assertEqual([1217548800000000L, 1220227200000000L], args)
         tickets = query.execute(self.req)
 
@@ -433,7 +432,7 @@ ORDER BY COALESCE(t.id,0)=0,t.id""" % {
 FROM ticket AS t
   LEFT OUTER JOIN enum AS priority ON (priority.type='priority' AND priority.name=priority)
 WHERE (((COALESCE(t.keywords,'') %(like)s AND COALESCE(t.keywords,'') NOT %(like)s AND COALESCE(t.keywords,'') %(like)s)))
-ORDER BY COALESCE(t.id,0)=0,t.id""" % {'like': self.env.get_db_cnx().like()})
+ORDER BY COALESCE(t.id,0)=0,t.id""" % {'like': self.env.get_read_db().like()})
         self.assertEqual(['%foo%', '%bar%', '%baz%'], args)
         tickets = query.execute(self.req)
 
@@ -488,13 +487,13 @@ ORDER BY COALESCE(t.id,0)=0,t.id""")
 
     def test_csv_escape(self):
         query = Mock(get_columns=lambda: ['col1'],
-                     execute=lambda r,c: [{'id': 1,
-                                           'col1': 'value, needs escaped'}],
+                     execute=lambda r: [{'id': 1, 
+                                         'col1': 'value, needs escaped'}],
                      time_fields=['time', 'changetime'])
         content, mimetype = QueryModule(self.env).export_csv(
                                 Mock(href=self.env.href, perm=MockPerm()),
                                 query)
-        self.assertEqual('col1\r\n"value, needs escaped"\r\n',
+        self.assertEqual('\xef\xbb\xbfcol1\r\n"value, needs escaped"\r\n',
                          content)
 
 
@@ -504,7 +503,7 @@ class QueryLinksTestCase(unittest.TestCase):
         self.env = EnvironmentStub(default_data=True)
         self.query_module = QueryModule(self.env)
         req = Mock(perm=MockPerm(), args={}, href=Href('/'))
-        self.formatter = LinkFormatter(self.env, Context.from_request(req))
+        self.formatter = LinkFormatter(self.env, web_context(req))
 
     def tearDown(self):
         self.env.reset_db()

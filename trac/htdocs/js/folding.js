@@ -9,12 +9,15 @@
     
     var count = 1;
     return this.each(function() {
-      var t = $(this).text();
-      $(this).text("");
-      var trigger = $(this).append("<a" + (snap? " id='no" + count + "'": "")
-                                   + " href='#no" + count + "'></a>")
-                           .children();
-      trigger.text(t);
+      // Use first child <a> as a trigger, or generate a trigger from the text
+      var trigger = $(this).children("a").eq(0);
+      if (trigger.length == 0) {
+        trigger = $("<a" + (snap? " id='no" + count + "'": "")
+            + " href='#no" + count + "'></a>");
+        trigger.text($(this).text());
+        $(this).text("");
+        $(this).append(trigger);
+      }
       
       trigger.click(function() {
         var div = $(this.parentNode.parentNode).toggleClass("collapsed");
@@ -23,7 +26,7 @@
       if (autofold && (count != fragId))
         trigger.parents().eq(1).addClass("collapsed");
       count++;
-    }).css("cursor", "pointer");
+    });
   }
 
   /** Enable columns of a table to be hidden by clicking on the column header.

@@ -11,6 +11,7 @@
     <script type="text/javascript" src="${chrome.htdocs_location}js/folding.js"></script>
     <script type="text/javascript">/*<![CDATA[*/
       jQuery(document).ready(function($) {
+        initializeFilters();
         $("#group").change(function() {
           $("#groupdesc").enable(this.selectedIndex != 0)
         }).change();
@@ -29,7 +30,7 @@
       <h1>$title <span class="numrows">(${ngettext('%(num)s match', '%(num)s matches', query.num_items)})</span></h1>
 
       <div py:if="description" id="description" xml:space="preserve">
-        ${wiki_to_html(context(report_resource), description)}
+        ${wiki_to_html(context.child(report_resource), description)}
       </div>
 
       <form id="query" method="post" action="${href.query()}"
@@ -41,10 +42,10 @@
                    py:with="clause_pre = '%d_' % clause_num">
               <tr style="${clause_num == 0 and 'display: none' or None}">
                 <td>
-		  <div class="trac-clause-lsep">&nbsp;<hr /></div>
-		  <div class="trac-clause-msep">Or</div>
-		  <div class="trac-clause-rsep">&nbsp;<hr /></div>
-		</td>
+                  <div class="trac-clause-lsep">&nbsp;<hr /></div>
+                  <div class="trac-clause-msep">Or</div>
+                  <div class="trac-clause-rsep">&nbsp;<hr /></div>
+                </td>
               </tr>
               <tr><td class="trac-clause">
                 <table class="trac-clause">
@@ -81,8 +82,15 @@
                           <select name="${n_field_name}">
                             <option></option>
                             <option py:for="option in field.options"
-                              selected="${option == constraint_value and 'selected' or None}"
-                              value="$option" py:content="option"></option>
+                                    selected="${option == constraint_value or None}"
+                                    value="$option" py:content="option"></option>
+                            <optgroup py:for="optgroup in field.optgroups"
+                                      py:if="optgroup.options"
+                                      label="${optgroup.label}">
+                              <option py:for="option in optgroup.options"
+                                      selected="${option == constraint_value or None}"
+                                      value="$option" py:content="option"></option>
+                            </optgroup>
                           </select>
                         </py:when>
 
@@ -210,28 +218,6 @@
         </div>
         <hr />
       </form>
-
-      <script type="text/javascript">
-        var properties={
-        <py:for each="(field_name, field), sep in separated(fields.iteritems())">
-          $field_name: { type: "${javascript_quote(field.type)}", label: "${javascript_quote(field.label)}"
-          <py:if test="'options' in field">, options: [
-            <py:for each="option, sep in separated(field.options)">"${javascript_quote(option)}"$sep
-            </py:for>]
-          </py:if>}$sep
-        </py:for>
-        };
-        var modes = {
-        <py:for each="(type_name, type_modes), sep in separated(modes.iteritems())">
-          $type_name: [
-          <py:for each="mode, sep in separated(type_modes)">
-            {text: "${javascript_quote(mode.name)}", value: "${javascript_quote(mode.value)}"}$sep
-          </py:for>
-            ]$sep
-        </py:for>
-        };
-        initializeFilters();
-      </script>
 
       <xi:include href="query_results.html" />
 

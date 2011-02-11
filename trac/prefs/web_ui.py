@@ -106,9 +106,10 @@ class PreferencesModule(Component):
         }
 
         if Locale:
-            locales = map(Locale.parse, get_available_locales())
-            languages = sorted([(str(locale).replace('_','-'),
-                                 locale.display_name) for locale in locales])
+            locales = [Locale.parse(locale)
+                       for locale in get_available_locales()]
+            languages = sorted((str(locale), locale.display_name)
+                               for locale in locales)
             data['locales'] = locales
             data['languages'] = languages
 
@@ -145,4 +146,6 @@ class PreferencesModule(Component):
     def _do_load(self, req):
         if req.authname == 'anonymous':
             oldsid = req.args.get('loadsid')
-            req.session.get_session(oldsid)
+            if oldsid:
+                req.session.get_session(oldsid)
+                add_notice(req, _('The session has been loaded.'))

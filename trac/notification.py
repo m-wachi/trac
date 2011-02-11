@@ -29,7 +29,7 @@ from trac.util.translation import _, deactivate, reactivate
 MAXHEADERLEN = 76
 EMAIL_LOOKALIKE_PATTERN = (
         # the local part
-        r"[a-zA-Z0-9.'=+_-]+" '@'
+        r"[a-zA-Z0-9.'+_-]+" '@'
         # the domain name part (RFC:1035)
         '(?:[a-zA-Z0-9_-]+\.)+' # labels (but also allow '_')
         '[a-zA-Z](?:[-a-zA-Z\d]*[a-zA-Z\d])?' # TLD
@@ -63,6 +63,10 @@ class NotificationSystem(Component):
     smtp_from_name = Option('notification', 'smtp_from_name', '',
         """Sender name to use in notification emails.""")
 
+    smtp_from_author = BoolOption('notification', 'smtp_from_author', 'false',
+        """Use the action author as the sender of notification emails.
+           (''since 0.13'')""")
+
     smtp_replyto = Option('notification', 'smtp_replyto', 'trac@localhost',
         """Reply-To address to use in notification emails.""")
 
@@ -72,7 +76,7 @@ class NotificationSystem(Component):
 
     smtp_always_bcc = Option('notification', 'smtp_always_bcc', '',
         """Email address(es) to always send notifications to,
-           addresses do not appear publicly (Bcc:). (''since 0.10'').""")
+           addresses do not appear publicly (Bcc:). (''since 0.10'')""")
            
     smtp_default_domain = Option('notification', 'smtp_default_domain', '',
         """Default host/domain to append to address that do not specify
@@ -112,7 +116,7 @@ class NotificationSystem(Component):
         
         If the setting is not defined, then the [$project_name] prefix.
         If no prefix is desired, then specifying an empty option 
-        will disable it. (''since 0.10.1'').""")
+        will disable it. (''since 0.10.1'')""")
 
     def send_email(self, from_addr, recipients, message):
         """Send message to recipients via e-mail."""
@@ -211,12 +215,11 @@ class Notify(object):
     def __init__(self, env):
         self.env = env
         self.config = env.config
-        self.db = env.get_db_cnx()
 
         from trac.web.chrome import Chrome
         self.template = Chrome(self.env).load_template(self.template_name,
                                                        method='text')
-        # FIXME: actually, we would need a Context with a different
+        # FIXME: actually, we would need a different
         #        PermissionCache for each recipient
         self.data = Chrome(self.env).populate_data(None, {'CRLF': CRLF})
 
@@ -276,9 +279,12 @@ class NotifyEmail(Notify):
         self._init_pref_encoding()
         domains = self.env.config.get('notification', 'ignore_domains', '')
         self._ignore_domains = [x.strip() for x in domains.lower().split(',')]
-        # Get the email addresses of all known users
+        # Get the name and email addresses of all known users
+        self.name_map = {}
         self.email_map = {}
-        for username, name, email in self.env.get_known_users(self.db):
+        for username, name, email in self.env.get_known_users():
+            if name:
+                self.name_map[username] = name
             if email:
                 self.email_map[username] = email
                 
@@ -303,15 +309,26 @@ class NotifyEmail(Notify):
             raise TracError(_('Invalid email encoding setting: %(pref)s',
                               pref=pref))
 
-    def notify(self, resid, subject):
+    def notify(self, resid, subject, author=None):
         self.subject = subject
-
-        if not self.config.getbool('notification', 'smtp_enabled'):
+        config = self.config['notification']
+        if not config.getbool('smtp_enabled'):
             return
-        self.from_email = self.config['notification'].get('smtp_from')
-        self.from_name = self.config['notification'].get('smtp_from_name')
-        self.replyto_email = self.config['notification'].get('smtp_replyto')
-        self.from_email = self.from_email or self.replyto_email
+        from_email, from_name = '', ''
+        if author and config.getbool('smtp_from_author'):
+            from_email = self.get_smtp_address(author)
+            if from_email:
+                from_name = self.name_map.get(author, '')
+                if not from_name:
+                    mo = self.longaddr_re.search(author)
+                    if mo:
+                        from_name = mo.group(1)
+        if not from_email:
+            from_email = config.get('smtp_from')
+            from_name = config.get('smtp_from_name') or self.env.project_name
+        self.replyto_email = config.get('smtp_replyto')
+        self.from_email = from_email or self.replyto_email
+        self.from_name = from_name
         if not self.from_email and not self.replyto_email:
             raise TracError(tag(
                     tag.p(_('Unable to send email due to identity crisis.')),
@@ -355,20 +372,19 @@ class NotifyEmail(Notify):
                 return False
             return True
 
-        if not is_email(address):
-            if address == 'anonymous':
+        if address == 'anonymous':
+            return None
+        if address in self.email_map:
+            address = self.email_map[address]
+        elif not is_email(address) and NotifyEmail.nodomaddr_re.match(address):
+            if self.config.getbool('notification', 'use_short_addr'):
+                return address
+            domain = self.config.get('notification', 'smtp_default_domain')
+            if domain:
+                address = "%s@%s" % (address, domain)
+            else:
+                self.env.log.info("Email address w/o domain: %s" % address)
                 return None
-            if self.email_map.has_key(address):
-                address = self.email_map[address]
-            elif NotifyEmail.nodomaddr_re.match(address):
-                if self.config.getbool('notification', 'use_short_addr'):
-                    return address
-                domain = self.config.get('notification', 'smtp_default_domain')
-                if domain:
-                    address = "%s@%s" % (address, domain)
-                else:
-                    self.env.log.info("Email address w/o domain: %s" % address)
-                    return None
 
         mo = self.shortaddr_re.search(address)
         if mo:
@@ -382,11 +398,6 @@ class NotifyEmail(Notify):
     def encode_header(self, key, value):
         if isinstance(value, tuple):
             return self.format_header(key, value[0], value[1])
-        if isinstance(value, list):
-            items = []
-            for v in value:
-                items.append(self.encode_header(v))
-            return ',\n\t'.join(items)
         mo = self.longaddr_re.match(value)
         if mo:
             return self.format_header(key, mo.group(1), mo.group(2))
@@ -399,20 +410,20 @@ class NotifyEmail(Notify):
         # don't translate the e-mail stream
         t = deactivate()
         try:
-            body = stream.render('text')
+            body = stream.render('text', encoding='utf-8')
         finally:
             reactivate(t)
-        projname = self.env.project_name
         public_cc = self.config.getbool('notification', 'use_public_cc')
         headers = {}
         headers['X-Mailer'] = 'Trac %s, by Edgewall Software' % __version__
         headers['X-Trac-Version'] =  __version__
-        headers['X-Trac-Project'] =  projname
+        headers['X-Trac-Project'] =  self.env.project_name
         headers['X-URL'] = self.env.project_url
         headers['Precedence'] = 'bulk'
         headers['Auto-Submitted'] = 'auto-generated'
         headers['Subject'] = self.subject
-        headers['From'] = (self.from_name or projname, self.from_email)
+        headers['From'] = (self.from_name, self.from_email) if self.from_name \
+                          else self.from_email
         headers['Reply-To'] = self.replyto_email
 
         def build_addresses(rcpts):

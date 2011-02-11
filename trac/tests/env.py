@@ -1,3 +1,5 @@
+from __future__ import with_statement
+
 from trac import db_default
 from trac.env import Environment
 
@@ -12,10 +14,10 @@ class EnvironmentTestCase(unittest.TestCase):
     def setUp(self):
         env_path = os.path.join(tempfile.gettempdir(), 'trac-tempenv')
         self.env = Environment(env_path, create=True)
-        self.db = self.env.get_db_cnx()
 
     def tearDown(self):
-        self.db.close()
+        with self.env.db_query as db:
+            db.close()
         self.env.shutdown() # really closes the db connections
         shutil.rmtree(self.env.path)
 
@@ -25,17 +27,17 @@ class EnvironmentTestCase(unittest.TestCase):
 
     def test_get_known_users(self):
         """Testing env.get_known_users"""
-        cursor = self.db.cursor()
-        cursor.executemany("INSERT INTO session VALUES (%s,%s,0)",
-                           [('123', 0),('tom', 1), ('joe', 1), ('jane', 1)])
-        cursor.executemany("INSERT INTO session_attribute VALUES (%s,%s,%s,%s)",
-                           [('123', 0, 'email', 'a@example.com'),
-                            ('tom', 1, 'name', 'Tom'),
-                            ('tom', 1, 'email', 'tom@example.com'),
-                            ('joe', 1, 'email', 'joe@example.com'),
-                            ('jane', 1, 'name', 'Jane')])
+        with self.env.db_transaction as db:
+            db.executemany("INSERT INTO session VALUES (%s,%s,0)",
+               [('123', 0),('tom', 1), ('joe', 1), ('jane', 1)])
+            db.executemany("INSERT INTO session_attribute VALUES (%s,%s,%s,%s)",
+               [('123', 0, 'email', 'a@example.com'),
+                ('tom', 1, 'name', 'Tom'),
+                ('tom', 1, 'email', 'tom@example.com'),
+                ('joe', 1, 'email', 'joe@example.com'),
+                ('jane', 1, 'name', 'Jane')])
         users = {}
-        for username, name, email in self.env.get_known_users(self.db):
+        for username, name, email in self.env.get_known_users():
             users[username] = (name, email)
 
         assert not users.has_key('anonymous')

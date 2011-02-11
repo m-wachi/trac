@@ -25,7 +25,6 @@ from genshi.builder import tag
 
 from trac.config import IntOption, BoolOption
 from trac.core import *
-from trac.mimeview import Context
 from trac.perm import IPermissionRequestor
 from trac.timeline.api import ITimelineEventProvider
 from trac.util import as_int
@@ -35,10 +34,12 @@ from trac.util.datefmt import format_date, format_datetime, parse_date, \
 from trac.util.text import exception_to_unicode, to_unicode
 from trac.util.translation import _, tag_
 from trac.web import IRequestHandler, IRequestFilter
-from trac.web.chrome import add_link, add_stylesheet, prevnext_nav, Chrome, \
-                            INavigationContributor, ITemplateProvider
-                            
+from trac.web.chrome import (Chrome, INavigationContributor, ITemplateProvider,
+                             add_link, add_stylesheet, auth_link, prevnext_nav,
+                             web_context)
 from trac.wiki.api import IWikiSyntaxProvider
+from trac.wiki.formatter import concat_path_query_fragment, \
+                                split_url_into_path_query_fragment
 
 
 class TimelineModule(Component):
@@ -74,7 +75,7 @@ class TimelineModule(Component):
     def get_navigation_items(self, req):
         if 'TIMELINE_VIEW' in req.perm:
             yield ('mainnav', 'timeline',
-                   tag.a(_('Timeline'), href=req.href.timeline(), accesskey=2))
+                   tag.a(_("Timeline"), href=req.href.timeline(), accesskey=2))
 
     # IPermissionRequestor methods
 
@@ -91,6 +92,14 @@ class TimelineModule(Component):
 
         format = req.args.get('format')
         maxrows = int(req.args.get('max', format == 'rss' and 50 or 0))
+        lastvisit = int(req.session.get('timeline.lastvisit', '0'))
+
+        # indication of new events is unchanged when form is updated by user
+        revisit = any([a in req.args for a in ['update', 'from', 'daysback',
+                                               'author']])
+        if revisit:
+            lastvisit = int(req.session.get('timeline.nextlastvisit',
+                                            lastvisit))
 
         # Parse the from date and adjust the timestamp to the last second of
         # the day
@@ -139,7 +148,8 @@ class TimelineModule(Component):
                                               locale=req.locale),
                 'precisedate': precisedate, 'precision': precision,
                 'events': [], 'filters': [],
-                'abbreviated_messages': self.abbreviated_messages}
+                'abbreviated_messages': self.abbreviated_messages,
+                'lastvisit': lastvisit}
 
         available_filters = []
         for event_provider in self.event_providers:
@@ -199,14 +209,19 @@ class TimelineModule(Component):
         
         if format == 'rss':
             data['email_map'] = Chrome(self.env).get_email_map()
-            rss_context = Context.from_request(req, absurls=True)
+            rss_context = web_context(req, absurls=True)
             rss_context.set_hints(wiki_flavor='html', shorten_lines=False)
             data['context'] = rss_context
             return 'timeline.rss', data, 'application/rss+xml'
         else:
             req.session['timeline.daysback'] = daysback
             req.session['timeline.authors'] = authors
-            html_context = Context.from_request(req)
+            # store lastvisit
+            if events and not revisit:
+                lastviewed = to_utimestamp(events[0]['date'])
+                req.session['timeline.lastvisit'] = max(lastvisit, lastviewed)
+                req.session['timeline.nextlastvisit'] = lastvisit
+            html_context = web_context(req)
             html_context.set_hints(wiki_flavor='oneliner', 
                                    shorten_lines=self.abbreviated_messages)
             data['context'] = html_context
@@ -215,7 +230,7 @@ class TimelineModule(Component):
         rss_href = req.href.timeline([(f, 'on') for f in filters],
                                      daysback=90, max=50, authors=authors,
                                      format='rss')
-        add_link(req, 'alternate', rss_href, _('RSS Feed'),
+        add_link(req, 'alternate', auth_link(req, rss_href), _('RSS Feed'),
                  'application/rss+xml', 'rss')
 
         for filter_ in available_filters:
@@ -269,8 +284,9 @@ class TimelineModule(Component):
 
     def get_link_resolvers(self):
         def link_resolver(formatter, ns, target, label):
+            path, query, fragment = split_url_into_path_query_fragment(target)
             precision = None
-            time = target.split("T", 1)
+            time = path.split("T", 1)
             if len(time) > 1:
                 time = time[1].split("Z")[0]
                 if len(time) >= 6:
@@ -281,8 +297,8 @@ class TimelineModule(Component):
                     precision = 'hours'
             try:
                 return self.get_timeline_link(formatter.req,
-                                              parse_date(target, utc),
-                                              label, precision)
+                                              parse_date(path, utc),
+                                              label, precision, query, fragment)
             except TracError, e:
                 return tag.a(label, title=to_unicode(e.message),
                              class_='timeline missing')
@@ -290,15 +306,16 @@ class TimelineModule(Component):
 
     # Public methods
 
-    def get_timeline_link(self, req, date, label=None, precision='hours'):
+    def get_timeline_link(self, req, date, label=None, precision='hours',
+                          query=None, fragment=None):
         iso_date = display_date = format_datetime(date, 'iso8601', req.tz)
         fmt = req.session.get('datefmt')
         if fmt and fmt != 'iso8601':
             display_date = format_datetime(date, fmt, req.tz)
+        href = req.href.timeline(from_=iso_date, precision=precision)
         return tag.a(label or iso_date, class_='timeline',
                      title=_("%(date)s in Timeline", date=display_date),
-                     href=req.href.timeline(from_=iso_date,
-                                            precision=precision))
+                     href=concat_path_query_fragment(href, query, fragment))
 
     # Internal methods
 

@@ -54,10 +54,8 @@ def load_eggs(entry_point_name):
                               item, ue)
             elif isinstance(e, UnknownExtra):
                 env.log.error('Skipping "%s": (unknown extra "%s")', item, ue)
-            elif isinstance(e, ImportError):
-                env.log.error('Skipping "%s": (can\'t import "%s")', item, ue)
             else:
-                env.log.error('Skipping "%s": %s)', item,
+                env.log.error('Skipping "%s": %s', item,
                               exception_to_unicode(e, traceback=True))
 
         for dist, e in errors.iteritems():
@@ -163,7 +161,7 @@ def get_plugin_info(env, include_core=False):
                         if k == 'home_page' or k == 'url':
                             k = 'home_page'
                             v = v.replace('$', '').replace('URL: ', '') 
-                        if k == 'author':
+                        else:
                             v = to_unicode(v)
                         info[k] = v
             else:
@@ -173,7 +171,7 @@ def get_plugin_info(env, include_core=False):
                 for k in info:
                     if info[k] == 'UNKNOWN':
                         info[k] = ''
-                    elif k == 'author':
+                    else:
                         # Must be encoded as unicode as otherwise Genshi 
                         # may raise a "UnicodeDecodeError".
                         info[k] = to_unicode(info[k])

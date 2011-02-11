@@ -30,7 +30,6 @@ try:
 except:
     has_svn = False
 
-from trac.log import logger_factory
 from trac.test import EnvironmentStub, TestSetup
 from trac.core import TracError
 from trac.resource import Resource, resource_exists
@@ -38,8 +37,6 @@ from trac.util.concurrency import get_thread_id
 from trac.util.datefmt import utc
 from trac.versioncontrol import DbRepositoryProvider, Changeset, Node, \
                                 NoSuchChangeset
-from trac.versioncontrol.svn_fs import SvnCachedRepository, \
-                                       SubversionRepository
 from trac.versioncontrol import svn_fs
 
 REPOS_PATH = os.path.join(tempfile.gettempdir(), 'trac-svnrepos')
@@ -653,6 +650,14 @@ class ScopedTests(object):
         self.assertEqual('text/plain', props['svn:mime-type'])
 
     # Revision Log / node history 
+
+    def test_get_history_scope(self): 
+        """Regression test for #9504"""
+        node = self.repos.get_node('/')
+        history = list(node.get_history())
+        self.assertEqual(('/', 1, 'add'), history[-1])
+        initial_cset = self.repos.get_changeset(history[-1][1])
+        self.assertEqual(1, initial_cset.rev)
 
     def test_get_node_history(self):
         node = self.repos.get_node('/README3.txt')

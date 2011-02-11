@@ -35,6 +35,8 @@
 # IN THE SOFTWARE.
 # ----------------------------------------------------------------------------
 
+from __future__ import with_statement
+
 from datetime import datetime
 import re
 
@@ -46,7 +48,6 @@ from trac.perm import PermissionCache
 from trac.resource import Resource
 from trac.ticket import Ticket
 from trac.ticket.notification import TicketNotifyEmail
-from trac.util.compat import any
 from trac.util.datefmt import utc
 from trac.util.text import exception_to_unicode
 from trac.versioncontrol import IRepositoryChangeListener, RepositoryManager
@@ -132,8 +133,8 @@ class CommitTicketUpdater(Component):
     
     ticket_prefix = '(?:#|(?:ticket|issue|bug)[: ]?)'
     ticket_reference = ticket_prefix + '[0-9]+'
-    ticket_command = ('(?P<action>[A-Za-z]*).?'
-                      '(?P<ticket>%s(?:(?:[, &]*|[ ]?and[ ]?)%s)*)' %
+    ticket_command = (r'(?P<action>[A-Za-z]*)\s*.?\s*'
+                      r'(?P<ticket>%s(?:(?:[, &]*|[ ]?and[ ]?)%s)*)' %
                       (ticket_reference, ticket_reference))
     
     @property
@@ -210,14 +211,12 @@ In [%s]:
         for tkt_id, cmds in tickets.iteritems():
             try:
                 self.log.debug("Updating ticket #%d", tkt_id)
-                ticket = [None]
-                @self.env.with_transaction()
-                def do_update(db):
-                    ticket[0] = Ticket(self.env, tkt_id, db)
+                with self.env.db_transaction as db:
+                    ticket = Ticket(self.env, tkt_id, db)
                     for cmd in cmds:
-                        cmd(ticket[0], changeset, perm(ticket[0].resource))
-                    ticket[0].save_changes(changeset.author, comment, date, db)
-                self._notify(ticket[0], date)
+                        cmd(ticket, changeset, perm(ticket.resource))
+                    ticket.save_changes(changeset.author, comment, date, db)
+                self._notify(ticket, date)
             except Exception, e:
                 self.log.error("Unexpected error while processing ticket "
                                "#%s: %s", tkt_id, exception_to_unicode(e))
@@ -290,7 +289,7 @@ class CommitTicketReferenceMacro(WikiMacroBase):
                              "ticket)", class_='hint')
         if ChangesetModule(self.env).wiki_format_messages:
             return tag.div(format_to_html(self.env,
-                formatter.context('changeset', rev, parent=resource),
+                formatter.context.child('changeset', rev, parent=resource),
                 message, escape_newlines=True), class_='message')
         else:
             return tag.pre(message, class_='message')

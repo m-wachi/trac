@@ -17,6 +17,8 @@
 # Author: Jonas Borgström <jonas@edgewall.com>
 #         Matthew Good <trac@matt-good.net>
 
+from __future__ import with_statement
+
 import errno
 import inspect
 from itertools import izip, tee
@@ -31,12 +33,22 @@ import tempfile
 import time
 from urllib import quote, unquote, urlencode
 
-from trac.util.compat import any, md5, sha1, sorted
-from trac.util.text import to_unicode
+from .compat import any, md5, sha1, sorted
+from .text import to_unicode
 
-# -- req/session utils
+# -- req, session and web utils
 
 def get_reporter_id(req, arg_name=None):
+    """Get most informative "reporter" identity out of a request.
+    
+    That's the `Request`'s authname if not 'anonymous', or a `Request`
+    argument, or the session name and e-mail, or only the name or only
+    the e-mail, or 'anonymous' as last resort.
+
+    :param req: a `trac.web.api.Request`
+    :param arg_name: if given, a `Request` argument which may contain 
+      the id for non-authentified users
+    """
     if req.authname != 'anonymous':
         return req.authname
     if arg_name:
@@ -49,28 +61,27 @@ def get_reporter_id(req, arg_name=None):
         return '%s <%s>' % (name, email)
     return name or email or req.authname # == 'anonymous'
 
+def content_disposition(type, filename=None):
+    """Generate a properly escaped Content-Disposition header"""
+    if filename is not None:
+        if isinstance(filename, unicode):
+            filename = filename.encode('utf-8')
+        type += '; filename=' + quote(filename, safe='')
+    return type
+
+
+# -- os utilities
+
 if os.name == 'nt':
     from getpass import getuser
 else:
     import pwd
     def getuser():
+        """Retrieve the identity of the process owner"""
         try:
             return pwd.getpwuid(os.geteuid())[0]
         except KeyError:
             return 'unknown'
-
-# -- algorithmic utilities
-
-DIGITS = re.compile(r'(\d+)')
-def embedded_numbers(s):
-    """Comparison function for natural order sorting based on
-    http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/214202."""
-    pieces = DIGITS.split(s)
-    pieces[1::2] = map(int, pieces[1::2])
-    return pieces
-
-
-# -- os utilities
 
 try:
     WindowsError = WindowsError
@@ -172,7 +183,7 @@ class AtomicFile(object):
     
     def __getattr__(self, name):
         return getattr(self._file, name)
-    
+
     def commit(self):
         if self._file is None:
             return
@@ -195,9 +206,17 @@ class AtomicFile(object):
                 os.unlink(self._temp)
             except:
                 pass
-    
+            
     close = commit
     __del__ = rollback
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+
+    closed = property(lambda self: self._file is None or self._file.closed)
 
 
 def read_file(path, mode='r'):
@@ -211,12 +230,9 @@ def read_file(path, mode='r'):
 
 def create_file(path, data='', mode='w'):
     """Create a new file with the given data."""
-    f = open(path, mode)
-    try:
+    with open(path, mode) as f:
         if data:
             f.write(data)
-    finally:
-        f.close()
 
 
 def create_unique_file(path):
@@ -248,7 +264,9 @@ class NaivePopen:
     
     (`capturestderr` may not work under Windows 9x.)
 
-    Example: print Popen3('grep spam','\n\nhere spam\n\n').out
+    Example::
+
+      print Popen3('grep spam','\\n\\nhere spam\\n\\n').out
     """
     def __init__(self, command, input=None, capturestderr=None):
         outfile = tempfile.mktemp()
@@ -282,6 +300,11 @@ class NaivePopen:
 
 
 def makedirs(path, overwrite=False):
+    """Create as many directories as necessary to make `path` exist.
+
+    If `overwrite` is `True`, don't raise an exception in case `path`
+    already exists.
+    """
     if overwrite and os.path.exists(path):
         return
     os.makedirs(path)
@@ -341,6 +364,15 @@ def copytree(src, dst, symlinks=False, skip=[], overwrite=False):
     copytree_rec(str_path(src), str_path(dst))
 
 
+def is_path_below(path, parent):
+    """Return True iff `path` is equal to parent or is located below `parent`
+    at any level.
+    """
+    path = os.path.abspath(path)
+    parent = os.path.abspath(parent)
+    return path == parent or path.startswith(parent + os.sep)
+
+
 # -- sys utils
 
 def arity(f):
@@ -351,6 +383,7 @@ def arity(f):
 
 
 def get_last_traceback():
+    """Retrieve the last traceback as an `unicode` string."""
     import traceback
     from StringIO import StringIO
     tb = StringIO()
@@ -387,10 +420,7 @@ def get_lines_from_file(filename, lineno, context=0, globals=None):
     if not lines:
         import linecache
         linecache.checkcache(filename)
-        if arity(linecache.getlines) >= 2:
-            lines = linecache.getlines(filename, globals)
-        else:   # Python 2.4
-            lines = linecache.getlines(filename)
+        lines = linecache.getlines(filename, globals)
 
     if not 0 <= lineno < len(lines):
         return (), None, ()
@@ -546,8 +576,11 @@ def get_pkginfo(dist):
 
 # -- crypto utils
 
-def hex_entropy(bytes=32):
-    return sha1(str(random.random())).hexdigest()[:bytes]
+_entropy = random.Random()
+
+def hex_entropy(digits=32):
+    """Generate `digits` number of hex digits of entropy (at most 40)."""
+    return sha1(str(_entropy.random())).hexdigest()[:digits]
 
 
 # Original license for md5crypt:
@@ -558,6 +591,12 @@ def hex_entropy(bytes=32):
 # can do whatever you want with this stuff. If we meet some day, and you think
 # this stuff is worth it, you can buy me a beer in return.   Poul-Henning Kamp
 def md5crypt(password, salt, magic='$1$'):
+    """Based on FreeBSD src/lib/libcrypt/crypt.c 1.2
+
+    :param password: the plain text password to crypt
+    :param salt: the raw salt
+    :param magic: our magic string
+    """
     # /* The password first, since that is what is most unknown */
     # /* Then our magic string */
     # /* Then the raw salt */
@@ -620,11 +659,12 @@ def md5crypt(password, salt, magic='$1$'):
     return magic + salt + '$' + rearranged
 
 
-# -- misc. utils
+# -- data structures
 
 class Ranges(object):
-    """
-    Holds information about ranges parsed from a string
+    """Holds information about ranges parsed from a string
+
+    :author: Tim Hatch
     
     >>> x = Ranges("1,2,9-15")
     >>> 1 in x
@@ -677,8 +717,6 @@ class Ranges(object):
     >>> list(x)
     [1, 2, 3, 5, 6, 7, 8, 9]
 
-    ''Code contributed by Tim Hatch''
-
     Reversed ranges are ignored, unless the Ranges has the `reorder` property 
     set.
 
@@ -698,11 +736,18 @@ class Ranges(object):
         self.appendrange(r)
 
     def appendrange(self, r):
-        """Add a range (from a string or None) to the current one"""
+        """Add ranges to the current one. 
+
+        A range is specified as a string of the form "low-high", and 
+        `r` can be a list of such strings, a string containing comma-separated
+        ranges, or `None`.
+        """
         if not r:
             return
         p = self.pairs
-        for x in r.split(","):
+        if isinstance(r, basestring):
+            r = r.split(',')
+        for x in r:
             try:
                 a, b = map(int, x.split('-', 1))
             except ValueError:
@@ -783,6 +828,14 @@ class Ranges(object):
         else:
             return 0
 
+    def __nonzero__(self):
+        """Return True iff the range is not empty.
+        
+        >>> (bool(Ranges()), bool(Ranges('1-2')))
+        (False, True)
+        """
+        return self.a is not None and self.b is not None
+
     def truncate(self, max):
         """Truncate the Ranges by setting a maximal allowed value.
 
@@ -841,21 +894,24 @@ def to_ranges(revs):
         store()
     return ','.join(ranges)
 
-def content_disposition(type, filename=None):
-    """Generate a properly escaped Content-Disposition header"""
-    if filename is not None:
-        if isinstance(filename, unicode):
-            filename = filename.encode('utf-8')
-        type += '; filename=' + quote(filename, safe='')
-    return type
+
+# -- algorithmic utilities
+
+DIGITS = re.compile(r'(\d+)')
+def embedded_numbers(s):
+    """Comparison function for natural order sorting based on
+    http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/214202."""
+    pieces = DIGITS.split(s)
+    pieces[1::2] = map(int, pieces[1::2])
+    return pieces
 
 def pairwise(iterable):
     """
     >>> list(pairwise([0, 1, 2, 3]))
     [(0, 1), (1, 2), (2, 3)]
 
-    :deprecated: since 0.11 (if this really needs to be used, rewrite it
-                             without izip)
+    .. deprecated :: 0.11
+       if this really needs to be used, rewrite it without izip
     """
     a, b = tee(iterable)
     try:
@@ -866,9 +922,9 @@ def pairwise(iterable):
 
 def partition(iterable, order=None):
     """
-    >>> partition([(1,"a"),(2, "b"),(3, "a")])
+    >>> partition([(1, "a"), (2, "b"), (3, "a")])
     {'a': [1, 3], 'b': [2]}
-    >>> partition([(1,"a"),(2, "b"),(3, "a")], "ab")
+    >>> partition([(1, "a"), (2, "b"), (3, "a")], "ab")
     [[1, 3], [2]]
     """
     result = {}
@@ -894,12 +950,22 @@ def as_int(s, default, min=None, max=None):
         value = max
     return value
 
-def as_bool(s):
-    """Convert s to a `bool`."""
+def as_bool(value):
+    """Convert the given value to a `bool`.
+    
+    If `value` is a string, return `True` for any of "yes", "true", "enabled",
+    "on" or non-zero numbers, ignoring case. For non-string arguments, return
+    the argument converted to a `bool`, or `False` if the conversion fails.
+    """
+    if isinstance(value, basestring):
+        try:
+            return bool(float(value))
+        except ValueError:
+            return value.strip().lower() in ('yes', 'true', 'enabled', 'on')
     try:
-        return bool(int(s))
+        return bool(value)
     except (TypeError, ValueError):
-        return s.lower() in ('true', 'yes', 'on')
+        return False
 
 def pathjoin(*args):
     """Strip `/` from the arguments and join them with a single `/`."""

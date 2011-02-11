@@ -14,6 +14,7 @@
 #
 # Author: Christopher Lenz <cmlenz@gmx.de>
 
+from fnmatch import fnmatchcase
 from itertools import groupby
 import inspect
 import os
@@ -26,7 +27,7 @@ from genshi.core import Markup
 from trac.core import *
 from trac.resource import Resource, ResourceNotFound, get_resource_name, \
                           get_resource_summary, get_resource_url
-from trac.util.compat import any, rpartition
+from trac.util.compat import cleandoc
 from trac.util.datefmt import i18n_format_date, from_utimestamp
 from trac.util.html import escape
 from trac.util.presentation import separated
@@ -74,7 +75,7 @@ class TitleIndexMacro(WikiMacroBase):
     Accepts a prefix string as parameter: if provided, only pages with names
     that start with the prefix are included in the resulting list. If this
     parameter is omitted, all pages are listed.
-    If the prefix is specified, a second argument of value 'hideprefix'
+    If the prefix is specified, a second argument of value `hideprefix`
     can be given as well, in order to remove that prefix from the output.
 
     Alternate `format` and `depth` named parameters can be specified:
@@ -89,6 +90,13 @@ class TitleIndexMacro(WikiMacroBase):
        only toplevel pages will be shown, if set to 1, only immediate
        children pages will be shown, etc. If not set, or set to -1,
        all pages in the hierarchy will be shown.
+     - `include=page1:page*2`: include only pages that match an item in the
+       colon-separated list of pages. If the list is empty, or if no `include`
+       argument is given, include all pages.
+     - `exclude=page1:page*2`: exclude pages that match an item in the colon-
+       separated list of pages.
+    
+    The `include` and `exclude` lists accept shell-style patterns.
     """
 
     SPLIT_RE = re.compile(r"([/ 0-9.]+)")
@@ -102,6 +110,13 @@ class TitleIndexMacro(WikiMacroBase):
         start = prefix and prefix.count('/') or 0
         format = kw.get('format', '')
 
+        def parse_list(name):
+            return [inc.strip() for inc in kw.get(name, '').split(':')
+                    if inc.strip()]
+
+        includes = parse_list('include') or ['*']
+        excludes = parse_list('exclude')
+
         if hideprefix:
             omitprefix = lambda page: page[len(prefix):]
         else:
@@ -109,9 +124,11 @@ class TitleIndexMacro(WikiMacroBase):
 
         wiki = formatter.wiki
 
-        pages = sorted(page for page in wiki.get_pages(prefix) \
+        pages = sorted(page for page in wiki.get_pages(prefix)
                        if (depth < 0 or depth >= page.count('/') - start)
-                       and 'WIKI_VIEW' in formatter.perm('wiki', page))
+                       and 'WIKI_VIEW' in formatter.perm('wiki', page)
+                       and any(fnmatchcase(page, inc) for inc in includes)
+                       and not any(fnmatchcase(page, exc) for exc in excludes))
 
         if format == 'compact':
             return tag(
@@ -190,7 +207,7 @@ class TitleIndexMacro(WikiMacroBase):
                 tag.li(isinstance(elt, tuple) and 
                        tag(tag.a(elt[0], href=formatter.href.wiki(elt[0])),
                            render_hierarchy(elt[1][0:])) or
-                       tag.a(rpartition(elt, '/')[2],
+                       tag.a(elt.rpartition('/')[2],
                              href=formatter.href.wiki(elt)))
                 for elt in group)
         
@@ -232,25 +249,20 @@ class RecentChangesMacro(WikiMacroBase):
                 if len(argv) > 1:
                     limit = int(argv[1])
 
-        cursor = formatter.db.cursor()
-
-        sql = 'SELECT name, ' \
-              '  max(version) AS max_version, ' \
-              '  max(time) AS max_time ' \
-              'FROM wiki'
+        sql = """SELECT name, max(version) AS max_version, 
+                        max(time) AS max_time FROM wiki"""
         args = []
         if prefix:
-            sql += ' WHERE name LIKE %s'
+            sql += " WHERE name LIKE %s"
             args.append(prefix + '%')
-        sql += ' GROUP BY name ORDER BY max_time DESC'
+        sql += " GROUP BY name ORDER BY max_time DESC"
         if limit:
-            sql += ' LIMIT %s'
+            sql += " LIMIT %s"
             args.append(limit)
-        cursor.execute(sql, args)
 
         entries_per_date = []
         prevdate = None
-        for name, version, ts in cursor:
+        for name, version, ts in self.env.db_query(sql, args):
             if not 'WIKI_VIEW' in formatter.perm('wiki', name, version):
                 continue
             req = formatter.req
@@ -282,7 +294,7 @@ class PageOutlineMacro(WikiMacroBase):
     """Display a structural outline of the current wiki page, each item in the
     outline being a link to the corresponding heading.
 
-    This macro accepts three optional parameters:
+    This macro accepts four optional parameters:
     
      * The first is a number or range that allows configuring the minimum and
        maximum level of headings that should be included in the outline. For
@@ -293,16 +305,20 @@ class PageOutlineMacro(WikiMacroBase):
      * The second parameter can be used to specify a custom title (the default
        is no title).
      * The third parameter selects the style of the outline. This can be
-       either `inline` or `pullout` (the latter being the default). The `inline`
-       style renders the outline as normal part of the content, while `pullout`
-       causes the outline to be rendered in a box that is by default floated to
-       the right side of the other content.
+       either `inline` or `pullout` (the latter being the default). The
+       `inline` style renders the outline as normal part of the content, while
+       `pullout` causes the outline to be rendered in a box that is by default
+       floated to the right side of the other content.
+     * The fourth parameter specifies whether the outline is numbered or not.
+       It can be either `numbered` or `unnumbered` (the former being the
+       default). This parameter only has an effect in `inline` style.
     """
 
     def expand_macro(self, formatter, name, content):
         min_depth, max_depth = 1, 6
         title = None
-        inline = 0
+        inline = False
+        numbered = True
         if content:
             argv = [arg.strip() for arg in content.split(',')]
             if len(argv) > 0:
@@ -314,21 +330,27 @@ class PageOutlineMacro(WikiMacroBase):
                     min_depth = max_depth = int(depth)
                 if len(argv) > 1:
                     title = argv[1].strip()
-                    if len(argv) > 2:
-                        inline = argv[2].strip().lower() == 'inline'
+                    for arg in argv[2:]:
+                        arg = arg.strip().lower()
+                        if arg == 'inline':
+                            inline = True
+                        elif arg == 'unnumbered':
+                            numbered = False
 
         # TODO: - integrate the rest of the OutlineFormatter directly here
         #       - use formatter.wikidom instead of formatter.source
         out = StringIO()
-        OutlineFormatter(self.env, formatter.context).format(formatter.source,
-                                                             out, max_depth,
-                                                             min_depth)
+        oformatter = OutlineFormatter(self.env, formatter.context)
+        oformatter.format(formatter.source, out, max_depth, min_depth,
+                          shorten=not inline)
         outline = Markup(out.getvalue())
 
         if title:
             outline = tag.h4(title) + outline
         if not inline:
             outline = tag.div(outline, class_='wiki-toc')
+        elif not numbered:
+            outline = tag.div(outline, class_='wiki-toc-un')
         return outline
 
 
@@ -583,7 +605,8 @@ class MacroListMacro(WikiMacroBase):
                                       [tag.code(' [[', alias, ']]')
                                        for alias in names[1:]]) or None,
              description or tag.em(_("Sorry, no documentation found")))
-            for description, names in list(get_macro_descr()))
+            for description, names in sorted(get_macro_descr(),
+                                             key=lambda item: item[1][0]))
 
 
 class TracIniMacro(WikiMacroBase):
@@ -596,7 +619,7 @@ class TracIniMacro(WikiMacroBase):
     """
 
     def expand_macro(self, formatter, name, args):
-        from trac.config import Option
+        from trac.config import ConfigSection, Option
         section_filter = key_filter = ''
         args, kw = parse_args(args)
         if args:
@@ -604,23 +627,35 @@ class TracIniMacro(WikiMacroBase):
         if args:
             key_filter = args.pop(0).strip()
 
+        registry = ConfigSection.get_registry(self.compmgr)
+        sections = dict((name, cleandoc(to_unicode(section.__doc__)))
+                        for name, section in registry.iteritems()
+                        if name.startswith(section_filter))
+
         registry = Option.get_registry(self.compmgr)
-        sections = {}
+        options = {}
         for (section, key), option in registry.iteritems():
             if section.startswith(section_filter):
-                sections.setdefault(section, {})[key] = option
+                options.setdefault(section, {})[key] = option
+                sections.setdefault(section, '')
 
         return tag.div(class_='tracini')(
             (tag.h3(tag.code('[%s]' % section), id='%s-section' % section),
-             tag.table(class_='wiki')(
-                 tag.tbody(tag.tr(tag.td(tag.tt(option.name)),
-                                  tag.td(format_to_oneliner(
-                                      self.env, formatter.context,
-                                      to_unicode(option.__doc__))))
-                           for option in sorted(sections[section].itervalues(),
-                                                key=lambda o: o.name)
-                           if option.name.startswith(key_filter))))
-            for section in sorted(sections))
+             format_to_html(self.env, formatter.context, section_doc),
+             tag.table(class_='wiki')(tag.tbody(
+                 tag.tr(tag.td(tag.tt(option.name)),
+                        tag.td(format_to_oneliner(self.env, formatter.context,
+                                                  to_unicode(option.__doc__))),
+                        tag.td(tag.code(option.default or 'false')
+                                   if option.default or option.default is False
+                                   else _("(no default)"),
+                               class_='default' if option.default or 
+                                                   option.default is False 
+                                                else 'nodefault'))
+                 for option in sorted(options.get(section, {}).itervalues(),
+                                      key=lambda o: o.name)
+                 if option.name.startswith(key_filter))))
+            for section, section_doc in sorted(sections.iteritems()))
 
 
 
