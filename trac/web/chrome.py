@@ -56,8 +56,7 @@ from trac.util.text import pretty_size, obfuscate_email_address, \
                            javascript_quote, exception_to_unicode
 from trac.util.datefmt import pretty_timedelta, format_datetime, format_date, \
                               format_time, from_utimestamp, http_date, utc, \
-                              i18n_format_datetime, i18n_format_date, \
-                              i18n_format_time
+                              format_datetime, format_date, format_time
 from trac.util.translation import _, get_available_locales
 from trac.web.api import IRequestHandler, ITemplateStreamFilter, HTTPNotFound
 from trac.web.href import Href
@@ -806,8 +805,7 @@ class Chrome(Component):
 
         def dateinfo(date):
             return tag.span(pretty_timedelta(date),
-                            title=i18n_format_datetime(date, tzinfo=tzinfo,
-                                                       locale=locale))
+                            title=format_datetime(date, tzinfo, locale))
 
         def get_rel_url(resource, **kwargs):
             return get_resource_url(self.env, resource, href, **kwargs)
@@ -839,12 +837,10 @@ class Chrome(Component):
 
             # Date/time formatting
             'dateinfo': dateinfo,
-            'format_datetime': partial(i18n_format_datetime, tzinfo=tzinfo,
+            'format_datetime': partial(format_datetime, tzinfo=tzinfo,
                                        locale=locale),
-            'format_date': partial(i18n_format_date, tzinfo=tzinfo,
-                                   locale=locale),
-            'format_time': partial(i18n_format_time, tzinfo=tzinfo,
-                                   locale=locale),
+            'format_date': partial(format_date, tzinfo=tzinfo, locale=locale),
+            'format_time': partial(format_time, tzinfo=tzinfo, locale=locale),
             'fromtimestamp': partial(datetime.datetime.fromtimestamp,
                                      tz=tzinfo),
             'from_utimestamp': from_utimestamp,

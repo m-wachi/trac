@@ -34,7 +34,7 @@ from trac.util import as_bool
 from trac.util.datefmt import parse_date, utc, to_utimestamp, \
                               get_datetime_format_hint, format_date, \
                               format_datetime, from_utimestamp, \
-                              i18n_get_datetime_format_hint, i18n_parse_date
+                              get_datetime_format_hint, parse_date
 from trac.util.text import CRLF
 from trac.util.translation import _, tag_
 from trac.ticket import Milestone, Ticket, TicketSystem, group_milestones
@@ -677,8 +677,8 @@ class MilestoneModule(Component):
 
         if 'due' in req.args:
             due = req.args.get('duedate', '')
-            milestone.due = due and i18n_parse_date(due, req.tz, req.locale,
-                                                    'datetime') or None
+            milestone.due = due and parse_date(due, req.tz, req.locale,
+                                               'datetime') or None
         else:
             milestone.due = None
 
@@ -712,9 +712,8 @@ class MilestoneModule(Component):
 
         # -- check completed date
         if 'completed' in req.args:
-            completed = completed and i18n_parse_date(completed, req.tz,
-                                                      req.locale,
-                                                      'datetime') or None
+            completed = completed and parse_date(completed, req.tz, req.locale,
+                                                 'datetime') or None
             if completed and completed > datetime.now(utc):
                 warn(_('Completion date may not be in the future'))
         else:
@@ -763,7 +762,7 @@ class MilestoneModule(Component):
         
         data = {
             'milestone': milestone,
-            'datetime_hint': i18n_get_datetime_format_hint(req.locale),
+            'datetime_hint': get_datetime_format_hint(req.locale),
             'default_due': default_due,
             'milestone_groups': [],
         }
