@@ -29,8 +29,7 @@ from trac.perm import IPermissionRequestor
 from trac.timeline.api import ITimelineEventProvider
 from trac.util import as_int
 from trac.util.datefmt import format_date, format_datetime, parse_date, \
-                              to_utimestamp, utc, pretty_timedelta, \
-                              format_date, parse_date
+                              to_utimestamp, utc, pretty_timedelta, user_time
 from trac.util.text import exception_to_unicode, to_unicode
 from trac.util.translation import _, tag_
 from trac.web import IRequestHandler, IRequestFilter
@@ -140,9 +139,9 @@ class TimelineModule(Component):
 
         data = {'fromdate': fromdate, 'daysback': daysback,
                 'authors': authors,
-                'today': format_date(today, tzinfo=req.tz, locale=req.locale),
-                'yesterday': format_date(today - timedelta(days=1),
-                                         tzinfo=req.tz, locale=req.locale),
+                'today': user_time(req, format_date, today),
+                'yesterday': user_time(req, format_date,
+                                       today - timedelta(days=1)),
                 'precisedate': precisedate, 'precision': precision,
                 'events': [], 'filters': [],
                 'abbreviated_messages': self.abbreviated_messages,

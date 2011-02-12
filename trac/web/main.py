@@ -42,7 +42,8 @@ from trac.resource import ResourceNotFound
 from trac.util import arity, get_frame_info, get_last_traceback, hex_entropy, \
                       read_file, translation
 from trac.util.concurrency import threading
-from trac.util.datefmt import format_datetime, http_date, localtz, timezone
+from trac.util.datefmt import format_datetime, http_date, localtz, timezone, \
+                              user_time
 from trac.util.text import exception_to_unicode, shorten_line, to_unicode
 from trac.util.translation import _, get_negotiated_locale, has_babel, \
                                   safefmt, tag_
@@ -597,7 +598,8 @@ def send_project_index(environ, start_response, parent_dir=None,
     else:
         template = 'index.html'
 
-    data = {'trac': {'version': TRAC_VERSION, 'time': format_datetime()},
+    data = {'trac': {'version': TRAC_VERSION,
+                     'time': user_time(req, format_datetime)},
             'req': req}
     if req.environ.get('trac.template_vars'):
         for pair in req.environ['trac.template_vars'].split(','):

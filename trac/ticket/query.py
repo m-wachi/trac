@@ -35,7 +35,7 @@ from trac.ticket.api import TicketSystem
 from trac.ticket.model import Milestone, group_milestones
 from trac.util import Ranges, as_bool
 from trac.util.datefmt import format_datetime, from_utimestamp, parse_date, \
-                              to_timestamp, to_utimestamp, utc, parse_date
+                              to_timestamp, to_utimestamp, utc, user_time
 from trac.util.presentation import Paginator
 from trac.util.text import empty, shorten_line
 from trac.util.translation import _, tag_
@@ -474,7 +474,7 @@ class Query(object):
         def get_timestamp(date):
             if date:
                 try:
-                    return to_utimestamp(parse_date(date, tzinfo, locale))
+                    return to_utimestamp(user_time(req, parse_date, date))
                 except TracError, e:
                     errors.append(unicode(e))
             return None

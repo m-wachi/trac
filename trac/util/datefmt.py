@@ -538,6 +538,24 @@ def _parse_relative_time(text, tzinfo):
         return dt
     return None
 
+# -- formatting/parsing helper functions
+
+def user_time(req, func, *args, **kwargs):
+    """A helper function which passes to `tzinfo` and `locale` keyword
+    arguments of `func` using `req` parameter. It expects using with `format_*`
+    and `parse_date` methods in `trac.util.datefmt` package.
+
+    :param req: a instance of `Request`
+    :param func: a function which must accept `tzinfo` and `locale` keyword
+                 arugments
+    :param args: arguments which pass to `func` function
+    :param kwargs: keyword arugments which pass to `func` function
+    """
+    if 'tzinfo' not in kwargs:
+        kwargs['tzinfo'] = req.tz
+    if 'locale' not in kwargs:
+        kwargs['locale'] = req.locale
+    return func(*args, **kwargs)
 
 # -- timezone utilities
 
