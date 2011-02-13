@@ -137,6 +137,10 @@ def pretty_timedelta(time1, time2=None, resolution=None):
 
 
 _BABEL_FORMATS = ('short', 'medium', 'long', 'full')
+_ISO8601_FORMATS = {
+    '%x %X': 'iso8601', '%x': 'iso8601date', '%X': 'iso8601time',
+    'short': 'iso8601', 'medium': 'iso8601', 'long': 'iso8601',
+    'full': 'iso8601', None: 'iso8601'}
 
 def _format_datetime_without_babel(t, format, tzinfo):
     tz = tzinfo or localtz
@@ -171,6 +175,9 @@ def format_datetime(t=None, format='%x %X', tzinfo=None, locale=None):
 
     `tzinfo` will default to the local timezone if left to `None`.
     """
+    if locale == 'iso8601':
+        format = _ISO8601_FORMATS.get(format, format)
+        return _format_datetime_without_babel(t, format, tzinfo)
     if babel is not None and locale is not None:
         if format in ('%x %X', None):
             format = 'medium'
@@ -188,6 +195,9 @@ def format_date(t=None, format='%x', tzinfo=None, locale=None):
     """Convenience method for formatting the date part of a `datetime` object.
     See `format_datetime` for more details.
     """
+    if locale == 'iso8601':
+        format = _ISO8601_FORMATS.get(format, format)
+        return _format_datetime_without_babel(t, format, tzinfo)
     if format == 'iso8601':
         format = 'iso8601date'
     if babel is not None and locale is not None:
@@ -205,6 +215,9 @@ def format_time(t=None, format='%X', tzinfo=None, locale=None):
     """Convenience method for formatting the time part of a `datetime` object.
     See `format_datetime` for more details.
     """
+    if locale == 'iso8601':
+        format = _ISO8601_FORMATS.get(format, format)
+        return _format_datetime_without_babel(t, format, tzinfo)
     if format == 'iso8601':
         format = 'iso8601time'
     if babel is not None and locale is not None:
@@ -224,6 +237,8 @@ def get_date_format_hint(locale=None):
     This is a format that will be recognized by `parse_date` when reading a
     date.
     """
+    if locale == 'iso8601':
+        return 'YYYY-MM-DD'
     if babel is not None and locale is not None:
         format = get_date_format('medium', locale=locale)
         return format.pattern
@@ -239,6 +254,8 @@ def get_datetime_format_hint(locale=None):
     This is a format that will be recognized by `parse_date` when reading a
     date.
     """
+    if locale == 'iso8601':
+        return u'YYYY-MM-DDThh:mm:ss±hh:mm'
     if babel is not None and locale is not None:
         date_pattern = get_date_format('medium', locale=locale).pattern
         time_pattern = get_time_format('medium', locale=locale).pattern
@@ -547,9 +564,9 @@ def user_time(req, func, *args, **kwargs):
     :param kwargs: keyword arugments which pass to `func` function
     """
     if 'tzinfo' not in kwargs:
-        kwargs['tzinfo'] = req.tz
+        kwargs['tzinfo'] = getattr(req, 'tz', None)
     if 'locale' not in kwargs:
-        kwargs['locale'] = req.locale
+        kwargs['locale'] = getattr(req, 'lc_time', None)
     return func(*args, **kwargs)
 
 # -- timezone utilities

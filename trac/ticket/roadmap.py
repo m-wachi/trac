@@ -761,7 +761,7 @@ class MilestoneModule(Component):
         
         data = {
             'milestone': milestone,
-            'datetime_hint': get_datetime_format_hint(req.locale),
+            'datetime_hint': get_datetime_format_hint(req.lc_time),
             'default_due': default_due,
             'milestone_groups': [],
         }

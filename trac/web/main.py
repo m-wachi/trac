@@ -97,6 +97,12 @@ class RequestDispatcher(Component):
         (''since 0.12.1'')
         """)
 
+    default_date_format = Option('trac', 'default_date_format', '',
+        """The preference date format to use if no user preference has been
+        set. Valid option is 'iso8601' for ISO 8601 format, If not specified,
+        use a browser's language. (''since 0.13'')
+        """)
+
     # Public API
 
     def authenticate(self, req):
@@ -124,6 +130,7 @@ class RequestDispatcher(Component):
             'perm': self._get_perm,
             'session': self._get_session,
             'locale': self._get_locale,
+            'lc_time': self._get_lc_time,
             'tz': self._get_timezone,
             'form_token': self._get_form_token
         })
@@ -248,6 +255,15 @@ class RequestDispatcher(Component):
                                                req.languages)
             self.log.debug("Negotiated locale: %s -> %s", preferred, negotiated)
             return negotiated
+
+    def _get_lc_time(self, req):
+        lc_time = req.session.get('lc_time')
+        default = self.default_date_format
+        if not lc_time or lc_time == 'locale' and not has_babel:
+            lc_time = default
+        if lc_time == 'iso8601':
+            return 'iso8601'
+        return req.locale
 
     def _get_timezone(self, req):
         try:

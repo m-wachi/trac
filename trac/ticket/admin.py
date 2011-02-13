@@ -335,7 +335,7 @@ class MilestoneAdminPanel(TicketAdminPanel):
                     'default': default}
 
         data.update({
-            'datetime_hint': get_datetime_format_hint(req.locale),
+            'datetime_hint': get_datetime_format_hint(req.lc_time),
         })
         return 'admin_milestones.html', data
 
@@ -499,7 +499,7 @@ class VersionAdminPanel(TicketAdminPanel):
                     'default': default}
 
         data.update({
-            'datetime_hint': get_datetime_format_hint(req.locale),
+            'datetime_hint': get_datetime_format_hint(req.lc_time),
         })
         return 'admin_versions.html', data
 

@@ -37,8 +37,9 @@ class QueryTestCase(unittest.TestCase):
 
     def setUp(self):
         self.env = EnvironmentStub(default_data=True)
+        locale = Locale and Locale.parse('en_US') or None
         self.req = Mock(href=self.env.href, authname='anonymous', tz=utc,
-                        locale=Locale and Locale.parse('en_US') or None)
+                        locale=locale, lc_time=locale)
         
     def tearDown(self):
         self.env.reset_db()
