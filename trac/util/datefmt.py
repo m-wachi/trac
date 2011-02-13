@@ -322,7 +322,7 @@ def parse_date(text, tzinfo=None, locale=None, hint='date'):
     text = text.strip()
 
     dt = _parse_date_iso8601(text, tzinfo)
-    if dt is None:
+    if dt is None and locale != 'iso8601':
         if babel is not None and locale is not None:
             dt = _i18n_parse_date(text, tzinfo, locale)
         else:
