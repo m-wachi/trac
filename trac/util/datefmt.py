@@ -45,7 +45,10 @@ from trac.util.translation import _, ngettext, get_available_locales
 def to_datetime(t, tzinfo=None):
     """Convert `t` into a `datetime` object, using the following rules:
     
-     - If `t` is already a `datetime` object, it is simply returned.
+     - If `t` is already a `datetime` object and `tzinfo` is None, it is simply
+       returned.
+     - If `t` is already a `datetime` object and `tzinfo` is not None, it will
+       adjust `t` to `tzinfo` timezone.
      - If `t` is None, the current time will be used.
      - If `t` is a number, it is interpreted as a timestamp.
      
@@ -56,6 +59,10 @@ def to_datetime(t, tzinfo=None):
     if t is None:
         return datetime.now(tzinfo or localtz)
     elif isinstance(t, datetime):
+        if tzinfo is not None:
+            t = t.astimezone(tzinfo)
+            if hasattr(tzinfo, 'normalize'): # pytz
+                t = tzinfo.normalize(t)
         return t
     elif isinstance(t, date):
         return (tzinfo or localtz).localize(datetime(t.year, t.month, t.day))
@@ -72,16 +79,6 @@ def to_datetime(t, tzinfo=None):
         return datetime.fromtimestamp(t, tzinfo or localtz)
     raise TypeError('expecting datetime, int, long, float, or None; got %s' %
                     type(t))
-
-def to_datetime_tz(t, tzinfo=None):
-    t = to_datetime(t, tzinfo)
-    if t.tzinfo is None:
-        t = t.replace(tzinfo=utc)
-    if tzinfo is not None:
-        t = t.astimezone(tzinfo)
-        if hasattr(tzinfo, 'normalize'): # pytz
-            t = tzinfo.normalize(t)
-    return t
 
 def to_timestamp(dt):
     """Return the corresponding POSIX timestamp"""
@@ -139,31 +136,9 @@ def pretty_timedelta(time1, time2=None, resolution=None):
     return ''
 
 
-_babel_formats = ('short', 'medium', 'long', 'full')
+_BABEL_FORMATS = ('short', 'medium', 'long', 'full')
 
-def format_datetime(t=None, format='%x %X', tzinfo=None, locale=None):
-    """Format the `datetime` object `t` into an `unicode` string
-
-    If `t` is None, the current time will be used.
-    
-    The formatting will be done using the given `format`, which consist
-    of conventional `strftime` keys. In addition the format can be 'iso8601'
-    to specify the international date format (compliant with RFC 3339).
-
-    `tzinfo` will default to the local timezone if left to `None`.
-    """
-    if babel is not None and locale is not None:
-        if format in ('%x %X', None):
-            format = 'medium'
-        elif format == '%x':
-            return babel_format_date(t, format, locale)
-        elif format == '%X':
-            t = to_datetime_tz(t, tzinfo)
-            return babel_format_time(t, format, None, locale)
-        elif format not in _babel_formats:
-            return format_datetime(t, format, tzinfo)
-        return babel_format_datetime(t, format, tzinfo, locale)
-
+def _format_datetime_without_babel(t, format, tzinfo):
     tz = tzinfo or localtz
     t = to_datetime(t, tzinfo).astimezone(tz)
     normalize_Z = False
@@ -185,24 +160,46 @@ def format_datetime(t=None, format='%x %X', tzinfo=None, locale=None):
                or sys.getdefaultencoding()
     return unicode(text, encoding, 'replace')
 
+def format_datetime(t=None, format='%x %X', tzinfo=None, locale=None):
+    """Format the `datetime` object `t` into an `unicode` string
+
+    If `t` is None, the current time will be used.
+    
+    The formatting will be done using the given `format`, which consist
+    of conventional `strftime` keys. In addition the format can be 'iso8601'
+    to specify the international date format (compliant with RFC 3339).
+
+    `tzinfo` will default to the local timezone if left to `None`.
+    """
+    if babel is not None and locale is not None:
+        if format in ('%x %X', None):
+            format = 'medium'
+        elif format == '%x':
+            return babel_format_date(t, format, locale)
+        elif format == '%X':
+            t = to_datetime(t, tzinfo)
+            return babel_format_time(t, format, None, locale)
+        elif format not in _BABEL_FORMATS:
+            return _format_datetime_without_babel(t, format, tzinfo)
+        return babel_format_datetime(t, format, tzinfo, locale)
+    return _format_datetime_without_babel(t, format, tzinfo)
+
 def format_date(t=None, format='%x', tzinfo=None, locale=None):
     """Convenience method for formatting the date part of a `datetime` object.
     See `format_datetime` for more details.
     """
     if format == 'iso8601':
         format = 'iso8601date'
-
     if babel is not None and locale is not None:
         if format in ('%x', None):
             format = 'medium'
-        elif format not in _babel_formats:
-            return format_datetime(t, format, tzinfo)
-        t = to_datetime_tz(t, tzinfo)
+        elif format not in _BABEL_FORMATS:
+            return _format_datetime_without_babel(t, format, tzinfo)
+        t = to_datetime(t, tzinfo)
         return babel_format_date(t, format, locale)
-
-    if format in _babel_formats:
+    if format in _BABEL_FORMATS:
         format = '%x'
-    return format_datetime(t, format, tzinfo)
+    return _format_datetime_without_babel(t, format, tzinfo)
 
 def format_time(t=None, format='%X', tzinfo=None, locale=None):
     """Convenience method for formatting the time part of a `datetime` object.
@@ -210,18 +207,16 @@ def format_time(t=None, format='%X', tzinfo=None, locale=None):
     """
     if format == 'iso8601':
         format = 'iso8601time'
-
     if babel is not None and locale is not None:
         if format in ('%X', None):
             format = 'medium'
-        elif format not in _babel_formats:
-            return format_datetime(t, format, tzinfo)
-        t = to_datetime_tz(t, tzinfo)
+        elif format not in _BABEL_FORMATS:
+            return _format_datetime_without_babel(t, format, tzinfo)
+        t = to_datetime(t, tzinfo)
         return babel_format_time(t, format, None, locale)
-
-    if format in _babel_formats:
+    if format in _BABEL_FORMATS:
         format = '%X'
-    return format_datetime(t, format, tzinfo)
+    return _format_datetime_without_babel(t, format, tzinfo)
 
 def get_date_format_hint(locale=None):
     """Present the default format used by `format_date` in a human readable
