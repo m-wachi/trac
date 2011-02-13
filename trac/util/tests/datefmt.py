@@ -18,6 +18,7 @@ import datetime
 import os
 import unittest
 
+from trac.core import TracError
 from trac.util import datefmt
 
 try:
@@ -143,6 +144,29 @@ class UTimestampTestCase(unittest.TestCase):
         ts = datefmt.to_utimestamp(t)
         self.assertEqual(981173106123456L, ts)
         self.assertEqual(t, datefmt.from_utimestamp(ts))
+
+
+class ISO8601TestCase(unittest.TestCase):
+    def test_format(self):
+        tz = datefmt.timezone('GMT +2:00')
+        t = datetime.datetime(2010, 8, 28, 11, 45, 56, 123456, tz)
+        self.assertEqual('2010-08-28',
+                         datefmt.format_date(t, tzinfo=tz, locale='iso8601'))
+        self.assertEqual('11:45:56+02:00',
+                         datefmt.format_time(t, tzinfo=tz, locale='iso8601'))
+        self.assertEqual('2010-08-28T11:45:56+02:00',
+                         datefmt.format_datetime(t, tzinfo=tz,
+                                                 locale='iso8601'))
+
+    def test_hint(self):
+        try:
+            datefmt.parse_date('***', locale='iso8601', hint='date')
+        except TracError, e:
+            self.assert_('"YYYY-MM-DD"' in unicode(e))
+        try:
+            datefmt.parse_date('***', locale='iso8601', hint='datetime')
+        except TracError, e:
+            self.assert_(u'"YYYY-MM-DDThh:mm:ss±hh:mm"' in unicode(e))
 
 
 try:
@@ -434,6 +458,7 @@ def suite():
         print "SKIP: utils/tests/datefmt.py (no pytz installed)"
     suite.addTest(unittest.makeSuite(DateFormatTestCase))
     suite.addTest(unittest.makeSuite(UTimestampTestCase))
+    suite.addTest(unittest.makeSuite(ISO8601TestCase))
     if I18nDateFormatTestCase:
         suite.addTest(unittest.makeSuite(I18nDateFormatTestCase, 'test'))
     else:
