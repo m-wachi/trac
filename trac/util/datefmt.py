@@ -147,10 +147,8 @@ def format_datetime(t=None, format='%x %X', tzinfo=None):
         text = text.replace('+0000', 'Z')
         if not text.endswith('Z'):
             text = text[:-2] + ":" + text[-2:]
-    encoding = locale.getpreferredencoding() or sys.getdefaultencoding()
-    if sys.platform != 'win32' or sys.version_info[:2] > (2, 3):
-        encoding = locale.getlocale(locale.LC_TIME)[1] or encoding
-        # Python 2.3 on windows doesn't know about 'XYZ' alias for 'cpXYZ'
+    encoding = locale.getlocale(locale.LC_TIME)[1] \
+               or locale.getpreferredencoding() or sys.getdefaultencoding()
     return unicode(text, encoding, 'replace')
 
 def format_date(t=None, format='%x', tzinfo=None):
@@ -212,7 +210,7 @@ _ISO_8601_RE = re.compile(r'''
     (Z?(?:([-+])?(\d\d):?(\d\d)?)?)?$       # timezone
     ''', re.VERBOSE)
 
-def parse_date(text, tzinfo=None):
+def parse_date(text, tzinfo=None, hint='date'):
     tzinfo = tzinfo or localtz
     dt = None
     text = text.strip()
@@ -253,7 +251,8 @@ def parse_date(text, tzinfo=None):
     if dt is None:
         dt = _parse_relative_time(text, tzinfo)
     if dt is None:
-        hint = get_date_format_hint()        
+        hint = {'datetime': get_datetime_format_hint,
+                'date': get_date_format_hint}.get(hint, lambda: hint)()
         raise TracError(_('"%(date)s" is an invalid date, or the date format '
                           'is not known. Try "%(hint)s" instead.', 
                           date=text, hint=hint), _('Invalid Date'))
@@ -451,6 +450,7 @@ try:
                          if tz.zone != 'UTC'])
 
     def timezone(tzname):
+        """Fetch timezone instance by name or raise `KeyError`"""
         tz = get_timezone(tzname)
         if not tz:
             raise KeyError(tzname)

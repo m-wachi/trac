@@ -22,9 +22,9 @@ from trac.core import *
 from trac.config import Option
 from trac.db.api import IDatabaseConnector, _parse_db_str
 from trac.db.util import ConnectionWrapper, IterableCursor
-from trac.util import get_pkginfo
+from trac.util import as_int, get_pkginfo
 from trac.util.compat import close_fds
-from trac.util.text import to_unicode
+from trac.util.text import exception_to_unicode, to_unicode
 from trac.util.translation import _
 
 _like_escape_re = re.compile(r'([/_%])')
@@ -63,8 +63,15 @@ class MySQLConnector(Component):
     
     Database URLs should be of the form:
     {{{
-    mysql://user[:password]@host[:port]/database
+    mysql://user[:password]@host[:port]/database[?param1=value&param2=value]
     }}}
+    The following parameters are supported:
+     * `compress`: Enable compression (0 or 1)
+     * `init_command`: Command to run once the connection is created
+     * `named_pipe`: Use a named pipe to connect on Windows (0 or 1)
+     * `read_default_file`: Read default client values from the given file
+     * `read_default_group`: Configuration group to use from the default file
+     * `unix_socket`: Use a Unix socket at the given path to connect
     """
     implements(IDatabaseConnector)
 
@@ -95,15 +102,16 @@ class MySQLConnector(Component):
             self.required = True
         return cnx
     
-    def init_db(self, path, log=None, user=None, password=None, host=None,
-                port=None, params={}):
+    def init_db(self, path, schema=None, log=None, user=None, password=None,
+                host=None, port=None, params={}):
         cnx = self.get_connection(path, log, user, password, host, port,
                                   params)
         cursor = cnx.cursor()
-        from trac.db_default import schema
+        if schema is None:
+            from trac.db_default import schema
         for table in schema:
             for stmt in self.to_sql(table):
-                self.env.log.debug(stmt)
+                self.log.debug(stmt)
                 cursor.execute(stmt)
         cnx.commit()
 
@@ -179,13 +187,10 @@ class MySQLConnector(Component):
                           for each in alterations))
 
     def backup(self, dest_file):
-        try:
-            from subprocess import Popen, PIPE
-        except ImportError:
-            raise TracError('Python >= 2.4 or the subprocess module '
-                            'is required for pre-upgrade backup support')
+        from subprocess import Popen, PIPE
         db_url = self.env.config.get('trac', 'database')
         scheme, db_prop = _parse_db_str(db_url)
+        db_params = db_prop.setdefault('params', {})
         db_name = os.path.basename(db_prop['path'])
 
         args = [self.mysqldump_path]
@@ -195,17 +200,35 @@ class MySQLConnector(Component):
             args.extend(['-P', str(db_prop['port'])])
         if 'user' in db_prop:
             args.extend(['-u', db_prop['user']])
+        for name, value in db_params.iteritems():
+            if name == 'compress' and as_int(value, 0):
+                args.append('--compress')
+            elif name == 'named_pipe' and as_int(value, 0):
+                args.append('--protocol=pipe')
+            elif name == 'read_default_file': # Must be first
+                args.insert(1, '--defaults-file=' + value)
+            elif name == 'unix_socket':
+                args.extend(['--protocol=socket', '--socket=' + value])
+            elif name not in ('init_command', 'read_default_group'):
+                self.log.warning("Invalid connection string parameter '%s'",
+                                 name)
         args.extend(['-r', dest_file, db_name])
         
         environ = os.environ.copy()
         if 'password' in db_prop:
             environ['MYSQL_PWD'] = str(db_prop['password'])
-        p = Popen(args, env=environ, stderr=PIPE, close_fds=close_fds)
+        try:
+            p = Popen(args, env=environ, stderr=PIPE, close_fds=close_fds)
+        except OSError, e:
+            raise TracError(_("Unable to run %(path)s: %(msg)s",
+                              path=self.pg_dump_path,
+                              msg=exception_to_unicode(e)))
         errmsg = p.communicate()[1]
         if p.returncode != 0:
-            raise TracError("Backup attempt failed (%s)" % to_unicode(errmsg))
+            raise TracError(_("mysqldump failed: %(msg)s",
+                              msg=to_unicode(errmsg.strip())))
         if not os.path.exists(dest_file):
-            raise TracError("Backup attempt failed")
+            raise TracError(_("No destination file created"))
         return dest_file
 
 
@@ -222,8 +245,18 @@ class MySQLConnection(ConnectionWrapper):
             password = ''
         if port == None:
             port = 3306
-        cnx = MySQLdb.connect(db=path, user=user, passwd=password,
-                              host=host, port=port, charset='utf8')
+        opts = {}
+        for name, value in params.iteritems():
+            if name in ('init_command', 'read_default_file',
+                        'read_default_group', 'unix_socket'):
+                opts[name] = value
+            elif name in ('compress', 'named_pipe'):
+                opts[name] = as_int(value, 0)
+            else:
+                self.log.warning("Invalid connection string parameter '%s'",
+                                 name)
+        cnx = MySQLdb.connect(db=path, user=user, passwd=password, host=host,
+                              port=port, charset='utf8', **opts)
         if hasattr(cnx, 'encoders'):
             # 'encoders' undocumented but present since 1.2.1 (r422)
             cnx.encoders[Markup] = cnx.encoders[types.UnicodeType]
@@ -253,6 +286,10 @@ class MySQLConnection(ConnectionWrapper):
 
     def get_last_id(self, cursor, table, column='id'):
         return cursor.lastrowid
+
+    def update_sequence(self, cursor, table, column='id'):
+        # MySQL handles sequence updates automagically
+        pass
 
     def rollback(self):
         self.cnx.ping()

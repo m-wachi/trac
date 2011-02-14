@@ -144,6 +144,8 @@ class SQLiteConnector(Component):
         doc="""Paths to sqlite extensions, relative to Trac environment's
         directory or absolute. (''since 0.12'')""")
 
+    memory_cnx = None
+
     def __init__(self):
         self._version = None
         self.error = None
@@ -152,14 +154,13 @@ class SQLiteConnector(Component):
     def get_supported_schemes(self):
         if not have_pysqlite:
             self.error = _("Cannot load Python bindings for SQLite")
-        elif sqlite_version >= (3, 3, 3):
-            if sqlite.version_info < (1, 1, 7):
-                self.error = _("Need at least PySqlite %(version)s or higher",
-                               version='1.1.7')
-            elif sqlite.version_info[0] == 2 and \
-                    sqlite.version_info < (2, 0, 7):
-                self.error = _("Need at least PySqlite %(version)s or higher",
-                               version='2.0.7')
+        elif sqlite_version >= (3, 3, 3) and sqlite.version_info[0] == 2 and \
+                sqlite.version_info < (2, 0, 7):
+            self.error = _("Need at least PySqlite %(version)s or higher",
+                           version='2.0.7')
+        elif (2, 5, 2) <= sqlite.version_info < (2, 5, 5):
+            self.error = _("PySqlite 2.5.2 - 2.5.4 break Trac, please use "
+                           "2.5.5 or higher")
         yield ('sqlite', self.error and -1 or 1)
 
     def get_connection(self, path, log=None, params={}):
@@ -177,20 +178,32 @@ class SQLiteConnector(Component):
                     extpath = os.path.join(self.env.path, extpath)
                 self._extensions.append(extpath)
         params['extensions'] = self._extensions
-        return SQLiteConnection(path, log, params)
+        if path == ':memory:':
+            if not self.memory_cnx:
+                self.memory_cnx = SQLiteConnection(path, log, params)
+            return self.memory_cnx
+        else:
+            return SQLiteConnection(path, log, params)
 
-    def init_db(self, path, log=None, params={}):
+    def init_db(self, path, schema=None, log=None, params={}):
         if path != ':memory:':
             # make the directory to hold the database
             if os.path.exists(path):
-                raise TracError(_('Database already exists at %(path)s',
+                raise TracError(_("Database already exists at %(path)s",
                                   path=path))
-            os.makedirs(os.path.split(path)[0])
-        if isinstance(path, unicode): # needed with 2.4.0
-            path = path.encode('utf-8')
-        cnx = sqlite.connect(path, timeout=int(params.get('timeout', 10000)))
+            dir = os.path.dirname(path)
+            if not os.path.exists(dir):
+                os.makedirs(dir)
+            if isinstance(path, unicode): # needed with 2.4.0
+                path = path.encode('utf-8')
+            # this direct connect will create the database if needed
+            cnx = sqlite.connect(path,
+                                 timeout=int(params.get('timeout', 10000)))
+        else:
+            cnx = self.get_connection(path, log, params)
         cursor = cnx.cursor()
-        from trac.db_default import schema
+        if schema is None:
+            from trac.db_default import schema
         for table in schema:
             for stmt in self.to_sql(table):
                 cursor.execute(stmt)
@@ -226,7 +239,7 @@ class SQLiteConnector(Component):
         db_name = os.path.join(self.env.path, db_str[7:])
         shutil.copy(db_name, dest_file)
         if not os.path.exists(dest_file):
-            raise TracError("Backup attempt failed")
+            raise TracError(_("No destination file created"))
         return dest_file
 
 
@@ -315,3 +328,8 @@ class SQLiteConnection(ConnectionWrapper):
 
     def get_last_id(self, cursor, table, column='id'):
         return cursor.lastrowid
+    
+    def update_sequence(self, cursor, table, column='id'):
+        # SQLite handles sequence updates automagically
+        # http://www.sqlite.org/autoinc.html
+        pass

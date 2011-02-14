@@ -33,7 +33,7 @@ h1 :link, h1 :visited ,h2 :link, h2 :visited, h3 :link, h3 :visited,
 h4 :link, h4 :visited, h5 :link, h5 :visited, h6 :link, h6 :visited {
  color: inherit;
 }
-.trac-rawlink { border-bottom: none }
+.trac-rawlink, .trac-ziplink { border-bottom: none }
 
 /* Heading anchors */
 .anchor:link, .anchor:visited {
@@ -59,6 +59,10 @@ span:hover .anchor {
  a.mail-link .icon {
   background: url(../envelope.png) center center no-repeat;
   padding-left: 14px;
+ }
+ a.trac-rawlink, a.trac-ziplink {
+  background: url(../download.png) center center no-repeat;
+  padding-left: 17px;
  }
 }
 
@@ -325,7 +329,7 @@ fieldset > legend.foldable :link, fieldset > legend.foldable :visited {
  width: 100%;
 }
 #info th, #info td { font-size: 85%; padding: 2px .5em; vertical-align: top }
-#info th { font-weight: bold; text-align: left; white-space: nowrap }
+#info th { font-weight: bold; text-align: left }
 #info td.message { width: 100% }
 #info .message ul { padding: 0; margin: 0 2em }
 #info .message p { margin: 0; padding: 0 }
@@ -441,10 +445,11 @@ div.trac-grip {
 .attachment #preview { margin-top: 1em }
 
 /* Styles for the list of attachments. */
-#attachments > div { border: 1px outset #996; padding: 1em }
-#attachments .attachments { margin-left: 2em; padding: 0 }
+#attachments > div.attachments { border: 1px outset #996; padding: 1em }
+#attachments dl.attachments { margin-left: 2em; padding: 0 }
 #attachments dt { display: list-item; list-style: square; }
 #attachments dd { font-style: italic; margin-left: 0; padding-left: 0; }
+#attachments p { margin-left: 2em; }
 
 /* Styles for tabular listings such as those used for displaying directory
    contents and report results. */
@@ -457,7 +462,7 @@ table.listing {
  width: 100%;
 }
 table.listing th { text-align: left; padding: 0 1em .1em 0; font-size: 12px }
-table.listing thead { background: #f7f7f0 }
+table.listing thead tr { background: #f7f7f0 }
 table.listing thead th {
  border: 1px solid #d7d7d7;
  border-bottom-color: #999;
@@ -465,13 +470,14 @@ table.listing thead th {
  font-weight: bold;
  padding: 2px .5em;
  vertical-align: bottom;
+ white-space: nowrap;
 }
 table.listing thead th :link:hover, table.listing thead th :visited:hover {
  background-color: transparent;
 }
 table.listing thead th a { border: none; padding-right: 12px }
-table.listing th.asc a, table.listing th.desc a { font-weight: bold }
 table.listing th.asc a, table.listing th.desc a {
+ font-weight: bold;
  background-position: 100% 50%;
  background-repeat: no-repeat;
 }
@@ -517,7 +523,7 @@ table.listing tbody tr.focus { background: #ddf !important }
 .suggestions li { background: #fff; cursor: pointer; padding: 2px 5px }
 .suggestions li.selected { background: #b9b9b9 }
 
-/* Styles for the error page (and rst errors) */
+/* Styles for the error page */
 #content.error .message, div.system-message {
  background: #fdc;
  border: 2px solid #d00;
@@ -533,12 +539,23 @@ table.listing tbody tr.focus { background: #ddf !important }
 div.system-message p { margin: 0; }
 div.system-message p.system-message-title { font-weight: bold; }
 
+/* rst errors are less emphasized */
+span.system-message {
+ float: left;
+ background: #fdc;
+ padding: 0.2em;
+ margin: 1px;
+ border-radius: 0.25em;
+}
+
+/* whole-page admonitions in theme.html */
 #warning.system-message, .warning.system-message { background: #ffb; border: 1px solid #000; }
 #warning.system-message li { list-style-type: square; }
 
 #notice.system-message, .notice.system-message { background: #dfd; border: 1px solid #000; }
 #notice.system-message li { list-style-type: square; }
 
+/* error.html page */
 #content.error form.newticket { display: inline; }
 #content.error form.newticket textarea { display: none; }
 
@@ -616,7 +633,7 @@ div.system-message p.system-message-title { font-weight: bold; }
 @media print {
  #header, #altlinks, #footer, #help { display: none }
  .nav, form, .buttons form, form .buttons, form .inlinebuttons,
- .noprint, .trac-rawlink, .trac-nav, .trac-topnav {
+ .noprint, .trac-nav, .trac-topnav {
    display: none;
  }
  form.printableform { display: block }

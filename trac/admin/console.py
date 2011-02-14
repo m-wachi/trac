@@ -12,6 +12,8 @@
 # individuals. For the exact contribution history, see the revision
 # history and logs, available at http://trac.edgewall.org/log/.
 
+from __future__ import with_statement
+
 import cmd
 import locale
 import os.path
@@ -30,25 +32,22 @@ from trac.util import translation
 from trac.util.html import html
 from trac.util.text import console_print, exception_to_unicode, printout, \
                            printerr, raw_input, to_unicode
-from trac.util.translation import _
+from trac.util.translation import _, get_negotiated_locale, has_babel
 from trac.versioncontrol.api import RepositoryManager
 from trac.wiki.admin import WikiAdmin
 from trac.wiki.macros import WikiMacroBase
 
 TRAC_VERSION = pkg_resources.get_distribution('Trac').version
 rl_completion_suppress_append = None
-
+LANG = os.environ.get('LANG')
 
 def find_readline_lib():
     """Return the name (and possibly the full path) of the readline library
     linked to the readline module.
     """
     import readline
-    f = open(readline.__file__, "rb")
-    try:
+    with open(readline.__file__, "rb") as f:
         data = f.read()
-    finally:
-        f.close()
     import re
     m = re.search('\0([^\0]*libreadline[^\0]*)\0', data)
     if m:
@@ -108,7 +107,7 @@ class TracAdmin(cmd.Cmd):
         except SystemExit:
             raise
         except AdminCommandError, e:
-            printerr(_("Error:"), to_unicode(e))
+            printerr(_("Error: %(msg)s", msg=to_unicode(e)))
             if e.show_usage:
                 print
                 self.do_help(e.cmd or self.arg_tokenize(line)[0])
@@ -129,7 +128,7 @@ class TracAdmin(cmd.Cmd):
         self.interactive = True
         printout(_("""Welcome to trac-admin %(version)s
 Interactive Trac administration console.
-Copyright (c) 2003-2010 Edgewall Software
+Copyright (C) 2003-2011 Edgewall Software
 
 Type:  '?' or 'help' for help on commands.
         """, version=TRAC_VERSION))
@@ -148,7 +147,7 @@ Type:  '?' or 'help' for help on commands.
     def env_check(self):
         if not self.__env:
             try:
-                self.__env = Environment(self.envname)
+                self._init_env()
             except:
                 return False
         return True
@@ -157,13 +156,22 @@ Type:  '?' or 'help' for help on commands.
     def env(self):
         try:
             if not self.__env:
-                self.__env = Environment(self.envname)
+                self._init_env()
             return self.__env
         except Exception, e:
             printerr(_("Failed to open environment: %(err)s",
                        err=exception_to_unicode(e, traceback=True)))
             sys.exit(1)
 
+    def _init_env(self):
+        self.__env = env = Environment(self.envname)
+        # fixup language according to env settings
+        if has_babel:
+            default = env.config.get('trac', 'default_language', '')
+            negotiated = get_negotiated_locale([LANG, default])
+            if negotiated:
+                translation.activate(negotiated)
+        
     ##
     ## Utility methods
     ##
@@ -513,15 +521,13 @@ def run(args=None):
     if args is None:
         args = sys.argv[1:]
     locale = None
-    try:
+    if has_babel:
         import babel
         try:
-            locale = babel.Locale.default()
+            locale = get_negotiated_locale([LANG]) or babel.Locale.default()
         except babel.UnknownLocaleError:
             pass
-    except ImportError:
-        pass
-    translation.activate(locale)
+        translation.activate(locale)
     admin = TracAdmin()
     if len(args) > 0:
         if args[0] in ('-h', '--help', 'help'):

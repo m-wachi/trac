@@ -13,6 +13,27 @@
 
 import sys, os
 
+# General substitutions.
+project = 'Trac'
+copyright = '2010, Edgewall Software'
+url = 'http://trac.edgewall.org'
+
+# The default replacements for |version| and |release|, also used in various
+# other places throughout the built documents.
+#
+# The short X.Y version.
+version = '0.13'
+# The full version, including alpha/beta/rc tags.
+release = '0.13'
+# Devel or Release mode for the documentation (if devel, include TODOs,
+# can also be used in conditionals: .. ifconfig :: devel)
+devel = True
+
+if devel:
+    release += 'dev'
+
+
+
 # If your extensions are in another directory, add it here. If the directory
 # is relative to the documentation root, use os.path.abspath to make it
 # absolute, like shown here.
@@ -21,12 +42,42 @@ import sys, os
 # General configuration
 # ---------------------
 
-# Add any Sphinx extension module names here, as strings. They can be extensions
-# coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc']
+# Add any Sphinx extension module names here, as strings. 
+# They can be extensions coming with Sphinx (named 'sphinx.ext.*') 
+# or your custom ones.
+
+extensions = []
+
+# -- Autodoc
+
+extensions.append('sphinx.ext.autodoc')
+
+autoclass_content = 'both'
+autodoc_member_order = 'bysource'
+
+# -- Conditional content (see setup() below)
+extensions.append('sphinx.ext.ifconfig')
+
+# -- Link to other Sphinx documentations
+extensions.append('sphinx.ext.intersphinx')
+
+intersphinx_mapping = {'python': ('http://docs.python.org/2.7', None)}
+
+# -- Keep track of :todo: items
+extensions.append('sphinx.ext.todo')
+
+todo_include_todos = devel
+
+# -- PDF support via http://code.google.com/p/rst2pdf/
+try:
+    import rst2pdf
+    extensions.append('rst2pdf.pdfbuilder')
+except ImportError:
+    pass
+
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['.templates']
+#templates_path = ['utils/templates']
 
 # The suffix of source filenames.
 source_suffix = '.rst'
@@ -34,17 +85,6 @@ source_suffix = '.rst'
 # The master toctree document.
 master_doc = 'index'
 
-# General substitutions.
-project = 'Trac'
-copyright = '2008, Edgewall Software'
-
-# The default replacements for |version| and |release|, also used in various
-# other places throughout the built documents.
-#
-# The short X.Y version.
-version = '0.12'
-# The full version, including alpha/beta/rc tags.
-release = '0.12-dev'
 
 # There are two options for replacing |today|: either, you set today to some
 # non-false value, then it is used:
@@ -53,11 +93,16 @@ release = '0.12-dev'
 today_fmt = '%B %d, %Y'
 
 # List of documents that shouldn't be included in the build.
-#unused_docs = []
+unused_docs = []
 
 # List of directories, relative to source directories, that shouldn't be searched
 # for source files.
-#exclude_dirs = []
+exclude_patterns = [
+    'contents.rst',
+    'install',
+    'guide',
+    'admin',
+]
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
 #add_function_parentheses = True
@@ -71,16 +116,27 @@ today_fmt = '%B %d, %Y'
 #show_authors = False
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = 'trac'
 
+# The default role is a reference to some Python object
+default_role = 'py:obj'
 
+
 # Options for HTML output
 # -----------------------
 
 # The style sheet to use for HTML and HTML Help pages. A file of that name
 # must exist either in Sphinx' static/ path, or in one of the custom paths
 # given in html_static_path.
-html_style = 'default.css'
+#html_style = 'default.css'
+
+html_theme = 'sphinxdoc'
+
+html_theme_options = {
+#    'linkcolor': '#B00',
+#    'visitedlinkcolor': '#B00',
+}
+
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
@@ -88,12 +144,12 @@ html_style = 'default.css'
 
 # The name of an image file (within the static path) to place at the top of
 # the sidebar.
-#html_logo = None
+html_logo = 'images/trac_logo.png'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['.static']
+#html_static_path = ['utils/static']
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
@@ -111,7 +167,7 @@ html_last_updated_fmt = '%b %d, %Y'
 #html_additional_pages = {}
 
 # If false, no module index is generated.
-#html_use_modindex = True
+html_use_modindex = True
 
 # If true, the reST sources are included in the HTML build as _sources/<name>.
 #html_copy_source = True
@@ -128,6 +184,7 @@ html_last_updated_fmt = '%b %d, %Y'
 htmlhelp_basename = 'Tracdoc'
 
 
+
 # Options for LaTeX output
 # ------------------------
 
@@ -160,3 +217,123 @@ latex_documents = [
 
 # If false, no module index is generated.
 #latex_use_modindex = True
+
+
+
+# Options for PDF output 
+# ----------------------
+# (initially copied from
+#  http://rst2pdf.googlecode.com/svn/tags/0.16/doc/manual.txt)
+
+# Grouping the document tree into PDF files. List of tuples
+# (source start file, target name, title, author, options).
+#
+# If there is more than one author, separate them with \\.
+# For example: r'Guido van Rossum\\Fred L. Drake, Jr., editor'
+#
+# The options element is a dictionary that lets you override 
+# this config per-document.
+# For example, 
+# ('index', u'MyProject', u'My Project', u'Author Name', 
+#  dict(pdf_compressed = True))
+# would mean that specific document would be compressed
+# regardless of the global pdf_compressed setting.
+
+pdf_documents = [ 
+    ('index', 'trac_dev', project, u'The Trac Team'),
+]
+
+# A comma-separated list of custom stylesheets (latest has higher precedence)
+pdf_stylesheets = [
+    'sphinx',
+    'a4',
+    'trac',
+    os.path.join(os.path.dirname(__file__), 'trac_dev_pdf.style')
+]
+
+# Create a compressed PDF
+# Use True/False or 1/0
+# Example: compressed=True
+pdf_compressed = True
+
+# A colon-separated list of folders to search for fonts. Example:
+# pdf_font_path = ['/usr/share/fonts', '/usr/share/texmf-dist/fonts/']
+
+# Language to be used for hyphenation support
+pdf_language = "en_US"
+
+# Mode for literal blocks wider than the frame. Can be
+# overflow, shrink or truncate
+pdf_fit_mode = "shrink"
+
+# Section level that forces a break page.
+# For example: 1 means top-level sections start in a new page
+# 0 means disabled
+pdf_break_level = 1
+
+# When a section starts in a new page, force it to be 'even', 'odd',
+# or just use 'any'
+#pdf_breakside = 'any'
+
+# Insert footnotes where they are defined instead of 
+# at the end.
+#pdf_inline_footnotes = True
+
+# verbosity level. 0 1 or 2
+#pdf_verbosity = 0
+
+# If false, no index is generated.
+pdf_use_index = True
+
+# If false, no modindex is generated.
+pdf_use_modindex = True
+
+# If false, no coverpage is generated.
+#pdf_use_coverpage = True
+
+# Name of the cover page template to use
+#pdf_cover_template = 'sphinxcover.tmpl'
+
+# Documents to append as an appendix to all manuals.    
+#pdf_appendices = []
+
+# Enable experimental feature to split table cells. Use it
+# if you get "DelayedTable too big" errors
+#pdf_splittables = False
+
+# Set the default DPI for images
+#pdf_default_dpi = 72
+
+# Enable rst2pdf extension modules (default is only vectorpdf)
+# you need vectorpdf if you want to use sphinx's graphviz support
+#pdf_extensions = ['vectorpdf']
+
+# Page template name for "regular" pages
+#pdf_page_template = 'cutePage'
+
+# Show Table Of Contents at the beginning?
+#pdf_use_toc = True
+
+# How many levels deep should the table of contents be?
+pdf_toc_depth = 9999
+
+# Add section number to section references
+pdf_use_numbered_links = False
+
+# Background images fitting mode
+pdf_fit_background_mode = 'scale'
+
+def setup(app):
+    # adding role for linking to InterTrac targets on t.e.o
+    from urllib import quote
+    from docutils import nodes
+    from docutils.parsers.rst import roles
+    def teo_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
+        ref = url + '/intertrac/' + quote(text)
+        roles.set_classes(options)
+        node = nodes.reference(rawtext, text, refuri=ref, **options)
+        return [node], []
+    roles.register_canonical_role('teo', teo_role)
+
+    # ifconfig variables
+    app.add_config_value('devel', '', True)

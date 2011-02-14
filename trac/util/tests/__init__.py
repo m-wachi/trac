@@ -11,8 +11,11 @@
 # individuals. For the exact contribution history, see the revision
 # history and logs, available at http://trac.edgewall.org/log/.
 
+from __future__ import with_statement
+
 import doctest
 import os.path
+import random
 import tempfile
 import unittest
 
@@ -32,36 +35,28 @@ class AtomicFileTestCase(unittest.TestCase):
             pass
     
     def test_non_existing(self):
-        f = util.AtomicFile(self.path)
-        try:
+        with util.AtomicFile(self.path) as f:
             f.write('test content')
-        finally:
-            f.close()
+        self.assertEqual(True, f.closed)
         self.assertEqual('test content', util.read_file(self.path))
     
     def test_existing(self):
         util.create_file(self.path, 'Some content')
         self.assertEqual('Some content', util.read_file(self.path))
-        f = util.AtomicFile(self.path)
-        try:
+        with util.AtomicFile(self.path) as f:
             f.write('Some new content')
-        finally:
-            f.close()
+        self.assertEqual(True, f.closed)
         self.assertEqual('Some new content', util.read_file(self.path))
     
     if util.can_rename_open_file:
         def test_existing_open_for_reading(self):
             util.create_file(self.path, 'Initial file content')
             self.assertEqual('Initial file content', util.read_file(self.path))
-            rf = open(self.path)
-            try:
-                f = util.AtomicFile(self.path)
-                try:
+            with open(self.path) as rf:
+                with util.AtomicFile(self.path) as f:
                     f.write('Replaced content')
-                finally:
-                    f.close()
-            finally:
-                rf.close()
+            self.assertEqual(True, rf.closed)
+            self.assertEqual(True, f.closed)
             self.assertEqual('Replaced content', util.read_file(self.path))
     
     # FIXME: It is currently not possible to make this test pass on all
@@ -72,12 +67,50 @@ class AtomicFileTestCase(unittest.TestCase):
     # we require Python 3.
     def _test_unicode_path(self):
         self.path = os.path.join(tempfile.gettempdir(), u'träc-témpfilè')
-        f = util.AtomicFile(self.path)
-        try:
+        with util.AtomicFile(self.path) as f:
             f.write('test content')
-        finally:
-            f.close()
+        self.assertEqual(True, f.closed)
         self.assertEqual('test content', util.read_file(self.path))
+
+
+class PathTestCase(unittest.TestCase):
+    
+    def assert_below(self, path, parent):
+        self.assert_(util.is_path_below(path.replace('/', os.sep),
+                                        parent.replace('/', os.sep)))
+
+    def assert_not_below(self, path, parent):
+        self.assert_(not util.is_path_below(path.replace('/', os.sep),
+                                            parent.replace('/', os.sep)))
+
+    def test_is_path_below(self):
+        self.assert_below('/svn/project1', '/svn/project1')
+        self.assert_below('/svn/project1/repos', '/svn/project1')
+        self.assert_below('/svn/project1/sub/repos', '/svn/project1')
+        self.assert_below('/svn/project1/sub/../repos', '/svn/project1')
+        self.assert_not_below('/svn/project2/repos', '/svn/project1')
+        self.assert_not_below('/svn/project2/sub/repos', '/svn/project1')
+        self.assert_not_below('/svn/project1/../project2/repos',
+                              '/svn/project1')
+        self.assert_(util.is_path_below('repos', os.path.join(os.getcwd())))
+        self.assert_(not util.is_path_below('../sub/repos',
+                                            os.path.join(os.getcwd())))
+
+
+class RandomTestCase(unittest.TestCase):
+    
+    def setUp(self):
+        self.state = random.getstate()
+
+    def tearDown(self):
+        random.setstate(self.state)
+
+    def test_hex_entropy(self):
+        """hex_entropy() not affected by global random generator state"""
+        random.seed(0)
+        data = util.hex_entropy(64)
+        random.seed(0)
+        self.assertNotEqual(data, util.hex_entropy(64))
 
 
 class ContentDispositionTestCase(unittest.TestCase):
@@ -96,6 +129,8 @@ class ContentDispositionTestCase(unittest.TestCase):
 def suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(AtomicFileTestCase, 'test'))
+    suite.addTest(unittest.makeSuite(PathTestCase, 'test'))
+    suite.addTest(unittest.makeSuite(RandomTestCase, 'test'))
     suite.addTest(unittest.makeSuite(ContentDispositionTestCase, 'test'))
     suite.addTest(concurrency.suite())
     suite.addTest(datefmt.suite())

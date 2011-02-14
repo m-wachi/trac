@@ -19,6 +19,7 @@
 import cgi
 import dircache
 import fnmatch
+from functools import partial
 import gc
 import locale
 import os
@@ -26,10 +27,6 @@ import pkg_resources
 from pprint import pformat, pprint
 import sys
 
-try:
-    from babel import Locale
-except ImportError:
-    Locale = None
 from genshi.core import Markup
 from genshi.builder import Fragment, tag
 from genshi.output import DocType
@@ -44,14 +41,13 @@ from trac.perm import PermissionCache, PermissionError
 from trac.resource import ResourceNotFound
 from trac.util import arity, get_frame_info, get_last_traceback, hex_entropy, \
                       read_file, translation
-from trac.util.compat import any, partial
 from trac.util.concurrency import threading
 from trac.util.datefmt import format_datetime, http_date, localtz, timezone
 from trac.util.text import exception_to_unicode, shorten_line, to_unicode
-from trac.util.translation import safefmt, tag_, _
+from trac.util.translation import _, get_negotiated_locale, has_babel, \
+                                  safefmt, tag_
 from trac.web.api import *
 from trac.web.chrome import Chrome
-from trac.web.clearsilver import HDFWrapper
 from trac.web.href import Href
 from trac.web.session import Session
 
@@ -67,61 +63,6 @@ class FakePerm(dict):
         return False
     def __call__(self, *args):
         return self
-
-
-def populate_hdf(hdf, env, req=None):
-    """Populate the HDF data set with various information, such as common URLs,
-    project information and request-related information.
-    """
-    # FIXME: do we really have req==None at times?
-    hdf['trac'] = {
-        'version': TRAC_VERSION,
-        'time': format_datetime(),
-        'time.gmt': http_date()
-    }
-    hdf['project'] = {
-        'shortname': os.path.basename(env.path),
-        'name': env.project_name,
-        'name_encoded': env.project_name,
-        'descr': env.project_description,
-        'footer': Markup(env.project_footer),
-        'url': env.project_url
-    }
-
-    if req:
-        hdf['trac.href'] = {
-            'wiki': req.href.wiki(),
-            'browser': req.href.browser('/'),
-            'timeline': req.href.timeline(),
-            'roadmap': req.href.roadmap(),
-            'milestone': req.href.milestone(None),
-            'report': req.href.report(),
-            'query': req.href.query(),
-            'newticket': req.href.newticket(),
-            'search': req.href.search(),
-            'about': req.href.about(),
-            'about_config': req.href.about('config'),
-            'login': req.href.login(),
-            'logout': req.href.logout(),
-            'settings': req.href.settings(),
-            'homepage': 'http://trac.edgewall.org/'
-        }
-
-        hdf['base_url'] = req.base_url
-        hdf['base_host'] = req.base_url[:req.base_url.rfind(req.base_path)]
-        hdf['cgi_location'] = req.base_path
-        hdf['trac.authname'] = req.authname
-
-        if req.perm:
-            for action in req.perm.permissions():
-                hdf['trac.acl.' + action] = True
-
-        for arg in [k for k in req.args.keys() if k]:
-            if isinstance(req.args[arg], (list, tuple)):
-                hdf['args.%s' % arg] = [v for v in req.args[arg]]
-            elif isinstance(req.args[arg], basestring):
-                hdf['args.%s' % arg] = req.args[arg]
-            # others are file uploads
 
 
 class RequestDispatcher(Component):
@@ -150,6 +91,11 @@ class RequestDispatcher(Component):
     default_timezone = Option('trac', 'default_timezone', '',
         """The default timezone to use""")
 
+    default_language = Option('trac', 'default_language', '',
+        """The preferred language to use if no user preference has been set.
+        (''since 0.12.1'')
+        """)
+
     # Public API
 
     def authenticate(self, req):
@@ -174,7 +120,6 @@ class RequestDispatcher(Component):
         req.callbacks.update({
             'authname': self.authenticate,
             'chrome': chrome.prepare_request,
-            'hdf': self._get_hdf,
             'perm': self._get_perm,
             'session': self._get_session,
             'locale': self._get_locale,
@@ -234,29 +179,27 @@ class RequestDispatcher(Component):
                 # Process the request and render the template
                 resp = chosen_handler.process_request(req)
                 if resp:
-                    if len(resp) == 2: # Clearsilver
-                        chrome.populate_hdf(req)
-                        template, content_type = \
-                                  self._post_process_request(req, *resp)
-                        # Give the session a chance to persist changes
-                        req.session.save()
-                        req.display(template, content_type or 'text/html')
-                    else: # Genshi
-                        template, data, content_type = \
-                                  self._post_process_request(req, *resp)
-                        if 'hdfdump' in req.args:
-                            req.perm.require('TRAC_ADMIN')
-                            # debugging helper - no need to render first
-                            out = StringIO()
-                            pprint(data, out)
-                            req.send(out.getvalue(), 'text/plain')
-                        else:
-                            output = chrome.render_template(req, template,
-                                                            data,
-                                                            content_type)
-                            # Give the session a chance to persist changes
-                            req.session.save()
-                            req.send(output, content_type or 'text/html')
+                    if len(resp) == 2: # old Clearsilver template and HDF data
+                        self.log.error("Clearsilver template are no longer "
+                                       "supported (%s)", resp[0])
+                        raise TracError(
+                            _("Clearsilver templates are no longer supported, "
+                              "please contact your Trac administrator."))
+                    # Genshi
+                    template, data, content_type = \
+                              self._post_process_request(req, *resp)
+                    if 'hdfdump' in req.args:
+                        req.perm.require('TRAC_ADMIN')
+                        # debugging helper - no need to render first
+                        out = StringIO()
+                        pprint(data, out)
+                        req.send(out.getvalue(), 'text/plain')
+
+                    output = chrome.render_template(req, template, data,
+                                                    content_type)
+                    # Give the session a chance to persist changes
+                    req.session.save()
+                    req.send(output, content_type or 'text/html')
                 else:
                     self._post_process_request(req)
             except RequestDone:
@@ -282,11 +225,6 @@ class RequestDispatcher(Component):
 
     # Internal methods
 
-    def _get_hdf(self, req):
-        hdf = HDFWrapper(loadpaths=Chrome(self.env).get_all_templates_dirs())
-        populate_hdf(hdf, self.env, req)
-        return hdf
-
     def _get_perm(self, req):
         if isinstance(req.session, FakeSession):
             return FakePerm()
@@ -302,16 +240,12 @@ class RequestDispatcher(Component):
             return FakeSession()
 
     def _get_locale(self, req):
-        if Locale:
-            available = [locale_id.replace('_', '-') for locale_id in
-                         translation.get_available_locales()]
-
-            preferred = req.session.get('language', req.languages)
-            if not isinstance(preferred, list):
-                preferred = [preferred]
-            negotiated = Locale.negotiate(preferred, available, sep='-')
-            self.log.debug("Negotiated locale: %s -> %s",
-                           preferred, negotiated)
+        if has_babel:
+            preferred = req.session.get('language')
+            default = self.env.config.get('trac', 'default_language', '')
+            negotiated = get_negotiated_locale([preferred, default] +
+                                               req.languages)
+            self.log.debug("Negotiated locale: %s -> %s", preferred, negotiated)
             return negotiated
 
     def _get_timezone(self, req):
@@ -365,8 +299,8 @@ class RequestDispatcher(Component):
 def dispatch_request(environ, start_response):
     """Main entry point for the Trac web interface.
     
-    @param environ: the WSGI environment dict
-    @param start_response: the WSGI callback for starting the response
+    :param environ: the WSGI environment dict
+    :param start_response: the WSGI callback for starting the response
     """
 
     # SCRIPT_URL is an Apache var containing the URL before URL rewriting
@@ -514,50 +448,50 @@ def _dispatch_request(req, env, env_error):
         except RequestDone:
             pass
         resp = req._response or []
-
     except HTTPException, e:
-        # This part is a bit more complex than it should be.
-        # See trac/web/api.py for the definition of HTTPException subclasses.
-        if env:
-            env.log.warn(exception_to_unicode(e))
-        try:
-            # We try to get localized error messages here, 
-            # but we should ignore secondary errors
-            title = _('Error')
-            if e.reason:
-                if title.lower() in e.reason.lower():
-                    title = e.reason
-                else:
-                    title = _('Error: %(message)s', message=e.reason)
-        except:
-            title = 'Error'
-        # The message is based on the e.detail, which can be an Exception
-        # object, but not a TracError one: when creating HTTPException,
-        # a TracError.message is directly assigned to e.detail
-        if isinstance(e.detail, Exception): # not a TracError
-            message = exception_to_unicode(e.detail)
-        elif isinstance(e.detail, Fragment): # markup coming from a TracError
-            message = e.detail
-        else:
-            message = to_unicode(e.detail)
-        data = {'title': title, 'type': 'TracError', 'message': message,
-                'frames': [], 'traceback': None}
-        if e.code == 403 and req.authname == 'anonymous':
-            # TRANSLATOR: ... not logged in, you may want to 'do so' now (link)
-            do_so = tag.a(_("do so"), href=req.href.login())
-            req.chrome['notices'].append(
-                tag_("You are currently not logged in. You may want to "
-                     "%(do_so)s now.", do_so=do_so))
-        try:
-            req.send_error(sys.exc_info(), status=e.code, env=env, data=data)
-        except RequestDone:
-            pass
-
+        _send_user_error(req, env, e)
     except Exception, e:
         send_internal_error(env, req, sys.exc_info())
-
     return resp
 
+
+def _send_user_error(req, env, e):
+    # See trac/web/api.py for the definition of HTTPException subclasses.
+    if env:
+        env.log.warn('[%s] %s' % (req.remote_addr, exception_to_unicode(e)))
+    try:
+        # We first try to get localized error messages here, but we
+        # should ignore secondary errors if the main error was also
+        # due to i18n issues
+        title = _('Error')
+        if e.reason:
+            if title.lower() in e.reason.lower():
+                title = e.reason
+            else:
+                title = _('Error: %(message)s', message=e.reason)
+    except:
+        title = 'Error'
+    # The message is based on the e.detail, which can be an Exception
+    # object, but not a TracError one: when creating HTTPException,
+    # a TracError.message is directly assigned to e.detail
+    if isinstance(e.detail, Exception): # not a TracError
+        message = exception_to_unicode(e.detail)
+    elif isinstance(e.detail, Fragment): # markup coming from a TracError
+        message = e.detail
+    else:
+        message = to_unicode(e.detail)
+    data = {'title': title, 'type': 'TracError', 'message': message,
+            'frames': [], 'traceback': None}
+    if e.code == 403 and req.authname == 'anonymous':
+        # TRANSLATOR: ... not logged in, you may want to 'do so' now (link)
+        do_so = tag.a(_("do so"), href=req.href.login())
+        req.chrome['notices'].append(
+            tag_("You are currently not logged in. You may want to "
+                 "%(do_so)s now.", do_so=do_so))
+    try:
+        req.send_error(sys.exc_info(), status=e.code, env=env, data=data)
+    except RequestDone:
+        pass
 
 def send_internal_error(env, req, exc_info):
     if env:
@@ -657,13 +591,9 @@ def send_project_index(environ, start_response, parent_dir=None,
     req = Request(environ, start_response)
 
     loadpaths = [pkg_resources.resource_filename('trac', 'templates')]
-    use_clearsilver = False
     if req.environ.get('trac.env_index_template'):
         tmpl_path, template = os.path.split(req.environ['trac.env_index_template'])
         loadpaths.insert(0, tmpl_path)
-        use_clearsilver = template.endswith('.cs') # assume Clearsilver
-        if use_clearsilver:
-            req.hdf = HDFWrapper(loadpaths) # keep that for custom .cs templates
     else:
         template = 'index.html'
 
@@ -673,8 +603,6 @@ def send_project_index(environ, start_response, parent_dir=None,
         for pair in req.environ['trac.template_vars'].split(','):
             key, val = pair.split('=')
             data[key] = val
-            if use_clearsilver:
-                req.hdf[key] = val
     try:
         href = Href(req.base_path)
         projects = []
@@ -694,14 +622,13 @@ def send_project_index(environ, start_response, parent_dir=None,
         projects.sort(lambda x, y: cmp(x['name'].lower(), y['name'].lower()))
 
         data['projects'] = projects
-        if use_clearsilver:
-            req.hdf['projects'] = projects
-            req.display(template)
 
-        loader = TemplateLoader(loadpaths, variable_lookup='lenient')
+        loader = TemplateLoader(loadpaths, variable_lookup='lenient',
+                                default_encoding='utf-8')
         tmpl = loader.load(template)
         stream = tmpl.generate(**data)
-        output = stream.render('xhtml', doctype=DocType.XHTML_STRICT)
+        output = stream.render('xhtml', doctype=DocType.XHTML_STRICT,
+                               encoding='utf-8')
         req.send(output, 'text/html')
 
     except RequestDone:

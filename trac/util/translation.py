@@ -11,6 +11,8 @@
 # individuals. For the exact contribution history, see the revision
 # history and logs, available at http://trac.edgewall.org/log/.
 
+from __future__ import with_statement
+
 """Utilities for text translation with gettext."""
 
 import pkg_resources
@@ -101,8 +103,10 @@ class NullTranslationsBabel(NullTranslations):
     def dungettext(self, domain, singular, plural, num):
         return self.ungettext(singular, plural, num)
 
+has_babel = False
 
 try:
+    from babel import Locale
     from babel.support import LazyProxy, Translations
 
     class TranslationsProxy(object):
@@ -121,17 +125,15 @@ try:
             self._null_translations = NullTranslationsBabel()
             self._plugin_domains = {}
             self._plugin_domains_lock = threading.RLock()
+            self._activate_failed = False
 
         # Public API
 
         def add_domain(self, domain, env_path, locales_dir):
-            self._plugin_domains_lock.acquire()
-            try:
+            with self._plugin_domains_lock:
                 if env_path not in self._plugin_domains:
                     self._plugin_domains[env_path] = []
                 self._plugin_domains[env_path].append((domain, locales_dir))
-            finally:
-                self._plugin_domains_lock.release()
 
         def make_activable(self, get_locale, env_path=None):
             self._current.args = (get_locale, env_path)
@@ -139,20 +141,19 @@ try:
         def activate(self, locale, env_path=None):
             try:
                 locale_dir = pkg_resources.resource_filename('trac', 'locale')
-            except pkg_resources.ExtractionError:
-                return # delay extraction
+            except Exception:
+                self._activate_failed = True
+                return
             t = Translations.load(locale_dir, locale or 'en_US')
             if not t or t.__class__ is NullTranslations:
                 t = self._null_translations
             elif env_path:
-                self._plugin_domains_lock.acquire()
-                try:
+                with self._plugin_domains_lock:
                     domains = list(self._plugin_domains.get(env_path, []))
-                finally:
-                    self._plugin_domains_lock.release()
                 for domain, dirname in domains:
                     t.add(Translations.load(dirname, locale, domain))
             self._current.translations = t
+            self._activate_failed = False
          
         def deactivate(self):
             self._current.args = None
@@ -173,7 +174,10 @@ try:
                 get_locale, env_path = self._current.args
                 self._current.args = None
                 self.activate(get_locale(), env_path)
-            return self._current.translations is not None
+            # FIXME: The following always returns True: either a translation is
+            # active, or activation has failed.
+            return self._current.translations is not None \
+                   or self._activate_failed
 
         # Delegated methods
 
@@ -325,9 +329,20 @@ try:
         """Return a list of locale identifiers of the locales for which
         translations are available.
         """
-        return [dirname for dirname
-                in pkg_resources.resource_listdir('trac', 'locale')
-                if '.' not in dirname]
+        try:
+            return [dirname for dirname
+                    in pkg_resources.resource_listdir('trac', 'locale')
+                    if '.' not in dirname]
+        except Exception:
+            return []
+
+    def get_negotiated_locale(preferred_locales):
+        def normalize(locale_ids):
+            return [id.replace('-', '_') for id in locale_ids if id]
+        return Locale.negotiate(normalize(preferred_locales),
+                                normalize(get_available_locales()))
+        
+    has_babel = True
 
 except ImportError: # fall back on 0.11 behavior, i18n functions are no-ops
     gettext = _ = gettext_noop
@@ -358,3 +373,6 @@ except ImportError: # fall back on 0.11 behavior, i18n functions are no-ops
 
     def get_available_locales():
         return []
+
+    def get_negotiated_locale(preferred=None, default=None):
+        return None

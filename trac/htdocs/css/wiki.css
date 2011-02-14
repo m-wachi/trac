@@ -82,6 +82,7 @@
 .wiki-toc ul ul, .wiki-toc ol ol { padding-left: 1.2em }
 .wiki-toc li { margin: 0; padding: 0 }
 .wiki-toc .active { background: #ff9; position: relative; }
+.wiki-toc-un ul, .wiki-toc-un ol { list-style: none; } 
 
 div.trac-modifiedby {
  margin: .3em .5em;
@@ -92,3 +93,16 @@ div.trac-modifiedby {
  float: right;
 }
 div.trac-modifiedby :link, div.trac-modifiedby :visited { color: inherit }
+
+/* Styles related to RTL support */
+.rtl { direction: rtl; }
+.rtl div.wiki-toc { float: left; }
+
+/* TracIni default value */
+div.tracini td.default { font-size: 90% }
+div.tracini td.nodefault {
+ color: #777;
+ font-size: 85%;
+ font-style: italic;
+ white-space: nowrap;
+}

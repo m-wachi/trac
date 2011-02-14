@@ -11,14 +11,17 @@
 # individuals. For the exact contribution history, see the revision
 # history and logs, available at http://trac.edgewall.org/.
 
+import os.path
 import sys
 
 from genshi.builder import tag
 
 from trac.admin import IAdminCommandProvider, IAdminPanelProvider
-from trac.config import _TRUE_VALUES
+from trac.config import ListOption
 from trac.core import *
 from trac.perm import IPermissionRequestor
+from trac.util import as_bool, is_path_below
+from trac.util.compat import any
 from trac.util.text import breakable_path, normalize_whitespace, print_table, \
                            printout
 from trac.util.translation import _, ngettext, tag_
@@ -30,8 +33,7 @@ from trac.web.chrome import Chrome, add_notice, add_warning
 class VersionControlAdmin(Component):
     """trac-admin command provider for version control administration."""
 
-    implements(IAdminCommandProvider, IPermissionRequestor,
-               IAdminPanelProvider)
+    implements(IAdminCommandProvider, IPermissionRequestor)
 
     # IAdminCommandProvider methods
     
@@ -130,15 +132,13 @@ class VersionControlAdmin(Component):
                 return
             repositories = [repos]
         
-        db = self.env.get_db_cnx()
         for repos in sorted(repositories, key=lambda r: r.reponame):
             printout(_('Resyncing repository history for %(reponame)s... ',
                        reponame=repos.reponame or '(default)'))
             repos.sync(self._sync_feedback, clean=clean)
-            cursor = db.cursor()
-            cursor.execute("SELECT count(rev) FROM revision WHERE repos=%s",
-                           (repos.id,))
-            for cnt, in cursor:
+            for cnt, in self.env.db_query(
+                    "SELECT count(rev) FROM revision WHERE repos=%s",
+                    (repos.id,)):
                 printout(ngettext('%(num)s revision cached.',
                                   '%(num)s revisions cached.', num=cnt))
         printout(_('Done.'))
@@ -158,6 +158,19 @@ class VersionControlAdmin(Component):
     def get_permission_actions(self):
         return [('VERSIONCONTROL_ADMIN', ['BROWSER_VIEW', 'CHANGESET_VIEW',
                                           'FILE_VIEW', 'LOG_VIEW'])]
+
+
+class RepositoryAdminPanel(Component):
+    """Web admin panel for repository administration."""
+
+    implements(IAdminPanelProvider)
+
+    allowed_repository_dir_prefixes = ListOption('versioncontrol',
+        'allowed_repository_dir_prefixes', '',
+        doc="""Comma-separated list of allowed prefixes for repository
+        directories when adding and editing repositories in the repository
+        admin panel. If the list is empty, all repository directories are
+        allowed. (''since 0.12.1'')""")
 
     # IAdminPanelProvider methods
 
@@ -193,6 +206,9 @@ class VersionControlAdmin(Component):
                         if (value is not None or field == 'hidden') \
                                 and value != info.get(field):
                             changes[field] = value
+                    if 'dir' in changes \
+                            and not self._check_dir(req, changes['dir']):
+                        changes = {}
                     if changes:
                         db_provider.modify_repository(reponame, changes)
                         add_notice(req, _('Your changes have been saved.'))
@@ -217,7 +233,8 @@ class VersionControlAdmin(Component):
                                    'hook to call %(cset_added)s with the new '
                                    'repository name.', cset_added=cset_added)
                         add_notice(req, msg)
-                    req.redirect(req.href.admin(category, page))
+                    if changes:
+                        req.redirect(req.href.admin(category, page))
             
             Chrome(self.env).add_wiki_toolbars(req)
             data = {'view': 'detail', 'reponame': reponame}
@@ -229,10 +246,12 @@ class VersionControlAdmin(Component):
                 if db_provider and req.args.get('add_repos'):
                     name = req.args.get('name')
                     type_ = req.args.get('type')
-                    dir = req.args.get('dir')
-                    if name is not None and type_ is not None and dir:
-                        # Avoid errors when copy/pasting paths
-                        dir = normalize_whitespace(dir)
+                    # Avoid errors when copy/pasting paths
+                    dir = normalize_whitespace(req.args.get('dir', ''))
+                    if name is None or type_ is None or not dir:
+                        add_warning(req, _('Missing arguments to add a '
+                                           'repository.'))
+                    elif self._check_dir(req, dir):
                         db_provider.add_repository(name, dir, type_)
                         name = name or '(default)'
                         add_notice(req, _('The repository "%(name)s" has been '
@@ -251,8 +270,6 @@ class VersionControlAdmin(Component):
                                    cset_added=cset_added)
                         add_notice(req, msg)
                         req.redirect(req.href.admin(category, page))
-                    add_warning(req, _('Missing arguments to add a '
-                                       'repository.'))
                 
                 # Add a repository alias
                 elif db_provider and req.args.get('add_alias'):
@@ -303,7 +320,7 @@ class VersionControlAdmin(Component):
         info['name'] = reponame
         if info.get('dir') is not None:
             info['prettydir'] = breakable_path(info['dir']) or ''
-        info['hidden'] = info.get('hidden') in _TRUE_VALUES
+        info['hidden'] = as_bool(info.get('hidden'))
         info['editable'] = editable
         if not info.get('alias'):
             try:
@@ -314,3 +331,21 @@ class VersionControlAdmin(Component):
             except Exception:
                 pass
         return info
+
+    def _check_dir(self, req, dir):
+        """Check that a repository directory is valid, and add a warning
+        message if not.
+        """
+        if not os.path.isabs(dir):
+            add_warning(req, _('The repository directory must be an absolute '
+                               'path.'))
+            return False
+        prefixes = [os.path.join(self.env.path, prefix)
+                    for prefix in self.allowed_repository_dir_prefixes]
+        if prefixes and not any(is_path_below(dir, prefix)
+                                for prefix in prefixes):
+            add_warning(req, _('The repository directory must be located '
+                               'below one of the following directories: '
+                               '%(dirs)s', dirs=', '.join(prefixes)))
+            return False
+        return True

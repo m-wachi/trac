@@ -12,6 +12,8 @@
 # individuals. For the exact contribution history, see the revision
 # history and logs, available at http://trac.edgewall.org/log/.
 
+from __future__ import with_statement
+
 import os
 import tempfile
 import time
@@ -39,11 +41,8 @@ class ConfigurationTestCase(unittest.TestCase):
         return Configuration(self.filename)
 
     def _write(self, lines):
-        fileobj = open(self.filename, 'w')
-        try:
+        with open(self.filename, 'w') as fileobj:
             fileobj.write(('\n'.join(lines + [''])).encode('utf-8'))
-        finally:
-            fileobj.close()
 
     def test_default(self):
         config = self._read()
@@ -122,13 +121,25 @@ class ConfigurationTestCase(unittest.TestCase):
         self.assertEquals('y', config.get('b', u'öption2', 'y'))
 
     def test_read_and_getbool(self):
-        self._write(['[a]', 'option = yes'])
+        self._write(['[a]', 'option = yes', 'option2 = true',
+                     'option3 = eNaBlEd', 'option4 = on',
+                     'option5 = 1', 'option6 = 123', 'option7 = 123.456',
+                     'option8 = disabled', 'option9 = 0', 'option10 = 0.0'])
         config = self._read()
         self.assertEquals(True, config.getbool('a', 'option'))
         self.assertEquals(True, config.getbool('a', 'option', False))
-        self.assertEquals(False, config.getbool('b', 'option2'))
-        self.assertEquals(False, config.getbool('b', 'option2', False))
-        self.assertEquals(False, config.getbool('b', 'option2', 'disabled'))
+        self.assertEquals(True, config.getbool('a', 'option2'))
+        self.assertEquals(True, config.getbool('a', 'option3'))
+        self.assertEquals(True, config.getbool('a', 'option4'))
+        self.assertEquals(True, config.getbool('a', 'option5'))
+        self.assertEquals(True, config.getbool('a', 'option6'))
+        self.assertEquals(True, config.getbool('a', 'option7'))
+        self.assertEquals(False, config.getbool('a', 'option8'))
+        self.assertEquals(False, config.getbool('a', 'option9'))
+        self.assertEquals(False, config.getbool('a', 'option10'))
+        self.assertEquals(False, config.getbool('b', 'option_b'))
+        self.assertEquals(False, config.getbool('b', 'option_b', False))
+        self.assertEquals(False, config.getbool('b', 'option_b', 'disabled'))
 
     def test_read_and_getint(self):
         self._write(['[a]', 'option = 42'])
@@ -283,9 +294,14 @@ class ConfigurationTestCase(unittest.TestCase):
         self.assertEquals(['a', 'b'], config.sections())
         
         class Foo(object):
+            section_c = ConfigSection('c', 'Doc for c')
             option_c = Option('c', 'option', 'value')
         
         self.assertEquals(['a', 'b', 'c'], config.sections())
+        foo = Foo()
+        foo.config = config
+        self.assert_(foo.section_c is config['c'])
+        self.assertEquals('value', foo.section_c.get('option'))
 
     def test_sections_unicode(self):
         self._write([u'[aä]', u'öption = x', '[b]', 'option = y'])
@@ -416,12 +432,9 @@ class ConfigurationTestCase(unittest.TestCase):
 
     def _test_with_inherit(self, testcb):
         sitename = os.path.join(tempfile.gettempdir(), 'trac-site.ini')
-        sitefile = open(sitename, 'w')
         try:
-            try:
+            with open(sitename, 'w') as sitefile:
                 sitefile.write('[a]\noption = x\n')
-            finally:
-                sitefile.close()
 
             self._write(['[inherit]', 'file = trac-site.ini'])
             testcb()

@@ -18,7 +18,8 @@ python.27 =
 # ----------------------------------------------------------------------------
 # Database Backends (select with `db=` on the `make` command line)
 
-# db URIs 
+# db URIs
+sqlite.uri = sqlite:test.db
 mysql.uri = mysql://tracuser:tracpassword@localhost/trac
 postgres.uri = postgres://tracuser:tracpassword@localhost:5432/trac?schema=tractest
 
@@ -34,6 +35,11 @@ postgres.python = 26
 
 env = ~/tracenvs
 auth = *,~/tracenvs/htdigest.realm,realm
+
+# ----------------------------------------------------------------------------
+# Settings for the documentation
+
+dotpath = /usr/local/bin/dot
 
 # ----------------------------------------------------------------------------
 # Custom rules 

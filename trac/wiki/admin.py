@@ -11,6 +11,8 @@
 # individuals. For the exact contribution history, see the revision
 # history and logs, available at http://trac.edgewall.org/.
 
+from __future__ import with_statement
+
 from datetime import datetime
 import os.path
 import pkg_resources
@@ -21,7 +23,6 @@ from trac.core import *
 from trac.wiki import model
 from trac.wiki.api import WikiSystem
 from trac.util import read_file
-from trac.util.compat import any
 from trac.util.datefmt import format_datetime, from_utimestamp, \
                               to_utimestamp, utc
 from trac.util.text import to_unicode, unicode_quote, unicode_unquote, \
@@ -91,23 +92,25 @@ class WikiAdmin(Component):
         return list(WikiSystem(self.env).get_pages())
     
     def export_page(self, page, filename, cursor=None):
-        if cursor is None:
-            db = self.env.get_db_cnx()
-            cursor = db.cursor()
-        cursor.execute("SELECT text FROM wiki WHERE name=%s "
-                       "ORDER BY version DESC LIMIT 1", (page,))
-        text = cursor.fetchone()[0]
-        if not filename:
-            printout(text)
+        """
+        :since 0.13: the `cursor` parameter is no longer needed and will be
+        removed in version 0.14
+        """
+        for text, in self.env.db_query("""
+                SELECT text FROM wiki WHERE name=%s
+                ORDER BY version DESC LIMIT 1
+                """, (page,)):
+            if not filename:
+                printout(text)
+            else:
+                if os.path.isfile(filename):
+                    raise AdminCommandError(_("File '%(name)s' exists",
+                                              name=filename))
+                with open(filename, 'w') as f:
+                    f.write(text.encode('utf-8'))
+            break
         else:
-            if os.path.isfile(filename):
-                raise AdminCommandError(_("File '%(name)s' exists",
-                                          name=filename))
-            f = open(filename, 'w')
-            try:
-                f.write(text.encode('utf-8'))
-            finally:
-                f.close()
+            raise AdminCommandError(_("Page '%(page)s' not found", page=page))
     
     def import_page(self, filename, title, create_only=[],
                     replace=False):
@@ -120,44 +123,36 @@ class WikiAdmin(Component):
             data = sys.stdin.read()
         data = to_unicode(data, 'utf-8')
 
-        result = [True]
-        @self.env.with_transaction()
-        def do_import(db):
-            cursor = db.cursor()
+        with self.env.db_transaction as db:
             # Make sure we don't insert the exact same page twice
-            cursor.execute("SELECT text FROM wiki WHERE name=%s "
-                           "ORDER BY version DESC LIMIT 1",
-                           (title,))
-            old = list(cursor)
+            old = db("""SELECT text FROM wiki WHERE name=%s
+                        ORDER BY version DESC LIMIT 1
+                        """, (title,))
             if old and title in create_only:
-                printout('  %s already exists.' % title)
-                result[0] = False
-                return
+                printout(_("  %(title)s already exists", title=title))
+                return False
             if old and data == old[0][0]:
-                printout('  %s already up to date.' % title)
-                result[0] = False
-                return
+                printout(_("  %(title)s is already up to date", title=title))
+                return False
         
             if replace and old:
-                cursor.execute("UPDATE wiki SET text=%s WHERE name=%s "
-                               "  AND version=(SELECT max(version) FROM wiki "
-                               "               WHERE name=%s)",
-                               (data, title, title))
+                db("""UPDATE wiki SET text=%s
+                      WHERE name=%s
+                        AND version=(SELECT max(version) FROM wiki
+                                     WHERE name=%s)
+                      """, (data, title, title))
             else:
-                cursor.execute("INSERT INTO wiki(version,name,time,author,"
-                               "                 ipnr,text) "
-                               "SELECT 1+COALESCE(max(version),0),%s,%s,"
-                               "       'trac','127.0.0.1',%s FROM wiki "
-                               "WHERE name=%s",
-                               (title, to_utimestamp(datetime.now(utc)), data,
-                                title))
+                db("""INSERT INTO wiki(version, name, time, author, ipnr, text) 
+                      SELECT 1 + COALESCE(max(version), 0), %s, %s, 'trac',
+                             '127.0.0.1', %s FROM wiki WHERE name=%s
+                      """, (title, to_utimestamp(datetime.now(utc)), data,
+                            title))
             if not old:
                 del WikiSystem(self.env).pages
-        return result[0]
+        return True
 
     def load_pages(self, dir, ignore=[], create_only=[], replace=False):
-        @self.env.with_transaction()
-        def do_load(db):
+        with self.env.db_transaction:
             for page in os.listdir(dir):
                 if page in ignore:
                     continue
@@ -189,41 +184,37 @@ class WikiAdmin(Component):
             return get_dir_list(args[-1])
     
     def _do_list(self):
-        db = self.env.get_db_cnx()
-        cursor = db.cursor()
-        cursor.execute("SELECT name, max(version), max(time) "
-                       "FROM wiki GROUP BY name ORDER BY name")
-        print_table([(r[0], int(r[1]),
-                      format_datetime(from_utimestamp(r[2]),
-                                      console_datetime_format))
-                     for r in cursor],
-                    [_('Title'), _('Edits'), _('Modified')])
+        print_table(
+            [(title, int(edits), format_datetime(from_utimestamp(modified),
+                                                 console_datetime_format))
+             for title, edits, modified in self.env.db_query("""
+                    SELECT name, max(version), max(time)
+                    FROM wiki GROUP BY name ORDER BY name""")
+             ], [_("Title"), _("Edits"), _("Modified")])
     
     def _do_rename(self, name, new_name):
         if new_name == name:
             return
         if not new_name:
-            raise AdminCommandError(_('A new name is mandatory for a rename.'))
-        @self.env.with_transaction()
-        def do_rename(db):
-            if model.WikiPage(self.env, new_name, db=db).exists:
-                raise AdminCommandError(_('The page %(name)s already exists.',
+            raise AdminCommandError(_("A new name is mandatory for a rename."))
+        with self.env.db_transaction:
+            if model.WikiPage(self.env, new_name).exists:
+                raise AdminCommandError(_("The page %(name)s already exists.",
                                           name=new_name))
-            page = model.WikiPage(self.env, name, db=db)
+            page = model.WikiPage(self.env, name)
             page.rename(new_name)
 
     def _do_remove(self, name):
-        @self.env.with_transaction()        
-        def do_transaction(db):
+        with self.env.db_transaction:
             if name.endswith('*'):
                 pages = list(WikiSystem(self.env).get_pages(name.rstrip('*')
                                                             or None))
                 for p in pages:
-                    page = model.WikiPage(self.env, p, db=db)
+                    page = model.WikiPage(self.env, p)
                     page.delete()
                 print_table(((p,) for p in pages), [_('Deleted pages')])
             else:
-                page = model.WikiPage(self.env, name, db=db)
+                page = model.WikiPage(self.env, name)
                 page.delete()
     
     def _do_export(self, page, filename=None):
@@ -242,19 +233,16 @@ class WikiAdmin(Component):
             else:
                 raise AdminCommandError(_("'%(name)s' is not a directory",
                                           name=directory))
-        db = self.env.get_db_cnx()
-        cursor = db.cursor()
         for p in pages:
             if any(p == name or (name.endswith('*')
                                  and p.startswith(name[:-1]))
                    for name in names):
                 dst = os.path.join(directory, unicode_quote(p, ''))
                 printout(' %s => %s' % (p, dst))
-                self.export_page(p, dst, cursor)
+                self.export_page(p, dst)
     
     def _load_or_replace(self, paths, replace):
-        @self.env.with_transaction()
-        def do_transaction(db):
+        with self.env.db_transaction:
             for path in paths:
                 if os.path.isdir(path):
                     self.load_pages(path, replace=replace)

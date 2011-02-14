@@ -16,13 +16,13 @@
 
 import re
 
-from genshi.builder import Element, tag
+from genshi.builder import Element, Fragment, tag
 
+from trac.config import ConfigSection
 from trac.core import *
-from trac.mimeview import Context
 from trac.perm import PermissionError
 from trac.util.translation import _
-from trac.web import IRequestHandler
+from trac.web.api import IRequestHandler
 from trac.wiki.api import IWikiMacroProvider
 from trac.wiki.formatter import extract_link
 
@@ -31,6 +31,43 @@ class InterTracDispatcher(Component):
     """InterTrac dispatcher."""
 
     implements(IRequestHandler, IWikiMacroProvider)
+
+    intertrac_section = ConfigSection('intertrac',
+        """This section configures InterTrac prefixes. Options in this section
+        whose name contain a "." define aspects of the InterTrac prefix
+        corresponding to the option name up to the ".". Options whose name
+        don't contain a "." define an alias.
+        
+        The `.url` is mandatory and is used for locating the other Trac.
+        This can be a relative URL in case that Trac environment is located
+        on the same server.
+        
+        The `.title` information is used for providing a useful tooltip when
+        moving the cursor over an InterTrac link.
+        
+        The `.compat` option can be used to activate or disable a
+        ''compatibility'' mode:
+         * If the targeted Trac is running a version below
+           [trac:milestone:0.10 0.10] ([trac:r3526 r3526] to be precise), then
+           it doesn't know how to dispatch an InterTrac link, and it's up to
+           the local Trac to prepare the correct link. Not all links will work
+           that way, but the most common do. This is called the compatibility
+           mode, and is `true` by default.
+         * If you know that the remote Trac knows how to dispatch InterTrac
+           links, you can explicitly disable this compatibility mode and then
+           ''any'' TracLinks can become InterTrac links.
+
+        Example configuration:
+        {{{
+        [intertrac]
+        # -- Example of setting up an alias:
+        t = trac
+        
+        # -- Link to an external Trac:
+        trac.title = Edgewall's Trac for Trac
+        trac.url = http://trac.edgewall.org
+        }}}
+        """)
 
     # IRequestHandler methods
 
@@ -48,9 +85,23 @@ class InterTracDispatcher(Component):
             resolver, target = parts
             if target and (target[0] not in '\'"' or target[0] != target[-1]):
                 link = '%s:"%s"' % (resolver, target)
-        link_elt = extract_link(self.env, Context.from_request(req), link)
-        if isinstance(link_elt, Element):
-            href = link_elt.attrib.get('href')
+        from trac.web.chrome import web_context
+        link_frag = extract_link(self.env, web_context(req), link)
+
+        def get_first_href(item):
+            """Depth-first search for the first `href` attribute."""
+            if isinstance(item, Element):
+                href = item.attrib.get('href')
+                if href is not None:
+                    return href
+            if isinstance(item, Fragment):
+                for each in item.children:
+                    href = get_first_href(each)
+                    if href is not None:
+                        return href
+
+        if isinstance(link_frag, (Element, Fragment)):
+            href = get_first_href(link_frag)
             if href is None: # most probably no permissions to view
                 raise PermissionError(_("Can't view %(link)s:", link=link))
         else:
@@ -67,14 +118,17 @@ class InterTracDispatcher(Component):
 
     def expand_macro(self, formatter, name, content):
         intertracs = {}
-        for key, value in self.config.options('intertrac'):
-            idx = key.rfind('.') # rsplit only in 2.4
+        for key, value in self.intertrac_section.options():
+            idx = key.rfind('.')
             if idx > 0: # 0 itself doesn't help much: .xxx = ...
                 prefix, attribute = key[:idx], key[idx+1:]
                 intertrac = intertracs.setdefault(prefix, {})
                 intertrac[attribute] = value
             else:
                 intertracs[key] = value # alias
+        if 'trac' not in intertracs:
+            intertracs['trac'] = {'title': _('The Trac Project'),
+                                  'url': 'http://trac.edgewall.org'}
 
         def generate_prefix(prefix):
             intertrac = intertracs[prefix]
