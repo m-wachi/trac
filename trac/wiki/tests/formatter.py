@@ -120,7 +120,7 @@ class WikiTestCase(unittest.TestCase):
 
         req = Mock(href=Href('/'), abs_href=Href('http://www.example.com/'),
                    authname='anonymous', perm=MockPerm(), tz=utc, args={},
-                   locale=Locale and Locale.parse('en_US') or None)
+                   locale=Locale.parse('en_US') if Locale else None)
         if context:
             if isinstance(context, tuple):
                 context = web_context(req, *context)

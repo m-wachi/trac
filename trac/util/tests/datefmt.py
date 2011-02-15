@@ -167,6 +167,10 @@ class ISO8601TestCase(unittest.TestCase):
             datefmt.parse_date('***', locale='iso8601', hint='datetime')
         except TracError, e:
             self.assert_(u'"YYYY-MM-DDThh:mm:ss±hh:mm"' in unicode(e))
+        try:
+            datefmt.parse_date('***', locale='iso8601', hint='foobar')
+        except TracError, e:
+            self.assert_('"foobar"' in unicode(e))
 
 
 try:

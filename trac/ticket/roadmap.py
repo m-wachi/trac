@@ -676,8 +676,8 @@ class MilestoneModule(Component):
 
         if 'due' in req.args:
             due = req.args.get('duedate', '')
-            milestone.due = due and user_time(req, parse_date, due,
-                                              hint='datetime') or None
+            milestone.due = user_time(req, parse_date, due, hint='datetime') \
+                            if due else None
         else:
             milestone.due = None
 
@@ -711,8 +711,8 @@ class MilestoneModule(Component):
 
         # -- check completed date
         if 'completed' in req.args:
-            completed = completed and user_time(req, parse_date, completed,
-                                                hint='datetime') or None
+            completed = user_time(req, parse_date, completed,
+                                  hint='datetime') if completed else None
             if completed and completed > datetime.now(utc):
                 warn(_('Completion date may not be in the future'))
         else:

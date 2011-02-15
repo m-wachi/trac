@@ -181,7 +181,7 @@ def format_datetime(t=None, format='%x %X', tzinfo=None, locale=None):
     if locale == 'iso8601':
         format = _ISO8601_FORMATS.get(format, format)
         return _format_datetime_without_babel(t, format, tzinfo)
-    if babel is not None and locale is not None:
+    if babel and locale:
         if format == '%x':
             return babel_format_date(t, 'medium', locale)
         if format == '%X':
@@ -205,7 +205,7 @@ def format_date(t=None, format='%x', tzinfo=None, locale=None):
         return _format_datetime_without_babel(t, format, tzinfo)
     if format == 'iso8601':
         format = 'iso8601date'
-    if babel is not None and locale is not None:
+    if babel and locale:
         if format in ('%x', None):
             format = 'medium'
         if format in _BABEL_FORMATS:
@@ -224,7 +224,7 @@ def format_time(t=None, format='%X', tzinfo=None, locale=None):
         return _format_datetime_without_babel(t, format, tzinfo)
     if format == 'iso8601':
         format = 'iso8601time'
-    if babel is not None and locale is not None:
+    if babel and locale:
         if format in ('%X', None):
             format = 'medium'
         if format in _BABEL_FORMATS:
@@ -242,7 +242,7 @@ def get_date_format_hint(locale=None):
     """
     if locale == 'iso8601':
         return 'YYYY-MM-DD'
-    if babel is not None and locale is not None:
+    if babel and locale:
         format = get_date_format('medium', locale=locale)
         return format.pattern
 
@@ -259,7 +259,7 @@ def get_datetime_format_hint(locale=None):
     """
     if locale == 'iso8601':
         return u'YYYY-MM-DDThh:mm:ss±hh:mm'
-    if babel is not None and locale is not None:
+    if babel and locale:
         date_pattern = get_date_format('medium', locale=locale).pattern
         time_pattern = get_time_format('medium', locale=locale).pattern
         format = get_datetime_format('medium', locale=locale)
@@ -326,7 +326,7 @@ def parse_date(text, tzinfo=None, locale=None, hint='date'):
 
     dt = _parse_date_iso8601(text, tzinfo)
     if dt is None and locale != 'iso8601':
-        if babel is not None and locale is not None:
+        if babel and locale:
             dt = _i18n_parse_date(text, tzinfo, locale)
         else:
             for format in ['%x %X', '%x, %X', '%X %x', '%X, %x', '%x', '%c',
@@ -341,7 +341,8 @@ def parse_date(text, tzinfo=None, locale=None, hint='date'):
         dt = _parse_relative_time(text, tzinfo)
     if dt is None:
         hint = {'datetime': get_datetime_format_hint,
-                'date': get_date_format_hint}.get(hint, lambda: hint)(locale)
+                'date': get_date_format_hint
+               }.get(hint, lambda(l): hint)(locale)
         raise TracError(_('"%(date)s" is an invalid date, or the date format '
                           'is not known. Try "%(hint)s" instead.', 
                           date=text, hint=hint), _('Invalid Date'))
@@ -356,7 +357,7 @@ def parse_date(text, tzinfo=None, locale=None, hint='date'):
     return dt
 
 def _i18n_parse_date_patterns():
-    if babel is None:
+    if not babel:
         return {}
 
     format_keys = {
@@ -557,14 +558,14 @@ def _parse_relative_time(text, tzinfo):
 
 def user_time(req, func, *args, **kwargs):
     """A helper function which passes to `tzinfo` and `locale` keyword
-    arguments of `func` using `req` parameter. It expects using with `format_*`
-    and `parse_date` methods in `trac.util.datefmt` package.
+    arguments of `func` using `req` parameter. It is expected to be used with
+    `format_*` and `parse_date` methods in `trac.util.datefmt` package.
 
     :param req: a instance of `Request`
     :param func: a function which must accept `tzinfo` and `locale` keyword
-                 arugments
+                 arguments
     :param args: arguments which pass to `func` function
-    :param kwargs: keyword arugments which pass to `func` function
+    :param kwargs: keyword arguments which pass to `func` function
     """
     if 'tzinfo' not in kwargs:
         kwargs['tzinfo'] = getattr(req, 'tz', None)
