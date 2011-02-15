@@ -449,6 +449,29 @@ else:
             roundtrip('zh_CN')
             roundtrip('zh_TW')
 
+        def test_format_compatibility(self):
+            tz = datefmt.timezone('GMT +2:00')
+            t = datetime.datetime(2010, 8, 28, 11, 45, 56, 123456, datefmt.utc)
+            en_US = Locale.parse('en_US')
+
+            # Converting default format to babel's format
+            self.assertEqual('Aug 28, 2010 1:45:56 PM',
+                             datefmt.format_datetime(t, '%x %X', tz, en_US))
+            self.assertEqual('Aug 28, 2010',
+                             datefmt.format_datetime(t, '%x', tz, en_US))
+            self.assertEqual('1:45:56 PM',
+                             datefmt.format_datetime(t, '%X', tz, en_US))
+            self.assertEqual('Aug 28, 2010',
+                             datefmt.format_date(t, '%x', tz, en_US))
+            self.assertEqual('1:45:56 PM',
+                             datefmt.format_time(t, '%X', tz, en_US))
+
+            # Converting babel's format to strftime format
+            self.assertEqual('08/28/10 13:45:56',
+                             datefmt.format_datetime(t, 'medium', tz))
+            self.assertEqual('08/28/10', datefmt.format_date(t, 'medium', tz))
+            self.assertEqual('13:45:56', datefmt.format_time(t, 'medium', tz))
+
 
 def suite():
     suite = unittest.TestSuite()
