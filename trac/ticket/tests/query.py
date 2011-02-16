@@ -37,7 +37,7 @@ class QueryTestCase(unittest.TestCase):
 
     def setUp(self):
         self.env = EnvironmentStub(default_data=True)
-        locale = Locale and Locale.parse('en_US') or None
+        locale = Locale.parse('en_US') if Locale else None
         self.req = Mock(href=self.env.href, authname='anonymous', tz=utc,
                         locale=locale, lc_time=locale)
         

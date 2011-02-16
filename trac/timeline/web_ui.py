@@ -108,7 +108,7 @@ class TimelineModule(Component):
             # Acquire from date only from non-blank input
             reqfromdate = req.args['from'].strip()
             if reqfromdate:
-                precisedate = parse_date(reqfromdate, req.tz, req.locale)
+                precisedate = user_time(req, parse_date, reqfromdate)
                 fromdate = precisedate
             precision = req.args.get('precision', '')
             if precision.startswith('second'):
