@@ -56,6 +56,7 @@ try:
         encoding = parse_encoding(fileobj) \
                    or options.get('encoding', 'iso-8859-1')
         kwargs_maps = options.get('kwargs_maps', {})
+        cleandoc_keywords = options.get('cleandoc_keywords', [])
 
         tokens = generate_tokens(fileobj.readline)
         for _ in tokens:
@@ -112,10 +113,12 @@ try:
                             messages.append(None)
                         messages[index - 1] = message
 
+                    if funcname in cleandoc_keywords:
+                        messages = [m and cleandoc(m) for m in messages]
                     if len(messages) > 1:
-                        messages = tuple([m and cleandoc(m) for m in messages])
+                        messages = tuple(messages)
                     else:
-                        messages = messages[0] and cleandoc(messages[0])
+                        messages = messages[0]
                     # Comments don't apply unless they immediately preceed the
                     # message
                     if translator_comments and \

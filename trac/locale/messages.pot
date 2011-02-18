@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Trac 0.13\n"
 "Report-Msgid-Bugs-To: trac-dev@googlegroups.com\n"
-"POT-Creation-Date: 2011-02-18 12:34+0900\n"
+"POT-Creation-Date: 2011-02-18 14:59+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -935,11 +935,11 @@ msgid "trac-admin - The Trac Administration Console %(version)s"
 msgstr ""
 
 #: trac/admin/console.py:301
-msgid "Usage: trac-admin </path/to/projenv> [command [subcommand] [option ...]]"
+msgid "Usage: trac-admin </path/to/projenv> [command [subcommand] [option ...]]\n"
 msgstr ""
 
 #: trac/admin/console.py:304
-msgid "Invoking trac-admin without command starts interactive mode."
+msgid "Invoking trac-admin without command starts interactive mode.\n"
 msgstr ""
 
 #: trac/admin/console.py:344
@@ -949,11 +949,12 @@ msgstr ""
 
 #: trac/admin/console.py:346
 msgid ""
+"\n"
 "Trac will first ask a few questions about your environment \n"
 "in order to initialize and prepare the project database.\n"
 "\n"
 " Please enter the name of your project.\n"
-" This name will be used in page titles and descriptions."
+" This name will be used in page titles and descriptions.\n"
 msgstr ""
 
 #: trac/admin/console.py:354
@@ -963,11 +964,12 @@ msgstr ""
 
 #: trac/admin/console.py:356
 msgid ""
-"Please specify the connection string for the database to use.\n"
-"By default, a local SQLite database is created in the environment\n"
-"directory. It is also possible to use an already existing\n"
-"PostgreSQL database (check the Trac documentation for the exact\n"
-"connection string syntax)."
+" \n"
+" Please specify the connection string for the database to use.\n"
+" By default, a local SQLite database is created in the environment\n"
+" directory. It is also possible to use an already existing\n"
+" PostgreSQL database (check the Trac documentation for the exact\n"
+" connection string syntax).\n"
 msgstr ""
 
 #: trac/admin/console.py:364
@@ -997,15 +999,16 @@ msgid "Failed to create environment."
 msgstr ""
 
 #: trac/admin/console.py:429
-msgid "Installing default wiki pages"
+msgid " Installing default wiki pages"
 msgstr ""
 
 #: trac/admin/console.py:438
-msgid "Indexing default repository"
+msgid " Indexing default repository"
 msgstr ""
 
 #: trac/admin/console.py:441
 msgid ""
+"\n"
 "---------------------------------------------------------------------\n"
 "Warning: couldn't index the default repository.\n"
 "\n"
@@ -1015,12 +1018,13 @@ msgid ""
 "\n"
 "You can nevertheless start using your Trac environment, but \n"
 "you'll need to check again your trac.ini file and the [trac] \n"
-"repository_type and repository_path settings."
+"repository_type and repository_path settings.\n"
 msgstr ""
 
 #: trac/admin/console.py:484
 #, python-format
 msgid ""
+"\n"
 "---------------------------------------------------------------------\n"
 "Project environment for '%(project_name)s' created.\n"
 "\n"
@@ -1043,7 +1047,7 @@ msgid ""
 "\n"
 "  http://trac.edgewall.org/\n"
 "\n"
-"Congratulations!"
+"Congratulations!\n"
 msgstr ""
 
 #: trac/admin/console.py:542
@@ -4908,7 +4912,7 @@ msgstr ""
 
 #: trac/versioncontrol/api.py:384
 #, python-format
-msgid "at version %(rev)s"
+msgid " at version %(rev)s"
 msgstr ""
 
 #: trac/versioncontrol/api.py:386
@@ -4917,7 +4921,7 @@ msgstr ""
 
 #: trac/versioncontrol/api.py:389
 #, python-format
-msgid "in %(repo)s"
+msgid " in %(repo)s"
 msgstr ""
 
 #. TRANSLATOR: file /path/to/file.py at version 13 in reponame
@@ -5153,7 +5157,7 @@ msgid "unmarked as non-inheritable: "
 msgstr ""
 
 #: trac/versioncontrol/svn_prop.py:360
-msgid "(added)"
+msgid " (added)"
 msgstr ""
 
 #: trac/versioncontrol/svn_prop.py:397
@@ -5161,7 +5165,7 @@ msgid "removed"
 msgstr ""
 
 #: trac/versioncontrol/svn_prop.py:400
-msgid "(with no actual effect on merging)"
+msgid " (with no actual effect on merging)"
 msgstr ""
 
 #: trac/versioncontrol/svn_prop.py:401
@@ -6439,11 +6443,11 @@ msgid "You are currently not logged in. You may want to %(do_so)s now."
 msgstr ""
 
 #: trac/web/main.py:541
-msgid "''System information not available''"
+msgid "''System information not available''\n"
 msgstr ""
 
 #: trac/web/main.py:542
-msgid "''Plugin information not available''"
+msgid "''Plugin information not available''\n"
 msgstr ""
 
 #: trac/web/main.py:566
@@ -6524,17 +6528,17 @@ msgstr ""
 
 #: trac/wiki/admin.py:132
 #, python-format
-msgid "%(title)s already exists"
+msgid "  %(title)s already exists"
 msgstr ""
 
 #: trac/wiki/admin.py:135
 #, python-format
-msgid "%(title)s is already up to date"
+msgid "  %(title)s is already up to date"
 msgstr ""
 
 #: trac/wiki/admin.py:163 trac/wiki/admin.py:253
 #, python-format
-msgid "%(page)s imported from %(filename)s"
+msgid "  %(page)s imported from %(filename)s"
 msgstr ""
 
 #: trac/wiki/admin.py:193
@@ -6698,15 +6702,15 @@ msgstr ""
 msgid "Sorry, no documentation found"
 msgstr ""
 
-#: trac/wiki/macros.py:651
+#: trac/wiki/macros.py:652
 msgid "(no default)"
 msgstr ""
 
-#: trac/wiki/macros.py:685
+#: trac/wiki/macros.py:686
 msgid "MIME Types"
 msgstr ""
 
-#: trac/wiki/macros.py:743
+#: trac/wiki/macros.py:744
 msgid "Table of Contents"
 msgstr ""
 
