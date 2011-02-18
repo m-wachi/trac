@@ -542,11 +542,12 @@ class ConfigSection(object):
         """
         return _get_registry(ConfigSection, compmgr)
 
-    def __init__(self, name, doc):
+    def __init__(self, name, doc, doc_domain='messages'):
         """Create the configuration section."""
         self.name = name
         self.registry[self.name] = self
         self.__doc__ = doc
+        self.doc_domain = doc_domain
 
     def __get__(self, instance, owner):
         if instance is None:
@@ -575,7 +576,8 @@ class Option(object):
         """
         return _get_registry(Option, compmgr)
 
-    def __init__(self, section, name, default=None, doc=''):
+    def __init__(self, section, name, default=None, doc='',
+                 doc_domain='messages'):
         """Create the configuration option.
         
         @param section: the name of the configuration section this option
@@ -589,6 +591,7 @@ class Option(object):
         self.default = default
         self.registry[(self.section, self.name)] = self
         self.__doc__ = doc
+        self.doc_domain = doc_domain
 
     def __get__(self, instance, owner):
         if instance is None:
@@ -628,8 +631,8 @@ class ListOption(Option):
     """
 
     def __init__(self, section, name, default=None, sep=',', keep_empty=False,
-                 doc=''):
-        Option.__init__(self, section, name, default, doc)
+                 doc='', doc_domain='messages'):
+        Option.__init__(self, section, name, default, doc, doc_domain)
         self.sep = sep
         self.keep_empty = keep_empty
 
@@ -644,8 +647,9 @@ class ChoiceOption(Option):
     The default value is the first choice in the list.
     """
     
-    def __init__(self, section, name, choices, doc=''):
-        Option.__init__(self, section, name, _to_utf8(choices[0]), doc)
+    def __init__(self, section, name, choices, doc='', doc_domain='messages'):
+        Option.__init__(self, section, name, _to_utf8(choices[0]), doc,
+                        doc_domain)
         self.choices = set(_to_utf8(choice).strip() for choice in choices)
 
     def accessor(self, section, name, default):
@@ -667,8 +671,9 @@ class PathOption(Option):
 
 class ExtensionOption(Option):
 
-    def __init__(self, section, name, interface, default=None, doc=''):
-        Option.__init__(self, section, name, default, doc)
+    def __init__(self, section, name, interface, default=None, doc='',
+                 doc_domain='messages'):
+        Option.__init__(self, section, name, default, doc, doc_domain)
         self.xtnpt = ExtensionPoint(interface)
 
     def __get__(self, instance, owner):
@@ -693,8 +698,9 @@ class OrderedExtensionsOption(ListOption):
     interface are returned, with those specified by the option ordered first."""
 
     def __init__(self, section, name, interface, default=None,
-                 include_missing=True, doc=''):
-        ListOption.__init__(self, section, name, default, doc=doc)
+                 include_missing=True, doc='', doc_domain='messages'):
+        ListOption.__init__(self, section, name, default, doc=doc,
+                            doc_domain=doc_domain)
         self.xtnpt = ExtensionPoint(interface)
         self.include_missing = include_missing
 

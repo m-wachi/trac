@@ -24,6 +24,7 @@ for compiling catalogs are issued upon install.
 from StringIO import StringIO
 import os
 import re
+from tokenize import generate_tokens, COMMENT, NAME, OP, STRING
 
 from distutils import log
 from distutils.cmd import Command
@@ -35,7 +36,152 @@ try:
     from babel.messages.extract import extract_javascript
     from babel.messages.frontend import extract_messages, init_catalog, \
                                         compile_catalog, update_catalog
+    from babel.util import parse_encoding
     from babel.support import Translations
+
+
+    def extract_python(fileobj, keywords, comment_tags, options):
+        from trac.util.compat import cleandoc
+
+        funcname = lineno = message_lineno = None
+        kwargs_maps = func_kwargs_map = None
+        call_stack = -1
+        buf = []
+        messages = []
+        messages_kwargs = {}
+        translator_comments = []
+        in_def = in_translator_comments = False
+        comment_tag = None
+
+        encoding = parse_encoding(fileobj) \
+                   or options.get('encoding', 'iso-8859-1')
+        kwargs_maps = options.get('kwargs_maps', {})
+
+        tokens = generate_tokens(fileobj.readline)
+        for _ in tokens:
+            tok, value, (lineno, _), _, _ = _
+            if call_stack == -1 and tok == NAME and value in ('def', 'class'):
+                in_def = True
+            elif tok == OP and value == '(':
+                if in_def:
+                    # Avoid false positives for declarations such as:
+                    # def gettext(arg='message'):
+                    in_def = False
+                    continue
+                if funcname:
+                    message_lineno = lineno
+                    call_stack += 1
+                kwarg_name = None
+            elif in_def and tok == OP and value == ':':
+                # End of a class definition without parens
+                in_def = False
+                continue
+            elif call_stack == -1 and tok == COMMENT:
+                # Strip the comment token from the line
+                value = value.decode(encoding)[1:].strip()
+                if in_translator_comments and \
+                        translator_comments[-1][0] == lineno - 1:
+                    # We're already inside a translator comment, continue
+                    # appending
+                    translator_comments.append((lineno, value))
+                    continue
+                # If execution reaches this point, let's see if comment line
+                # starts with one of the comment tags
+                for comment_tag in comment_tags:
+                    if value.startswith(comment_tag):
+                        in_translator_comments = True
+                        translator_comments.append((lineno, value))
+                        break
+            elif funcname and call_stack == 0:
+                if tok == OP and value == ')':
+                    if buf:
+                        message = ''.join(buf)
+                        if kwarg_name in func_kwargs_map:
+                            messages_kwargs[kwarg_name] = message
+                        else:
+                            messages.append(message)
+                        del buf[:]
+                    else:
+                        messages.append(None)
+
+                    for name, message in messages_kwargs.iteritems():
+                        if name not in func_kwargs_map:
+                            continue
+                        index = func_kwargs_map[name]
+                        while index >= len(messages):
+                            messages.append(None)
+                        messages[index - 1] = message
+
+                    if len(messages) > 1:
+                        messages = tuple([m and cleandoc(m) for m in messages])
+                    else:
+                        messages = messages[0] and cleandoc(messages[0])
+                    # Comments don't apply unless they immediately preceed the
+                    # message
+                    if translator_comments and \
+                            translator_comments[-1][0] < message_lineno - 1:
+                        translator_comments = []
+
+                    yield (message_lineno, funcname, messages,
+                           [comment[1] for comment in translator_comments])
+
+                    funcname = lineno = message_lineno = None
+                    kwarg_name = func_kwargs_map = None
+                    call_stack = -1
+                    messages = []
+                    messages_kwargs = {}
+                    translator_comments = []
+                    in_translator_comments = False
+                elif tok == STRING:
+                    # Unwrap quotes in a safe manner, maintaining the string's
+                    # encoding
+                    # https://sourceforge.net/tracker/?func=detail&atid=355470&
+                    # aid=617979&group_id=5470
+                    value = eval('# coding=%s\n%s' % (encoding, value),
+                                 {'__builtins__':{}}, {})
+                    if isinstance(value, str):
+                        value = value.decode(encoding)
+                    buf.append(value)
+                elif tok == NAME:
+                    kwarg_name = value
+                elif tok == OP and value == ',':
+                    kwarg_name = None
+                    if buf:
+                        message = ''.join(buf)
+                        if kwarg_name in func_kwargs_map:
+                            messages_kwargs[kwarg_name] = message
+                        else:
+                            messages.append(message)
+                        del buf[:]
+                    else:
+                        messages.append(None)
+                    if translator_comments:
+                        # We have translator comments, and since we're on a
+                        # comma(,) user is allowed to break into a new line
+                        # Let's increase the last comment's lineno in order
+                        # for the comment to still be a valid one
+                        old_lineno, old_comment = translator_comments.pop()
+                        translator_comments.append((old_lineno+1, old_comment))
+            elif call_stack > 0 and tok == OP and value == ')':
+                call_stack -= 1
+            elif funcname and call_stack == -1:
+                funcname = func_kwargs_map = kwarg_name = None
+            elif tok == NAME and value in keywords:
+                funcname = value
+                func_kwargs_map = kwargs_maps.get(funcname, {})
+                kwarg_name = None
+
+
+    def parse_kwargs_maps(texts):
+        texts = texts.strip()
+        if not texts:
+            return {}
+        keywords = {}
+        for text in texts.split():
+            funcname, mappings = text.split(':')
+            keywords[funcname] = dict([mapping.split('=')
+                                       for mapping in mappings.split(',')])
+        return keywords
 
 
     def extract_javascript_script(fileobj, keywords, comment_tags, options):

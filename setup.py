@@ -30,7 +30,17 @@ try:
     import babel
     
     extractors = [
-        ('**.py',                'python', None),
+        ('**.py',                'trac.dist:extract_python',
+         {'kwargs_maps':
+          {'Option':                    {'doc': 4},
+           'BoolOption':                {'doc': 4},
+           'IntOption':                 {'doc': 4},
+           'FloatOption':               {'doc': 4},
+           'ListOption':                {'doc': 6},
+           'ChoiceOption':              {'doc': 4},
+           'PathOption':                {'doc': 4},
+           'ExtensionOption':           {'doc': 5},
+           'OrderedExtensionsOption':   {'doc': 6}}}),
         ('**/templates/**.html', 'genshi', None),
         ('**/templates/**.txt',  'genshi',
          {'template_class': 'genshi.template:NewTextTemplate'}),
