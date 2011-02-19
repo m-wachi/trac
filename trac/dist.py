@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2010 Edgewall Software
+# Copyright (C) 2011 Edgewall Software
 # All rights reserved.
 #
 # This software is licensed as described in the file COPYING, which
@@ -40,7 +40,35 @@ try:
     from babel.support import Translations
 
 
+    _DEFAULT_KWARGS_MAPS = {
+        'Option': {'doc': 4},
+        'BoolOption': {'doc': 4},
+        'IntOption': {'doc': 4},
+        'FloatOption': {'doc': 4},
+        'ListOption': {'doc': 6},
+        'ChoiceOption': {'doc': 4},
+        'PathOption': {'doc': 4},
+        'ExtensionOption': {'doc': 5},
+        'OrderedExtensionsOption': {'doc': 6},
+    }
+
+    _DEFAULT_CLEANDOC_KEYWORDS = (
+        'ConfigSection', 'Option', 'BoolOption', 'IntOption', 'FloatOption',
+        'ListOption', 'ChoiceOption', 'PathOption', 'ExtensionOption',
+        'OrderedExtensionsOption',
+    )
+
+    # From babel.messages.extract.extract_python
     def extract_python(fileobj, keywords, comment_tags, options):
+        """Extract messages from Python source code, including messages as
+        keyword arguments.
+
+        `kwargs_maps` option: if keyword is specified, the name of keyword
+        arguments will be converted to index of messages array.
+
+        `cleandoc_keywords` option: if keyword is specified, clean up the
+        extracted messages with `cleandoc`.
+        """
         from trac.util.compat import cleandoc
 
         funcname = lineno = message_lineno = None
@@ -55,11 +83,17 @@ try:
 
         encoding = parse_encoding(fileobj) \
                    or options.get('encoding', 'iso-8859-1')
-        kwargs_maps = options.get('kwargs_maps', {})
-        cleandoc_keywords = options.get('cleandoc_keywords', [])
+        kwargs_maps = _DEFAULT_KWARGS_MAPS.copy()
+        if 'kwargs_maps' in options:
+            kwargs_maps.update(options['kwargs_maps'])
+        cleandoc_keywords = set(_DEFAULT_CLEANDOC_KEYWORDS)
+        if 'cleandoc_keywords' in options:
+            cleandoc_keywords.update(options['cleandoc_keywords'])
 
         tokens = generate_tokens(fileobj.readline)
+        tok = value = None
         for _ in tokens:
+            prev_tok, prev_value = tok, value
             tok, value, (lineno, _), _, _ = _
             if call_stack == -1 and tok == NAME and value in ('def', 'class'):
                 in_def = True
@@ -145,10 +179,9 @@ try:
                     if isinstance(value, str):
                         value = value.decode(encoding)
                     buf.append(value)
-                elif tok == NAME:
-                    kwarg_name = value
+                elif tok == OP and value == '=' and prev_tok == NAME:
+                    kwarg_name = prev_value
                 elif tok == OP and value == ',':
-                    kwarg_name = None
                     if buf:
                         message = ''.join(buf)
                         if kwarg_name in func_kwargs_map:
@@ -158,6 +191,7 @@ try:
                         del buf[:]
                     else:
                         messages.append(None)
+                    kwarg_name = None
                     if translator_comments:
                         # We have translator comments, and since we're on a
                         # comma(,) user is allowed to break into a new line
@@ -173,18 +207,6 @@ try:
                 funcname = value
                 func_kwargs_map = kwargs_maps.get(funcname, {})
                 kwarg_name = None
-
-
-    def parse_kwargs_maps(texts):
-        texts = texts.strip()
-        if not texts:
-            return {}
-        keywords = {}
-        for text in texts.split():
-            funcname, mappings = text.split(':')
-            keywords[funcname] = dict([mapping.split('=')
-                                       for mapping in mappings.split(',')])
-        return keywords
 
 
     def extract_javascript_script(fileobj, keywords, comment_tags, options):
