@@ -55,7 +55,8 @@ from trac.util.text import pretty_size, obfuscate_email_address, \
                            shorten_line, unicode_quote_plus, to_unicode, \
                            javascript_quote, exception_to_unicode
 from trac.util.datefmt import pretty_timedelta, format_datetime, format_date, \
-                              format_time, from_utimestamp, http_date, utc
+                              format_time, from_utimestamp, http_date, utc, \
+                              user_time
 from trac.util.translation import _, get_available_locales
 from trac.web.api import IRequestHandler, ITemplateStreamFilter, HTTPNotFound
 from trac.web.href import Href
@@ -738,21 +739,6 @@ class Chrome(Component):
             logo = {'link': self.logo_link, 'alt': self.logo_alt}
         return logo
 
-    def populate_hdf(self, req):
-        """Add chrome-related data to the HDF (deprecated)."""
-        req.hdf['HTTP.PathInfo'] = req.path_info
-        req.hdf['htdocs_location'] = req.chrome['htdocs_location']
-
-        req.hdf['chrome.href'] = req.href.chrome()
-        req.hdf['chrome.links'] = req.chrome['links']
-        req.hdf['chrome.scripts'] = req.chrome['scripts']
-        req.hdf['chrome.logo'] = req.chrome['logo']
-
-        for category, items in req.chrome['nav'].items():
-            for item in items:
-                prefix = 'chrome.nav.%s.%s' % (category, item['name'])
-                req.hdf[prefix] = item['label']
-
     def populate_data(self, req, data):
         d = self._default_context_data.copy()
         d['trac'] = {
@@ -796,13 +782,10 @@ class Chrome(Component):
             self.log.error("Error during check of EMAIL_VIEW: %s", 
                            exception_to_unicode(e))
             show_email_addresses = False
-        tzinfo = None
-        if req:
-            tzinfo = req.tz
 
         def dateinfo(date):
             return tag.span(pretty_timedelta(date),
-                            title=format_datetime(date))
+                            title=user_time(req, format_datetime, date))
 
         def get_rel_url(resource, **kwargs):
             return get_resource_url(self.env, resource, href, **kwargs)
@@ -834,11 +817,11 @@ class Chrome(Component):
 
             # Date/time formatting
             'dateinfo': dateinfo,
-            'format_datetime': partial(format_datetime, tzinfo=tzinfo),
-            'format_date': partial(format_date, tzinfo=tzinfo),
-            'format_time': partial(format_time, tzinfo=tzinfo),
+            'format_datetime': partial(user_time, req, format_datetime),
+            'format_date': partial(user_time, req, format_date),
+            'format_time': partial(user_time, req, format_time),
             'fromtimestamp': partial(datetime.datetime.fromtimestamp,
-                                     tz=tzinfo),
+                                     tz=req and req.tz),
             'from_utimestamp': from_utimestamp,
 
             # Wiki-formatting functions
