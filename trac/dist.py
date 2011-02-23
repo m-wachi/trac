@@ -58,15 +58,14 @@ try:
         'OrderedExtensionsOption',
     )
 
-    # From babel.messages.extract.extract_python
     def extract_python(fileobj, keywords, comment_tags, options):
-        """Extract messages from Python source code, including messages as
-        keyword arguments.
+        """Extract messages from Python source code, This is patched
+        extract_python from Babel to support keyword argument mapping.
 
-        `kwargs_maps` option: if keyword is specified, the name of keyword
-        arguments will be converted to index of messages array.
+        `kwargs_maps` option: names of keyword arguments will be mapping to
+        index of messages array.
 
-        `cleandoc_keywords` option: if keyword is specified, clean up the
+        `cleandoc_keywords` option: a list of keywords to clean up the
         extracted messages with `cleandoc`.
         """
         from trac.util.compat import cleandoc
@@ -370,8 +369,10 @@ try:
         build, _install_lib = get_command_overriders()
         build.sub_commands.insert(0, ('generate_messages_js', None))
         build.sub_commands.insert(0, ('compile_catalog_js', None))
+        build.sub_commands.insert(0, ('compile_catalog_tracini', None))
         class install_lib(_install_lib):
             def l10n_run(self):
+                self.run_command('compile_catalog_tracini')
                 self.run_command('compile_catalog_js')
                 self.run_command('generate_messages_js')
                 self.run_command('compile_catalog')
@@ -382,6 +383,10 @@ try:
             'compile_catalog_js': compile_catalog,
             'update_catalog_js': update_catalog,
             'generate_messages_js': generate_messages_js,
+            'extract_messages_tracini': extract_messages,
+            'init_catalog_tracini': init_catalog,
+            'compile_catalog_tracini': compile_catalog,
+            'update_catalog_tracini': update_catalog,
         }
 
 

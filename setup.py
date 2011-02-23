@@ -30,7 +30,7 @@ try:
     import babel
     
     extractors = [
-        ('**.py',                'trac.dist:extract_python', None),
+        ('**.py',                'python', None),
         ('**/templates/**.html', 'genshi', None),
         ('**/templates/**.txt',  'genshi',
          {'template_class': 'genshi.template:NewTextTemplate'}),
@@ -84,7 +84,8 @@ facilities.
         '': ['templates/*'],
         'trac': ['htdocs/*.*', 'htdocs/README', 'htdocs/js/*.*',
                  'htdocs/js/messages/*.*', 'htdocs/css/*.*',
-                 'htdocs/guide/*', 'locale/*/LC_MESSAGES/messages.mo'],
+                 'htdocs/guide/*', 'locale/*/LC_MESSAGES/messages.mo',
+                 'locale/*/LC_MESSAGES/tracini.mo'],
         'trac.wiki': ['default-pages/*'],
         'trac.ticket': ['workflows/*.ini'],
     },

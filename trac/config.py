@@ -21,6 +21,7 @@ import os.path
 from trac.admin import AdminCommandError, IAdminCommandProvider
 from trac.core import *
 from trac.util import AtomicFile, as_bool
+from trac.util.compat import cleandoc
 from trac.util.text import printout, to_unicode, CRLF
 from trac.util.translation import _, N_
 
@@ -542,11 +543,11 @@ class ConfigSection(object):
         """
         return _get_registry(ConfigSection, compmgr)
 
-    def __init__(self, name, doc, doc_domain='messages'):
+    def __init__(self, name, doc, doc_domain='tracini'):
         """Create the configuration section."""
         self.name = name
         self.registry[self.name] = self
-        self.__doc__ = doc
+        self.__doc__ = cleandoc(doc)
         self.doc_domain = doc_domain
 
     def __get__(self, instance, owner):
@@ -577,7 +578,7 @@ class Option(object):
         return _get_registry(Option, compmgr)
 
     def __init__(self, section, name, default=None, doc='',
-                 doc_domain='messages'):
+                 doc_domain='tracini'):
         """Create the configuration option.
         
         @param section: the name of the configuration section this option
@@ -590,7 +591,7 @@ class Option(object):
         self.name = name
         self.default = default
         self.registry[(self.section, self.name)] = self
-        self.__doc__ = doc
+        self.__doc__ = cleandoc(doc)
         self.doc_domain = doc_domain
 
     def __get__(self, instance, owner):
@@ -631,7 +632,7 @@ class ListOption(Option):
     """
 
     def __init__(self, section, name, default=None, sep=',', keep_empty=False,
-                 doc='', doc_domain='messages'):
+                 doc='', doc_domain='tracini'):
         Option.__init__(self, section, name, default, doc, doc_domain)
         self.sep = sep
         self.keep_empty = keep_empty
@@ -647,7 +648,7 @@ class ChoiceOption(Option):
     The default value is the first choice in the list.
     """
     
-    def __init__(self, section, name, choices, doc='', doc_domain='messages'):
+    def __init__(self, section, name, choices, doc='', doc_domain='tracini'):
         Option.__init__(self, section, name, _to_utf8(choices[0]), doc,
                         doc_domain)
         self.choices = set(_to_utf8(choice).strip() for choice in choices)
@@ -672,7 +673,7 @@ class PathOption(Option):
 class ExtensionOption(Option):
 
     def __init__(self, section, name, interface, default=None, doc='',
-                 doc_domain='messages'):
+                 doc_domain='tracini'):
         Option.__init__(self, section, name, default, doc, doc_domain)
         self.xtnpt = ExtensionPoint(interface)
 
@@ -698,7 +699,7 @@ class OrderedExtensionsOption(ListOption):
     interface are returned, with those specified by the option ordered first."""
 
     def __init__(self, section, name, interface, default=None,
-                 include_missing=True, doc='', doc_domain='messages'):
+                 include_missing=True, doc='', doc_domain='tracini'):
         ListOption.__init__(self, section, name, default, doc=doc,
                             doc_domain=doc_domain)
         self.xtnpt = ExtensionPoint(interface)
