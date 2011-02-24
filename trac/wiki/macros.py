@@ -626,7 +626,8 @@ class TracIniMacro(WikiMacroBase):
             key_filter = args.pop(0).strip()
 
         registry = ConfigSection.get_registry(self.compmgr)
-        sections = dict((name, dgettext(section.doc_domain, section.__doc__))
+        sections = dict((name, dgettext(section.doc_domain,
+                                        to_unicode(section.__doc__)))
                         for name, section in registry.iteritems()
                         if name.startswith(section_filter))
 
@@ -644,7 +645,8 @@ class TracIniMacro(WikiMacroBase):
                  tag.tr(tag.td(tag.tt(option.name)),
                         tag.td(format_to_oneliner(
                             self.env, formatter.context,
-                            dgettext(option.doc_domain, option.__doc__))),
+                            dgettext(option.doc_domain,
+                                     to_unicode(option.__doc__)))),
                         tag.td(tag.code(option.default or 'false')
                                    if option.default or option.default is False
                                    else _("(no default)"),
