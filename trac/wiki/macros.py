@@ -31,7 +31,7 @@ from trac.util.datefmt import format_date, from_utimestamp, user_time
 from trac.util.html import escape
 from trac.util.presentation import separated
 from trac.util.text import unquote, to_unicode
-from trac.util.translation import _, dgettext
+from trac.util.translation import _, dgettext, cleandoc_
 from trac.wiki.api import IWikiMacroProvider, WikiSystem, parse_args
 from trac.wiki.formatter import format_to_html, format_to_oneliner, \
                                 extract_link, OutlineFormatter
@@ -42,6 +42,7 @@ class WikiMacroBase(Component):
 
     implements(IWikiMacroProvider)
     abstract = True
+    doc_domain = None
 
     def get_macros(self):
         """Yield the name of the macro based on the class name."""
@@ -51,9 +52,12 @@ class WikiMacroBase(Component):
         yield name
 
     def get_macro_description(self, name):
-        """Return the subclass's docstring."""
+        """Return the subclass's doc domain and docstring."""
         doc = inspect.getdoc(self.__class__)
-        return to_unicode(doc) if doc else ''
+        if not doc:
+            return ''
+        doc = to_unicode(doc)
+        return (self.doc_domain, doc) if self.doc_domain else doc
 
     def parse_macro(self, parser, name, content):
         raise NotImplementedError
@@ -69,6 +73,8 @@ class WikiMacroBase(Component):
 
 
 class TitleIndexMacro(WikiMacroBase):
+    doc_domain = 'messages'
+    __doc__ = cleandoc_(
     """Insert an alphabetic list of all wiki pages into the output.
 
     Accepts a prefix string as parameter: if provided, only pages with names
@@ -96,7 +102,7 @@ class TitleIndexMacro(WikiMacroBase):
        separated list of pages.
     
     The `include` and `exclude` lists accept shell-style patterns.
-    """
+    """)
 
     SPLIT_RE = re.compile(r"([/ 0-9.]+)")
 
@@ -227,6 +233,8 @@ class TitleIndexMacro(WikiMacroBase):
 
 
 class RecentChangesMacro(WikiMacroBase):
+    doc_domain = 'messages'
+    __doc__ = cleandoc_(
     """List all pages that have recently been modified, grouping them by the
     day they were last modified.
 
@@ -237,7 +245,7 @@ class RecentChangesMacro(WikiMacroBase):
     The second parameter is a number for limiting the number of pages returned.
     For example, specifying a limit of 5 will result in only the five most
     recently changed pages to be included in the list.
-    """
+    """)
 
     def expand_macro(self, formatter, name, content):
         prefix = limit = None
@@ -289,6 +297,8 @@ class RecentChangesMacro(WikiMacroBase):
 
 
 class PageOutlineMacro(WikiMacroBase):
+    doc_domain = 'messages'
+    __doc__ = cleandoc_(
     """Display a structural outline of the current wiki page, each item in the
     outline being a link to the corresponding heading.
 
@@ -310,7 +320,7 @@ class PageOutlineMacro(WikiMacroBase):
      * The fourth parameter specifies whether the outline is numbered or not.
        It can be either `numbered` or `unnumbered` (the former being the
        default). This parameter only has an effect in `inline` style.
-    """
+    """)
 
     def expand_macro(self, formatter, name, content):
         min_depth, max_depth = 1, 6
@@ -353,6 +363,8 @@ class PageOutlineMacro(WikiMacroBase):
 
 
 class ImageMacro(WikiMacroBase):
+    doc_domain = 'messages'
+    __doc__ = cleandoc_(
     """Embed an image in wiki-formatted text.
     
     The first argument is the file specification. The file specification may
@@ -411,7 +423,7 @@ class ImageMacro(WikiMacroBase):
     
     ''Adapted from the Image.py macro created by Shun-ichi Goto
     <gotoh@taiyo.co.jp>''
-    """
+    """)
 
     def expand_macro(self, formatter, name, content):
         # args will be null if the macro is called without parenthesis.
@@ -553,6 +565,8 @@ class ImageMacro(WikiMacroBase):
 
 
 class MacroListMacro(WikiMacroBase):
+    doc_domain = 'messages'
+    __doc__ = cleandoc_(
     """Display a list of all installed Wiki macros, including documentation if
     available.
     
@@ -561,7 +575,7 @@ class MacroListMacro(WikiMacroBase):
     
     Note that this macro will not be able to display the documentation of
     macros if the `PythonOptimize` option is enabled for mod_python!
-    """
+    """)
 
     def expand_macro(self, formatter, name, content):
         from trac.wiki.formatter import system_message
@@ -587,7 +601,10 @@ class MacroListMacro(WikiMacroBase):
                     for descr, pairs in groupby(name_descriptions,
                                                 key=lambda p: p[1]):
                         if descr:
-                            descr = to_unicode(descr) or ''
+                            if isinstance(descr, (tuple, list)):
+                                descr = dgettext(descr[0], descr[1])
+                            else:
+                                descr = to_unicode(descr) or ''
                             if content == '*':
                                 descr = format_to_oneliner(
                                     self.env, formatter.context, descr,
@@ -608,13 +625,15 @@ class MacroListMacro(WikiMacroBase):
 
 
 class TracIniMacro(WikiMacroBase):
+    doc_domain = 'messages'
+    __doc__ = cleandoc_(
     """Produce documentation for the Trac configuration file.
 
     Typically, this will be used in the TracIni page.
     Optional arguments are a configuration section filter,
     and a configuration option name filter: only the configuration
     options whose section and name start with the filters are output.
-    """
+    """)
 
     def expand_macro(self, formatter, name, args):
         from trac.config import ConfigSection, Option
@@ -661,10 +680,12 @@ class TracIniMacro(WikiMacroBase):
 
 
 class KnownMimeTypesMacro(WikiMacroBase):
+    doc_domain = 'messages'
+    __doc__ = cleandoc_(
     """List all known mime-types which can be used as WikiProcessors.
 
     Can be given an optional argument which is interpreted as mime-type filter.
-    """
+    """)
 
     def expand_macro(self, formatter, name, args):
         from trac.mimeview.api import Mimeview
@@ -697,13 +718,15 @@ class KnownMimeTypesMacro(WikiMacroBase):
 
 
 class TracGuideTocMacro(WikiMacroBase):
+    doc_domain = 'messages'
+    __doc__ = cleandoc_(
     """Display a table of content for the Trac guide.
     
     This macro shows a quick and dirty way to make a table-of-contents
     for the Help/Guide. The table of contents will contain the Trac* and 
     WikiFormatting pages, and can't be customized. Search for TocMacro for a
     a more customizable table of contents.
-    """
+    """)
 
     TOC = [('TracGuide',                    'Index'),
            ('TracInstall',                  'Installation'),
