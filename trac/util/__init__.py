@@ -204,7 +204,7 @@ class AtomicFile(object):
         finally:
             try:
                 os.unlink(self._temp)
-            except:
+            except Exception:
                 pass
             
     close = commit
@@ -221,11 +221,8 @@ class AtomicFile(object):
 
 def read_file(path, mode='r'):
     """Read a file and return its content."""
-    f = open(path, mode)
-    try:
+    with open(path, mode) as f:
         return f.read()
-    finally:
-        f.close()
 
 
 def create_file(path, data='', mode='w'):
@@ -496,7 +493,7 @@ def get_doc(obj):
         return (None, None)
     doc = to_unicode(doc).split('\n\n', 1)
     summary = doc[0].replace('\n', ' ')
-    description = len(doc) > 1 and doc[1] or None
+    description = doc[1] if len(doc) > 1 else None
     return (summary, description)
 
 # -- setuptools utils
@@ -505,7 +502,7 @@ def get_module_path(module):
     """Return the base path the given module is imported from"""
     path = module.__file__
     module_name = module.__name__
-    if path.endswith('.pyc') or path.endswith('.pyo'):
+    if path.endswith(('.pyc', '.pyo')):
         path = path[:-1]
     if os.path.basename(path) == '__init__.py':
         path = os.path.dirname(path)
