@@ -159,7 +159,8 @@ class InterWikiMap(Component):
         yield 'InterWiki'
 
     def get_macro_description(self, name): 
-        return "Provide a description list for the known InterWiki prefixes."
+        return ('messages',
+                "Provide a description list for the known InterWiki prefixes.")
 
     def expand_macro(self, formatter, name, content):
         interwikis = []
