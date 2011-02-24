@@ -347,15 +347,15 @@ try:
 
 
     def get_command_overriders():
-        # 'bdist_wininst' runs a 'build', so make the latter 
+        # 'bdist_wininst' runs a 'build', so make the latter
         # run a 'compile_catalog' before 'build_py'
         class build(_build):
             sub_commands = [('compile_catalog', None)] + _build.sub_commands
-        
+
         # 'bdist_egg' isn't that nice, all it does is an 'install_lib'
         class install_lib(_install_lib): # playing setuptools' own tricks ;-)
             def l10n_run(self):
-                self.run_command('compile_catalog')                
+                self.run_command('compile_catalog')
             def run(self):
                 self.l10n_run()
                 _install_lib.run(self)
@@ -369,6 +369,24 @@ try:
         build, _install_lib = get_command_overriders()
         build.sub_commands.insert(0, ('generate_messages_js', None))
         build.sub_commands.insert(0, ('compile_catalog_js', None))
+        class install_lib(_install_lib):
+            def l10n_run(self):
+                self.run_command('compile_catalog_js')
+                self.run_command('generate_messages_js')
+                self.run_command('compile_catalog')
+        return {
+            'build': build, 'install_lib': install_lib,
+            'extract_messages_js': extract_messages,
+            'init_catalog_js': init_catalog,
+            'compile_catalog_js': compile_catalog,
+            'update_catalog_js': update_catalog,
+            'generate_messages_js': generate_messages_js,
+        }
+
+    def get_l10n_trac_cmdclass():
+        build, _install_lib = get_command_overriders()
+        build.sub_commands.insert(0, ('generate_messages_js', None))
+        build.sub_commands.insert(0, ('compile_catalog_js', None))
         build.sub_commands.insert(0, ('compile_catalog_tracini', None))
         class install_lib(_install_lib):
             def l10n_run(self):
@@ -377,7 +395,7 @@ try:
                 self.run_command('generate_messages_js')
                 self.run_command('compile_catalog')
         return {
-            'build': build, 'install_lib': install_lib,            
+            'build': build, 'install_lib': install_lib,
             'extract_messages_js': extract_messages,
             'init_catalog_js': init_catalog,
             'compile_catalog_js': compile_catalog,
@@ -394,4 +412,6 @@ except ImportError:
     def get_l10n_cmdclass():
         return
     def get_l10n_js_cmdclass():
+        return
+    def get_l10n_trac_cmdclass():
         return

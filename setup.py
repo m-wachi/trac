@@ -40,8 +40,8 @@ try:
         'tracopt': extractors,
     }
 
-    from trac.dist import get_l10n_js_cmdclass
-    extra['cmdclass'] = get_l10n_js_cmdclass()
+    from trac.dist import get_l10n_trac_cmdclass
+    extra['cmdclass'] = get_l10n_trac_cmdclass()
 
 except ImportError:
     pass
