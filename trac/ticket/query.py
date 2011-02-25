@@ -1173,8 +1173,8 @@ class QueryModule(Component):
 
 
 class TicketQueryMacro(WikiMacroBase):
-    doc_domain = 'messages'
-    __doc__ = cleandoc_(
+    _domain = 'messages'
+    _description = cleandoc_(
     """Wiki macro listing tickets that match certain criteria.
     
     This macro accepts a comma-separated list of keyed parameters,

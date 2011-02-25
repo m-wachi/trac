@@ -836,7 +836,7 @@ class BrowserModule(Component):
         yield "RepositoryIndex"
 
     def get_macro_description(self, name):
-        doc = cleandoc_("""
+        description = cleandoc_("""
         Display the list of available repositories.
 
         Can be given the following named arguments:
@@ -858,7 +858,7 @@ class BrowserModule(Component):
 
         (''since 0.12'')
         """)
-        return 'messages', doc
+        return 'messages', description
 
     def expand_macro(self, formatter, name, content):
         args, kwargs = parse_args(content)

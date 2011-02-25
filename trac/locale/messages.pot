@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Trac 0.13\n"
 "Report-Msgid-Bugs-To: trac-dev@googlegroups.com\n"
-"POT-Creation-Date: 2011-02-24 23:21+0900\n"
+"POT-Creation-Date: 2011-02-25 18:02+0900\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -21,6 +21,21 @@ msgstr ""
 msgid ""
 "You appear to be using the PHP CGI binary. Trac requires the CLI version "
 "for syntax highlighting."
+msgstr ""
+
+#: tracopt/ticket/commit_updater.py:261
+msgid ""
+"Insert a changeset message into the output.\n"
+"\n"
+"This macro must be called using wiki processor syntax as follows:\n"
+"{{{\n"
+"{{{\n"
+"#!CommitTicketReference repository=\"reponame\" revision=\"rev\"\n"
+"}}}\n"
+"}}}\n"
+"where the arguments are the following:\n"
+" - `repository`: the repository containing the changeset\n"
+" - `revision`: the revision of the desired changeset"
 msgstr ""
 
 #: tracopt/ticket/deleter.py:69 tracopt/ticket/deleter.py:82
@@ -5484,11 +5499,19 @@ msgstr ""
 msgid "Can't view %(link)s:"
 msgstr ""
 
+#: trac/wiki/intertrac.py:117
+msgid "Provide a list of known InterTrac prefixes."
+msgstr ""
+
 #: trac/wiki/intertrac.py:130
 msgid "The Trac Project"
 msgstr ""
 
-#: trac/wiki/macros.py:77
+#: trac/wiki/interwiki.py:163
+msgid "Provide a description list for the known InterWiki prefixes."
+msgstr ""
+
+#: trac/wiki/macros.py:82
 msgid ""
 "Insert an alphabetic list of all wiki pages into the output.\n"
 "\n"
@@ -5521,7 +5544,7 @@ msgid ""
 "The `include` and `exclude` lists accept shell-style patterns."
 msgstr ""
 
-#: trac/wiki/macros.py:237
+#: trac/wiki/macros.py:242
 msgid ""
 "List all pages that have recently been modified, grouping them by the\n"
 "day they were last modified.\n"
@@ -5537,7 +5560,7 @@ msgid ""
 "recently changed pages to be included in the list."
 msgstr ""
 
-#: trac/wiki/macros.py:301
+#: trac/wiki/macros.py:306
 msgid ""
 "Display a structural outline of the current wiki page, each item in the\n"
 "outline being a link to the corresponding heading.\n"
@@ -5570,7 +5593,7 @@ msgid ""
 "   default). This parameter only has an effect in `inline` style."
 msgstr ""
 
-#: trac/wiki/macros.py:367
+#: trac/wiki/macros.py:372
 msgid ""
 "Embed an image in wiki-formatted text.\n"
 "\n"
@@ -5644,12 +5667,12 @@ msgid ""
 "<gotoh@taiyo.co.jp>''"
 msgstr ""
 
-#: trac/wiki/macros.py:553
+#: trac/wiki/macros.py:558
 #, python-format
 msgid "No image \"%(id)s\" attached to %(parent)s"
 msgstr ""
 
-#: trac/wiki/macros.py:569
+#: trac/wiki/macros.py:574
 msgid ""
 "Display a list of all installed Wiki macros, including documentation if\n"
 "available.\n"
@@ -5662,20 +5685,20 @@ msgid ""
 "macros if the `PythonOptimize` option is enabled for mod_python!"
 msgstr ""
 
-#: trac/wiki/macros.py:598
+#: trac/wiki/macros.py:603
 #, python-format
 msgid "Error: Can't get description for macro %(name)s"
 msgstr ""
 
-#: trac/wiki/macros.py:619
+#: trac/wiki/macros.py:624
 msgid "Aliases:"
 msgstr ""
 
-#: trac/wiki/macros.py:622
+#: trac/wiki/macros.py:627
 msgid "Sorry, no documentation found"
 msgstr ""
 
-#: trac/wiki/macros.py:629
+#: trac/wiki/macros.py:634
 msgid ""
 "Produce documentation for the Trac configuration file.\n"
 "\n"
@@ -5685,11 +5708,11 @@ msgid ""
 "options whose section and name start with the filters are output."
 msgstr ""
 
-#: trac/wiki/macros.py:671
+#: trac/wiki/macros.py:676
 msgid "(no default)"
 msgstr ""
 
-#: trac/wiki/macros.py:684
+#: trac/wiki/macros.py:689
 msgid ""
 "List all known mime-types which can be used as WikiProcessors.\n"
 "\n"
@@ -5697,11 +5720,11 @@ msgid ""
 "filter."
 msgstr ""
 
-#: trac/wiki/macros.py:707
+#: trac/wiki/macros.py:712
 msgid "MIME Types"
 msgstr ""
 
-#: trac/wiki/macros.py:722
+#: trac/wiki/macros.py:727
 msgid ""
 "Display a table of content for the Trac guide.\n"
 "\n"
@@ -5711,7 +5734,7 @@ msgid ""
 "a more customizable table of contents."
 msgstr ""
 
-#: trac/wiki/macros.py:767
+#: trac/wiki/macros.py:772
 msgid "Table of Contents"
 msgstr ""
 

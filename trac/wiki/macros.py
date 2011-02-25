@@ -42,7 +42,12 @@ class WikiMacroBase(Component):
 
     implements(IWikiMacroProvider)
     abstract = True
-    doc_domain = None
+
+    # A gettext domain to translate the macro description
+    _domain = None
+
+    # A macro description
+    _description = None
 
     def get_macros(self):
         """Yield the name of the macro based on the class name."""
@@ -52,12 +57,13 @@ class WikiMacroBase(Component):
         yield name
 
     def get_macro_description(self, name):
-        """Return the subclass's doc domain and docstring."""
+        """Return the subclass's gettext domain and macro description"""
+        domain, description = self._domain, self._description
+        if description:
+            return (domain, description) if domain else description
+        # For pre-0.12 compatibility
         doc = inspect.getdoc(self.__class__)
-        if not doc:
-            return ''
-        doc = to_unicode(doc)
-        return (self.doc_domain, doc) if self.doc_domain else doc
+        return to_unicode(doc) if doc else ''
 
     def parse_macro(self, parser, name, content):
         raise NotImplementedError
@@ -73,8 +79,8 @@ class WikiMacroBase(Component):
 
 
 class TitleIndexMacro(WikiMacroBase):
-    doc_domain = 'messages'
-    __doc__ = cleandoc_(
+    _domain = 'messages'
+    _description = cleandoc_(
     """Insert an alphabetic list of all wiki pages into the output.
 
     Accepts a prefix string as parameter: if provided, only pages with names
@@ -233,8 +239,8 @@ class TitleIndexMacro(WikiMacroBase):
 
 
 class RecentChangesMacro(WikiMacroBase):
-    doc_domain = 'messages'
-    __doc__ = cleandoc_(
+    _domain = 'messages'
+    _description = cleandoc_(
     """List all pages that have recently been modified, grouping them by the
     day they were last modified.
 
@@ -297,8 +303,8 @@ class RecentChangesMacro(WikiMacroBase):
 
 
 class PageOutlineMacro(WikiMacroBase):
-    doc_domain = 'messages'
-    __doc__ = cleandoc_(
+    _domain = 'messages'
+    _description = cleandoc_(
     """Display a structural outline of the current wiki page, each item in the
     outline being a link to the corresponding heading.
 
@@ -363,8 +369,8 @@ class PageOutlineMacro(WikiMacroBase):
 
 
 class ImageMacro(WikiMacroBase):
-    doc_domain = 'messages'
-    __doc__ = cleandoc_(
+    _domain = 'messages'
+    _description = cleandoc_(
     """Embed an image in wiki-formatted text.
     
     The first argument is the file specification. The file specification may
@@ -565,8 +571,8 @@ class ImageMacro(WikiMacroBase):
 
 
 class MacroListMacro(WikiMacroBase):
-    doc_domain = 'messages'
-    __doc__ = cleandoc_(
+    _domain = 'messages'
+    _description = cleandoc_(
     """Display a list of all installed Wiki macros, including documentation if
     available.
     
@@ -625,8 +631,8 @@ class MacroListMacro(WikiMacroBase):
 
 
 class TracIniMacro(WikiMacroBase):
-    doc_domain = 'messages'
-    __doc__ = cleandoc_(
+    _domain = 'messages'
+    _description = cleandoc_(
     """Produce documentation for the Trac configuration file.
 
     Typically, this will be used in the TracIni page.
@@ -680,8 +686,8 @@ class TracIniMacro(WikiMacroBase):
 
 
 class KnownMimeTypesMacro(WikiMacroBase):
-    doc_domain = 'messages'
-    __doc__ = cleandoc_(
+    _domain = 'messages'
+    _description = cleandoc_(
     """List all known mime-types which can be used as WikiProcessors.
 
     Can be given an optional argument which is interpreted as mime-type filter.
@@ -718,8 +724,8 @@ class KnownMimeTypesMacro(WikiMacroBase):
 
 
 class TracGuideTocMacro(WikiMacroBase):
-    doc_domain = 'messages'
-    __doc__ = cleandoc_(
+    _domain = 'messages'
+    _description = cleandoc_(
     """Display a table of content for the Trac guide.
     
     This macro shows a quick and dirty way to make a table-of-contents

@@ -490,8 +490,8 @@ Congratulations!
         
 
 class TracAdminHelpMacro(WikiMacroBase):
-    doc_domain = 'messages'
-    __doc__ = cleandoc_(
+    _domain = 'messages'
+    _description = cleandoc_(
     """Display help for trac-admin commands.
 
     Examples:
