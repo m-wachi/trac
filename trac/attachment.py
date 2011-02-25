@@ -56,8 +56,8 @@ class InvalidAttachment(TracError):
 
 
 class IAttachmentChangeListener(Interface):
-    """Extension point interface for components that require notification when
-    attachments are created or deleted."""
+    """Extension point interface for components that require
+    notification when attachments are created or deleted."""
 
     def attachment_added(attachment):
         """Called when an attachment is added."""
@@ -70,44 +70,47 @@ class IAttachmentChangeListener(Interface):
 
 
 class IAttachmentManipulator(Interface):
-    """Extension point interface for components that need to manipulate
-    attachments.
+    """Extension point interface for components that need to
+    manipulate attachments.
     
-    Unlike change listeners, a manipulator can reject changes being committed
-    to the database."""
+    Unlike change listeners, a manipulator can reject changes being
+    committed to the database."""
 
     def prepare_attachment(req, attachment, fields):
         """Not currently called, but should be provided for future
         compatibility."""
 
     def validate_attachment(req, attachment):
-        """Validate an attachment after upload but before being stored in Trac
-        environment.
+        """Validate an attachment after upload but before being stored
+        in Trac environment.
         
-        Must return a list of `(field, message)` tuples, one for each problem
-        detected. `field` can be any of `description`, `username`, `filename`,
-        `content`, or `None` to indicate an overall problem with the
-        attachment. Therefore, a return value of `[]` means everything is
-        OK."""
+        Must return a list of ``(field, message)`` tuples, one for
+        each problem detected. ``field`` can be any of
+        ``description``, ``username``, ``filename``, ``content``, or
+        `None` to indicate an overall problem with the
+        attachment. Therefore, a return value of ``[]`` means
+        everything is OK."""
 
 class ILegacyAttachmentPolicyDelegate(Interface):
-    """Interface that can be used by plugins to seemlessly participate to the
-       legacy way of checking for attachment permissions.
+    """Interface that can be used by plugins to seemlessly participate
+       to the legacy way of checking for attachment permissions.
 
-       This should no longer be necessary once it becomes easier to 
+       This should no longer be necessary once it becomes easier to
        setup fine-grained permissions in the default permission store.
     """
 
     def check_attachment_permission(action, username, resource, perm):
-        """Return the usual True/False/None security policy decision
-           appropriate for the requested action on an attachment.
+        """Return the usual `True`/`False`/`None` security policy
+           decision appropriate for the requested action on an
+           attachment.
 
             :param action: one of ATTACHMENT_VIEW, ATTACHMENT_CREATE,
                                   ATTACHMENT_DELETE
             :param username: the user string
-            :param resource: the `Resource` for the attachment. Note that when
-                             ATTACHMENT_CREATE is checked, the resource `.id`
-                             will be `None`. 
+            :param resource: the `~trac.resource.Resource` for the
+                             attachment. Note that when
+                             ATTACHMENT_CREATE is checked, the
+                             resource ``.id`` will be `None`.
             :param perm: the permission cache for that username and resource
             """
 
@@ -180,8 +183,9 @@ class Attachment(object):
         """Delete the attachment, both the record in the database and 
         the file itself.
 
-        :since 0.13: the `db` parameter is no longer needed and will be removed
-        in version 0.14
+        .. versionchanged :: 0.13
+           the `db` parameter is no longer needed
+           (will be removed in version 0.14)
         """
         assert self.filename, "Cannot delete non-existent attachment"
 
@@ -244,8 +248,9 @@ class Attachment(object):
     def insert(self, filename, fileobj, size, t=None, db=None):
         """Create a new Attachment record and save the file content.
 
-        :since 0.13: the `db` parameter is no longer needed and will be removed
-        in version 0.14
+        .. versionchanged :: 0.13
+           the `db` parameter is no longer needed
+           (will be removed in version 0.14)
         """
         self.size = int(size) if size else 0
         if t is None:
@@ -289,11 +294,12 @@ class Attachment(object):
 
     @classmethod
     def select(cls, env, parent_realm, parent_id, db=None):
-        """Iterator yielding all `Attachment` instances attached to resource
-        identified by `parent_realm` and `parent_id`.
+        """Iterator yielding all `Attachment` instances attached to
+        resource identified by `parent_realm` and `parent_id`.
 
-        :since 0.13: the `db` parameter is no longer needed and will be removed
-        in version 0.14
+        .. versionchanged :: 0.13
+           the `db` parameter is no longer needed 
+           (will be removed in version 0.14)
         """
         for row in env.db_query("""
                 SELECT filename, description, size, time, author, ipnr
@@ -307,8 +313,9 @@ class Attachment(object):
     def delete_all(cls, env, parent_realm, parent_id, db=None):
         """Delete all attachments of a given resource.
         
-        :since 0.13: the `db` parameter is no longer needed and will be removed
-        in version 0.14
+        .. versionchanged :: 0.13
+           the `db` parameter is no longer needed
+           (will be removed in version 0.14)
         """
         attachment_dir = None
         with env.db_transaction as db:
@@ -476,17 +483,26 @@ class AttachmentModule(Component):
 
     # Public methods
 
-    def attachment_data(self, context):
-        """Return the list of viewable attachments.
+    def viewable_attachments(self, context):
+        """Return the list of viewable attachments in the given context.
 
-        :param context: the rendering context corresponding to the parent
-                        `Resource` of the attachments
+        :param context: the `~trac.mimeview.api.RenderingContext`
+                        corresponding to the parent
+                        `~trac.resource.Resource` for the attachments
         """
         parent = context.resource
         attachments = []
         for attachment in Attachment.select(self.env, parent.realm, parent.id):
             if 'ATTACHMENT_VIEW' in context.perm(attachment.resource):
                 attachments.append(attachment)
+        return attachments
+
+    def attachment_data(self, context):
+        """Return a data dictionary describing the list of viewable
+        attachments in the current context.
+        """
+        attachments = self.viewable_attachments(context)
+        parent = context.resource
         total_size = sum(attachment.size for attachment in attachments)
         new_att = parent.child('attachment')
         return {'attach_href': get_resource_url(self.env, new_att,
@@ -719,7 +735,7 @@ class AttachmentModule(Component):
 
     def _download_as_zip(self, req, parent, attachments=None):
         if attachments is None:
-            attachments = Attachment.select(self.env, parent.realm, parent.id)
+            attachments = self.viewable_attachments(web_context(req, parent))
         total_size = sum(attachment.size for attachment in attachments)
         if total_size > self.max_zip_size:
             raise TracError(_("Maximum total attachment size: %(num)s bytes",
@@ -737,16 +753,18 @@ class AttachmentModule(Component):
         buf = StringIO()
         zipfile = ZipFile(buf, 'w', ZIP_DEFLATED)
         for attachment in attachments:
-            if 'ATTACHMENT_VIEW' not in req.perm(attachment.resource):
-                continue
             zipinfo = ZipInfo()
             zipinfo.filename = attachment.filename.encode('utf-8')
             zipinfo.date_time = attachment.date.utctimetuple()[:6]
             zipinfo.compress_type = ZIP_DEFLATED
-            zipinfo.comment = attachment.description
+            if attachment.description:
+                zipinfo.comment = attachment.description.encode('utf-8')
             zipinfo.external_attr = 0644 << 16L # needed since Python 2.5
-            with attachment.open() as fd:
-                zipfile.writestr(zipinfo, fd.read())
+            try:
+                with attachment.open() as fd:
+                    zipfile.writestr(zipinfo, fd.read())
+            except ResourceNotFound:
+                pass # skip missing files
         zipfile.close()
 
         zip_str = buf.getvalue()
@@ -1012,8 +1030,8 @@ class AttachmentAdmin(Component):
                 raise AdminCommandError(_("File '%(name)s' exists",
                                           name=destination))
         with attachment.open() as input:
-            output = (destination is None) and sys.stdout \
-                                           or open(destination, "wb")
+            output = open(destination, "wb") if destination is not None \
+                     else sys.stdout
             try:
                 shutil.copyfileobj(input, output)
             finally:

@@ -117,7 +117,7 @@ def _is_path_within_scope(scope, fullpath):
     """Check whether the given `fullpath` is within the given `scope`"""
     if scope == '/':
         return fullpath is not None
-    fullpath = fullpath and fullpath.lstrip('/') or ''
+    fullpath = fullpath.lstrip('/') if fullpath else ''
     scope = scope.strip('/')
     return (fullpath + '/').startswith(scope + '/')
 
@@ -360,7 +360,7 @@ class SubversionRepository(Repository):
             self.scope = '/'
         assert self.scope[0] == '/'
         # we keep root_path_utf8 for  RA 
-        ra_prefix = os.name == 'nt' and 'file:///' or 'file://'
+        ra_prefix = 'file:///' if os.name == 'nt' else 'file://'
         self.ra_url_utf8 = ra_prefix + root_path_utf8
         self.clear()
 
@@ -432,12 +432,12 @@ class SubversionRepository(Repository):
                                        embedded_numbers(n.path.lower())):
                         if node.kind == Node.DIRECTORY:
                             yield node
-                except: # no right (TODO: should use a specific Exception here)
+                except Exception: # no right (TODO: use a specific Exception)
                     pass
             else:
                 try:
                     yield self.get_node(path)
-                except: # no right
+                except Exception: # no right
                     pass
 
     def get_quickjump_entries(self, rev):

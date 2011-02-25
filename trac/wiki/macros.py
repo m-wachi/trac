@@ -27,12 +27,11 @@ from genshi.core import Markup
 from trac.core import *
 from trac.resource import Resource, ResourceNotFound, get_resource_name, \
                           get_resource_summary, get_resource_url
-from trac.util.compat import cleandoc
 from trac.util.datefmt import format_date, from_utimestamp, user_time
 from trac.util.html import escape
 from trac.util.presentation import separated
 from trac.util.text import unquote, to_unicode
-from trac.util.translation import _
+from trac.util.translation import _, dgettext
 from trac.wiki.api import IWikiMacroProvider, WikiSystem, parse_args
 from trac.wiki.formatter import format_to_html, format_to_oneliner, \
                                 extract_link, OutlineFormatter
@@ -54,7 +53,7 @@ class WikiMacroBase(Component):
     def get_macro_description(self, name):
         """Return the subclass's docstring."""
         doc = inspect.getdoc(self.__class__)
-        return doc and to_unicode(doc) or ''
+        return to_unicode(doc) if doc else ''
 
     def parse_macro(self, parser, name, content):
         raise NotImplementedError
@@ -103,11 +102,11 @@ class TitleIndexMacro(WikiMacroBase):
 
     def expand_macro(self, formatter, name, content):
         args, kw = parse_args(content)
-        prefix = args and args[0].strip() or None
+        prefix = args[0].strip() if args else None
         hideprefix = args and len(args) > 1 and args[1].strip() == 'hideprefix'
         minsize = max(int(kw.get('min', 2)), 2)
         depth = int(kw.get('depth', -1))
-        start = prefix and prefix.count('/') or 0
+        start = prefix.count('/') if prefix else 0
         format = kw.get('format', '')
 
         def parse_list(name):
@@ -175,7 +174,7 @@ class TitleIndexMacro(WikiMacroBase):
             groups = []
 
             for key, grouper in groupby(entries, lambda (elts, name):
-                                                elts and elts[0] or ''):
+                                                    elts[0] if elts else ''):
                 # remove key from path_elements in grouped entries for further
                 # grouping
                 grouped_entries = [(path_elements[1:], page_name)
@@ -567,7 +566,7 @@ class MacroListMacro(WikiMacroBase):
     def expand_macro(self, formatter, name, content):
         from trac.wiki.formatter import system_message
 
-        content = content and content.strip() or ''
+        content = content.strip() if content else ''
         name_filter = content.strip('*')
 
         def get_macro_descr():
@@ -627,7 +626,8 @@ class TracIniMacro(WikiMacroBase):
             key_filter = args.pop(0).strip()
 
         registry = ConfigSection.get_registry(self.compmgr)
-        sections = dict((name, cleandoc(to_unicode(section.__doc__)))
+        sections = dict((name, dgettext(section.doc_domain,
+                                        to_unicode(section.__doc__)))
                         for name, section in registry.iteritems()
                         if name.startswith(section_filter))
 
@@ -643,8 +643,10 @@ class TracIniMacro(WikiMacroBase):
              format_to_html(self.env, formatter.context, section_doc),
              tag.table(class_='wiki')(tag.tbody(
                  tag.tr(tag.td(tag.tt(option.name)),
-                        tag.td(format_to_oneliner(self.env, formatter.context,
-                                                  to_unicode(option.__doc__))),
+                        tag.td(format_to_oneliner(
+                            self.env, formatter.context,
+                            dgettext(option.doc_domain,
+                                     to_unicode(option.__doc__)))),
                         tag.td(tag.code(option.default or 'false')
                                    if option.default or option.default is False
                                    else _("(no default)"),
