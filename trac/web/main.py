@@ -25,6 +25,7 @@ import locale
 import os
 import pkg_resources
 from pprint import pformat, pprint
+import re
 import sys
 
 from genshi.core import Markup
@@ -69,7 +70,9 @@ class FakePerm(dict):
 class RequestDispatcher(Component):
     """Web request dispatcher.
     
-    This component dispatches incoming requests to registered handlers.
+    This component dispatches incoming requests to registered
+    handlers.  Besides, it also takes care of user authentication and
+    request pre- and post-processing.
     """
     required = True
 
@@ -83,23 +86,26 @@ class RequestDispatcher(Component):
 
     default_handler = ExtensionOption('trac', 'default_handler',
                                       IRequestHandler, 'WikiModule',
-        """Name of the component that handles requests to the base URL.
+        """Name of the component that handles requests to the base
+        URL.
         
-        Options include `TimelineModule`, `RoadmapModule`, `BrowserModule`,
-        `QueryModule`, `ReportModule`, `TicketModule` and `WikiModule`. The
-        default is `WikiModule`. (''since 0.9'')""")
+        Options include `TimelineModule`, `RoadmapModule`,
+        `BrowserModule`, `QueryModule`, `ReportModule`, `TicketModule`
+        and `WikiModule`. The default is `WikiModule`. (''since 0.9'')""")
 
     default_timezone = Option('trac', 'default_timezone', '',
         """The default timezone to use""")
 
     default_language = Option('trac', 'default_language', '',
-        """The preferred language to use if no user preference has been set.
-        (''since 0.12.1'')
+        """The preferred language to use if no user preference has
+        been set. (''since 0.12.1'')
         """)
 
     default_date_format = Option('trac', 'default_date_format', '',
-        """The date format. Valid option is 'iso8601' for ISO 8601 format, If
-        not specified, use a browser's language. (''since 0.13'')
+        """The date format. Valid options are 'iso8601' for selecting
+        ISO 8601 format, or leave it empty which means the default
+        date format will be inferred from the browser's default
+        language. (''since 0.13'')
         """)
 
     # Public API
@@ -113,11 +119,11 @@ class RequestDispatcher(Component):
             return 'anonymous'
 
     def dispatch(self, req):
-        """Find a registered handler that matches the request and let it process
-        it.
+        """Find a registered handler that matches the request and let
+        it process it.
         
-        In addition, this method initializes the HDF data set and adds the web
-        site chrome.
+        In addition, this method initializes the data dictionary
+        passed to the the template and adds the web site chrome.
         """
         self.log.debug('Dispatching %r', req)
         chrome = Chrome(self.env)
@@ -273,10 +279,10 @@ class RequestDispatcher(Component):
     def _get_form_token(self, req):
         """Used to protect against CSRF.
 
-        The 'form_token' is strong shared secret stored in a user cookie.
-        By requiring that every POST form to contain this value we're able to
-        protect against CSRF attacks. Since this value is only known by the
-        user and not by an attacker.
+        The 'form_token' is strong shared secret stored in a user
+        cookie.  By requiring that every POST form to contain this
+        value we're able to protect against CSRF attacks. Since this
+        value is only known by the user and not by an attacker.
         
         If the the user does not have a `trac_form_token` cookie a new
         one is generated.
@@ -310,6 +316,7 @@ class RequestDispatcher(Component):
                 f.post_process_request(req, *(None,)*extra_arg_count)
         return resp
 
+_slashes_re = re.compile(r'/+')
 
 def dispatch_request(environ, start_response):
     """Main entry point for the Trac web interface.
@@ -325,8 +332,12 @@ def dispatch_request(environ, start_response):
         path_info = environ.get('PATH_INFO')
         if not path_info:
             environ['SCRIPT_NAME'] = script_url
-        elif script_url.endswith(path_info):
-            environ['SCRIPT_NAME'] = script_url[:-len(path_info)]
+        else:
+            # mod_wsgi squashes slashes in PATH_INFO (!)
+            script_url = _slashes_re.sub('/', script_url)
+            path_info = _slashes_re.sub('/', path_info)
+            if script_url.endswith(path_info):
+                environ['SCRIPT_NAME'] = script_url[:-len(path_info)]
 
     # If the expected configuration keys aren't found in the WSGI environment,
     # try looking them up in the process environment variables
@@ -607,7 +618,8 @@ def send_project_index(environ, start_response, parent_dir=None,
 
     loadpaths = [pkg_resources.resource_filename('trac', 'templates')]
     if req.environ.get('trac.env_index_template'):
-        tmpl_path, template = os.path.split(req.environ['trac.env_index_template'])
+        env_index_template = req.environ['trac.env_index_template']
+        tmpl_path, template = os.path.split(env_index_template)
         loadpaths.insert(0, tmpl_path)
     else:
         template = 'index.html'
@@ -652,8 +664,8 @@ def send_project_index(environ, start_response, parent_dir=None,
 
 
 def get_tracignore_patterns(env_parent_dir):
-    """Return the list of patterns from env_parent_dir/.tracignore or a
-    default pattern of `".*"` if the file doesn't exist.
+    """Return the list of patterns from env_parent_dir/.tracignore or
+    a default pattern of `".*"` if the file doesn't exist.
     """
     path = os.path.join(env_parent_dir, '.tracignore')
     try:
@@ -666,8 +678,8 @@ def get_tracignore_patterns(env_parent_dir):
 def get_environments(environ, warn=False):
     """Retrieve canonical environment name to path mapping.
 
-    The environments may not be all valid environments, but they are good
-    candidates.
+    The environments may not be all valid environments, but they are
+    good candidates.
     """
     env_paths = environ.get('trac.env_paths', [])
     env_parent_dir = environ.get('trac.env_parent_dir')
