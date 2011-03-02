@@ -422,6 +422,12 @@ class Chrome(Component):
         this to 0 to disable automatic preview. The default is 2.0 seconds.
         (''since 0.12'')""")
 
+    dateinfo_format = Option('trac', 'dateinfo_format', '',
+        """The date information format. Valid options are 'absolute' for
+        displaying absolute format, or leave it empty which means the date
+        information will be displayed relative format. (''since 0.13'')
+        """)
+
     templates = None
 
     # A dictionary of default context data for templates
@@ -785,6 +791,17 @@ class Chrome(Component):
             return tag.span(pretty_timedelta(date),
                             title=user_time(req, format_datetime, date))
 
+        def pretty_dateinfo(date, dateonly=False):
+            option = req.session.get('dateinfo') or self.dateinfo_format
+            absolute = user_time(req, format_datetime, date)
+            if option == 'absolute':
+                label = absolute
+            else:
+                label = pretty_timedelta(date)
+                if not dateonly:
+                    label = _("%(relativetime)s ago", relativetime=label)
+            return tag.span(label, title=absolute)
+
         def get_rel_url(resource, **kwargs):
             return get_resource_url(self.env, resource, href, **kwargs)
 
@@ -815,6 +832,7 @@ class Chrome(Component):
 
             # Date/time formatting
             'dateinfo': dateinfo,
+            'pretty_dateinfo': pretty_dateinfo,
             'format_datetime': partial(user_time, req, format_datetime),
             'format_date': partial(user_time, req, format_date),
             'format_time': partial(user_time, req, format_time),

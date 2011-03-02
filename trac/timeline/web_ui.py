@@ -270,7 +270,20 @@ class TimelineModule(Component):
                 return self.get_timeline_link(req, date,
                                               pretty_timedelta(date),
                                               precision='second')
+            def pretty_dateinfo(date, dateonly=False):
+                option = req.session.get('dateinfo') or \
+                         Chrome(self.env).dateinfo_format
+                absolute = user_time(req, format_datetime, date)
+                if option == 'absolute':
+                    label = absolute
+                else:
+                    label = pretty_timedelta(date)
+                    if not dateonly:
+                        label = _("%(relativetime)s ago", relativetime=label)
+                return self.get_timeline_link(req, date, label,
+                                              precision='second')
             data['dateinfo'] = dateinfo
+            data['pretty_dateinfo'] = pretty_dateinfo
         return template, data, content_type
 
     # IWikiSyntaxProvider methods
@@ -304,13 +317,10 @@ class TimelineModule(Component):
 
     def get_timeline_link(self, req, date, label=None, precision='hours',
                           query=None, fragment=None):
-        iso_date = display_date = format_datetime(date, 'iso8601', req.tz)
-        fmt = req.session.get('datefmt')
-        if fmt and fmt != 'iso8601':
-            display_date = format_datetime(date, fmt, req.tz)
+        iso_date = format_datetime(date, 'iso8601', req.tz)
         href = req.href.timeline(from_=iso_date, precision=precision)
         return tag.a(label or iso_date, class_='timeline',
-                     title=_("%(date)s in Timeline", date=display_date),
+                     title=_("%(date)s in Timeline", date=iso_date),
                      href=concat_path_query_fragment(href, query, fragment))
 
     # Internal methods

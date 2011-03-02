@@ -25,7 +25,7 @@
         <py:choose>
           <p py:when="milestone.completed" class="date">
             <i18n:msg params="duration, date">
-              Completed ${dateinfo(milestone.completed)} ago (${format_datetime(milestone.completed)})
+              Completed ${pretty_dateinfo(milestone.completed)} (${format_datetime(milestone.completed)})
             </i18n:msg>
           </p>
           <p py:when="milestone.is_late" class="date">
