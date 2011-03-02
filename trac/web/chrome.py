@@ -422,10 +422,10 @@ class Chrome(Component):
         this to 0 to disable automatic preview. The default is 2.0 seconds.
         (''since 0.12'')""")
 
-    dateinfo_format = Option('trac', 'dateinfo_format', '',
-        """The date information format. Valid options are 'absolute' for
-        displaying absolute format, or leave it empty which means the date
-        information will be displayed relative format. (''since 0.13'')
+    dateinfo_format = Option('trac', 'dateinfo_format', 'relative',
+        """The date information format. Valid options are 'relative' for
+        displaying relative format and 'absolute' for displaying absolute
+        format. (''since 0.13'')
         """)
 
     templates = None
@@ -787,15 +787,12 @@ class Chrome(Component):
                            exception_to_unicode(e))
             show_email_addresses = False
 
-        def dateinfo(date):
-            return tag.span(pretty_timedelta(date),
-                            title=user_time(req, format_datetime, date))
-
-        def pretty_dateinfo(date, dateonly=False):
-            option = req.session.get('dateinfo') or self.dateinfo_format
+        def pretty_dateinfo(date, format=None, dateonly=False):
             absolute = user_time(req, format_datetime, date)
             relative = pretty_timedelta(date)
-            if option == 'absolute':
+            if not format:
+                format = req.session.get('dateinfo') or self.dateinfo_format
+            if format == 'absolute':
                 label = absolute
                 title = _("%(relativetime)s ago", relativetime=relative)
             else:
@@ -803,6 +800,9 @@ class Chrome(Component):
                         if not dateonly else relative
                 title = absolute
             return tag.span(label, title=title)
+
+        def dateinfo(date):
+            return pretty_timedelta(date, format='relative', dateonly=True)
 
         def get_rel_url(resource, **kwargs):
             return get_resource_url(self.env, resource, href, **kwargs)

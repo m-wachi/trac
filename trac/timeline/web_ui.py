@@ -266,16 +266,13 @@ class TimelineModule(Component):
     
     def post_process_request(self, req, template, data, content_type):
         if data:
-            def dateinfo(date):
-                return self.get_timeline_link(req, date,
-                                              pretty_timedelta(date),
-                                              precision='second')
-            def pretty_dateinfo(date, dateonly=False):
-                option = req.session.get('dateinfo') or \
-                         Chrome(self.env).dateinfo_format
+            def pretty_dateinfo(date, format=None, dateonly=False):
                 absolute = user_time(req, format_datetime, date)
                 relative = pretty_timedelta(date)
-                if option == 'absolute':
+                if not format:
+                    format = req.session.get('dateinfo') or \
+                             Chrome(self.env).dateinfo_format
+                if format == 'absolute':
                     label = absolute
                     title = _("%(relativetime)s ago in Timeline",
                               relativetime=relative)
@@ -286,8 +283,10 @@ class TimelineModule(Component):
                               absolutetime=absolute)
                 return self.get_timeline_link(req, date, label,
                                               precision='second', title=title)
-            data['dateinfo'] = dateinfo
+            def dateinfo(date):
+                return pretty_dateinfo(date, format='relative', dateonly=True)
             data['pretty_dateinfo'] = pretty_dateinfo
+            data['dateinfo'] = dateinfo
         return template, data, content_type
 
     # IWikiSyntaxProvider methods

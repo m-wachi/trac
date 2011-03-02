@@ -44,7 +44,7 @@
         <dd class="time" py:choose="">
           <em py:when="multi" class="multi">(multiple changes)</em>
           <py:when test="change.date">
-            <i18n:msg params="date, duration">${format_datetime(change.date)} (${pretty_dateinfo(change.date)})</i18n:msg>
+            <i18n:msg params="date, duration">${format_datetime(change.date)} (${pretty_dateinfo(change.date, format='relative')})</i18n:msg>
           </py:when>
           <py:otherwise>--</py:otherwise>
         </dd>
