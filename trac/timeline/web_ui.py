@@ -274,14 +274,18 @@ class TimelineModule(Component):
                 option = req.session.get('dateinfo') or \
                          Chrome(self.env).dateinfo_format
                 absolute = user_time(req, format_datetime, date)
+                relative = pretty_timedelta(date)
                 if option == 'absolute':
                     label = absolute
+                    title = _("%(relativetime)s ago in Timeline",
+                              relativetime=relative)
                 else:
-                    label = pretty_timedelta(date)
-                    if not dateonly:
-                        label = _("%(relativetime)s ago", relativetime=label)
+                    label = _("%(relativetime)s ago", relativetime=relative) \
+                            if not dateonly else relative
+                    title = _("%(absolutetime)s in Timeline",
+                              absolutetime=absolute)
                 return self.get_timeline_link(req, date, label,
-                                              precision='second')
+                                              precision='second', title=title)
             data['dateinfo'] = dateinfo
             data['pretty_dateinfo'] = pretty_dateinfo
         return template, data, content_type
@@ -316,11 +320,11 @@ class TimelineModule(Component):
     # Public methods
 
     def get_timeline_link(self, req, date, label=None, precision='hours',
-                          query=None, fragment=None):
+                          query=None, fragment=None, title=None):
         iso_date = format_datetime(date, 'iso8601', req.tz)
         href = req.href.timeline(from_=iso_date, precision=precision)
         return tag.a(label or iso_date, class_='timeline',
-                     title=_("%(date)s in Timeline", date=iso_date),
+                     title=title or _("%(date)s in Timeline", date=iso_date),
                      href=concat_path_query_fragment(href, query, fragment))
 
     # Internal methods

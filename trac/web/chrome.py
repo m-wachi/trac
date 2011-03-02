@@ -794,13 +794,15 @@ class Chrome(Component):
         def pretty_dateinfo(date, dateonly=False):
             option = req.session.get('dateinfo') or self.dateinfo_format
             absolute = user_time(req, format_datetime, date)
+            relative = pretty_timedelta(date)
             if option == 'absolute':
                 label = absolute
+                title = _("%(relativetime)s ago", relativetime=relative)
             else:
-                label = pretty_timedelta(date)
-                if not dateonly:
-                    label = _("%(relativetime)s ago", relativetime=label)
-            return tag.span(label, title=absolute)
+                label = _("%(relativetime)s ago", relativetime=relative) \
+                        if not dateonly else relative
+                title = absolute
+            return tag.span(label, title=title)
 
         def get_rel_url(resource, **kwargs):
             return get_resource_url(self.env, resource, href, **kwargs)
