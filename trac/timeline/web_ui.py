@@ -28,8 +28,9 @@ from trac.core import *
 from trac.perm import IPermissionRequestor
 from trac.timeline.api import ITimelineEventProvider
 from trac.util import as_int
-from trac.util.datefmt import format_date, format_datetime, parse_date, \
-                              to_utimestamp, utc, pretty_timedelta, user_time
+from trac.util.datefmt import format_date, format_datetime, format_time, \
+                              parse_date, to_utimestamp, utc, \
+                              pretty_timedelta,  user_time
 from trac.util.text import exception_to_unicode, to_unicode
 from trac.util.translation import _, tag_
 from trac.web import IRequestHandler, IRequestFilter
@@ -270,16 +271,21 @@ class TimelineModule(Component):
                 absolute = user_time(req, format_datetime, date)
                 relative = pretty_timedelta(date)
                 if not format:
-                    format = req.session.get('dateinfo') or \
-                             Chrome(self.env).dateinfo_format
+                    format = req.session.get('dateinfo',
+                                 Chrome(self.env).default_dateinfo_format)
                 if format == 'absolute':
-                    label = absolute
-                    title = _("%(relativetime)s ago in Timeline",
+                    if dateonly:
+                        label = absolute
+                    else:
+                        label = _("on %(date)s at %(time)s",
+                                  date=user_time(req, format_date, date),
+                                  time=user_time(req, format_time, date))
+                    title = _("See timeline %(relativetime)s ago",
                               relativetime=relative)
                 else:
                     label = _("%(relativetime)s ago", relativetime=relative) \
                             if not dateonly else relative
-                    title = _("%(absolutetime)s in Timeline",
+                    title = _("See timeline at %(absolutetime)s",
                               absolutetime=absolute)
                 return self.get_timeline_link(req, date, label,
                                               precision='second', title=title)
