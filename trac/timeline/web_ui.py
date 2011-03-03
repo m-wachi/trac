@@ -331,7 +331,8 @@ class TimelineModule(Component):
         iso_date = format_datetime(date, 'iso8601', req.tz)
         href = req.href.timeline(from_=iso_date, precision=precision)
         return tag.a(label or iso_date, class_='timeline',
-                     title=title or _("%(date)s in Timeline", date=iso_date),
+                     title=title or _("See timeline at %(absolutetime)s",
+                                      absolutetime=iso_date),
                      href=concat_path_query_fragment(href, query, fragment))
 
     # Internal methods
