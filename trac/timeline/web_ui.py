@@ -276,6 +276,8 @@ class TimelineModule(Component):
                 if format == 'absolute':
                     if dateonly:
                         label = absolute
+                    elif req.lc_time == 'iso8601':
+                        label = _("at %(iso8601)s", iso8601=absolute)
                     else:
                         label = _("on %(date)s at %(time)s",
                                   date=user_time(req, format_date, date),
