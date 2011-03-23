@@ -74,7 +74,7 @@ class Ticket(object):
     def _get_db(self, db):
         return db or self.env.get_read_db()
 
-    exists = property(fget=lambda self: self.id is not None)
+    exists = property(lambda self: self.id is not None)
 
     def _init_defaults(self, db=None):
         for field in self.fields:
@@ -297,12 +297,11 @@ class Ticket(object):
                 cursor.execute("""
                     SELECT DISTINCT tc1.time,COALESCE(tc2.oldvalue,'')
                     FROM ticket_change AS tc1
-                      LEFT OUTER JOIN
-                        (SELECT time,oldvalue FROM ticket_change
-                         WHERE field='comment') AS tc2
-                      ON (tc1.time = tc2.time)
-                    WHERE ticket=%s ORDER BY tc1.time DESC
-                    """, (self.id,))
+                    LEFT OUTER JOIN ticket_change AS tc2
+                    ON tc2.ticket=%s AND tc2.time=tc1.time
+                       AND tc2.field='comment'
+                    WHERE tc1.ticket=%s ORDER BY tc1.time DESC
+                    """, (self.id, self.id))
                 for ts, old in cursor:
                     # Use oldvalue if available, else count edits
                     try:
@@ -604,17 +603,13 @@ class Ticket(object):
         # Fallback when comment number is not available in oldvalue
         num = 0
         cursor.execute("""
-            SELECT DISTINCT tc1.time,COALESCE(tc2.oldvalue,''), 
-               tc2.author,COALESCE(tc2.newvalue,'') 
-               FROM ticket_change AS tc1 
-                   LEFT OUTER JOIN 
-                          (SELECT time,author,oldvalue,newvalue 
-                           FROM ticket_change 
-                           WHERE field='comment') AS tc2 
-                        ON (tc1.time = tc2.time) 
-               WHERE ticket=%s 
-               ORDER BY tc1.time
-               """, (self.id,))
+            SELECT DISTINCT tc1.time,COALESCE(tc2.oldvalue,''),
+                            tc2.author,COALESCE(tc2.newvalue,'')
+            FROM ticket_change AS tc1 
+            LEFT OUTER JOIN ticket_change AS tc2
+            ON tc2.ticket=%s AND tc2.time=tc1.time AND tc2.field='comment'
+            WHERE tc1.ticket=%s ORDER BY tc1.time
+            """, (self.id, self.id))
         for ts, old, author, comment in cursor:
             # Use oldvalue if available, else count edits
             try:
@@ -668,7 +663,7 @@ class AbstractEnum(object):
             self.value = self._old_value = None
             self.name = self._old_name = None
 
-    exists = property(fget=lambda self: self._old_value is not None)
+    exists = property(lambda self: self._old_value is not None)
 
     def delete(self, db=None):
         """Delete the enum value.
@@ -818,7 +813,7 @@ class Component(object):
             self.owner = None
             self.description = None
 
-    exists = property(fget=lambda self: self._old_name is not None)
+    exists = property(lambda self: self._old_name is not None)
 
     def delete(self, db=None):
         """Delete the component.
@@ -909,9 +904,9 @@ class Milestone(object):
             self.description = ''
             self._to_old()
 
-    def _get_resource(self):
+    @property
+    def resource(self):
         return Resource('milestone', self.name) ### .version !!!
-    resource = property(_get_resource)
 
     def _fetch(self, name, db=None):
         if not db:
@@ -927,10 +922,10 @@ class Milestone(object):
                                    name=name), _('Invalid milestone name'))
         self._from_database(row)
 
-    exists = property(fget=lambda self: self._old['name'] is not None)
-    is_completed = property(fget=lambda self: self.completed is not None)
-    is_late = property(fget=lambda self: self.due and
-                                         self.due < datetime.now(utc))
+    exists = property(lambda self: self._old['name'] is not None)
+    is_completed = property(lambda self: self.completed is not None)
+    is_late = property(lambda self: self.due and
+                                    self.due < datetime.now(utc))
 
     def _from_database(self, row):
         name, due, completed, description = row
@@ -1096,7 +1091,7 @@ class Version(object):
             self.time = None
             self.description = None
 
-    exists = property(fget=lambda self: self._old_name is not None)
+    exists = property(lambda self: self._old_name is not None)
 
     def delete(self, db=None):
         """Delete the version.
