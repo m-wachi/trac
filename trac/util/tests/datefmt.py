@@ -81,6 +81,12 @@ else:
                 t = datefmt.parse_date('Mar 31, 2002 02:30', tz, en_US)
                 self.assertEqual(expected, t.strftime(format))
 
+        def test_to_datetime_pytz_normalize(self):
+            tz = datefmt.get_timezone('Europe/Zurich')
+            date = datefmt.to_datetime(datetime.date(2002, 3, 31), tz)
+            format = '%Y-%m-%d %H:%M:%S %Z%z'
+            expected = '2002-03-31 00:00:00 CET+0100'
+            self.assertEqual(expected, date.strftime(format))
 
 class DateFormatTestCase(unittest.TestCase):
 

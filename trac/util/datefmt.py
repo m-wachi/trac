@@ -68,7 +68,11 @@ def to_datetime(t, tzinfo=None):
                     t = tzinfo.normalize(t)
         return t
     elif isinstance(t, date):
-        return (tzinfo or localtz).localize(datetime(t.year, t.month, t.day))
+        tz = tzinfo or localtz
+        t = tz.localize(datetime(t.year, t.month, t.day))
+        if hasattr(tz, 'normalize'): # pytz
+            t = tz.normalize(t)
+        return t
     elif isinstance(t, (int, long, float)):
         if not (_min_ts <= t <= _max_ts):
             # Handle microsecond timestamps for 0.11 compatibility
