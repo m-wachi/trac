@@ -211,7 +211,7 @@ class TicketSystem(Component):
     default_keywords = Option('ticket', 'default_keywords', '',
         """Default keywords for newly created tickets.""")
 
-    default_owner = Option('ticket', 'default_owner', '',
+    default_owner = Option('ticket', 'default_owner', '< default >',
         """Default owner for newly created tickets.""")
 
     default_cc = Option('ticket', 'default_cc', '',
@@ -408,6 +408,7 @@ class TicketSystem(Component):
                                                            ticket.resource):
                     possible_owners.append(user)
             possible_owners.sort()
+            possible_owners.insert(0, '< default >')
             field['options'] = possible_owners
             field['optional'] = True
 
@@ -493,6 +494,11 @@ class TicketSystem(Component):
             href = "%s#comment:%s" % (formatter.href.ticket(resource.id), cnum)
             title = _("Comment %(cnum)s for Ticket #%(id)s", cnum=cnum,
                       id=resource.id)
+            if 'TICKET_VIEW' in formatter.perm(resource):
+                for status, in self.env.db_query(
+                    "SELECT status FROM ticket WHERE id=%s",
+                    (resource.id,)):
+                    return tag.a(label, href=href, title=title, class_=status)
             return tag.a(label, href=href, title=title)
         else:
             return label
