@@ -230,13 +230,22 @@ def print_table(data, headers=None, sep='  ', out=None, ambiwidth=None):
     elif not data:
         return
 
+    # Convert to an unicode object with `to_unicode`. If None, convert to a
+    # empty string.
+    def to_text(val):
+        if val is None:
+            return u''
+        return to_unicode(val)
+
     def tw(text):
         return text_width(text, ambiwidth=ambiwidth)
 
+    # Convert each cell to an unicode object
+    data = [[to_text(cell) for cell in row] for row in data]
+
     num_cols = len(data[0]) # assumes all rows are of equal length
-    col_width = []
-    for idx in range(num_cols):
-        col_width.append(max([tw(d[idx] or '') for d in data]))
+    col_width = [max(tw(row[idx]) for row in data)
+                 for idx in xrange(num_cols)]
 
     out.write('\n')
     for ridx, row in enumerate(data):
@@ -248,19 +257,14 @@ def print_table(data, headers=None, sep='  ', out=None, ambiwidth=None):
             if cidx + 1 == num_cols:
                 sp = '' # No separator after last column
 
-            if cell is None:
-                cell = ''
-            cell = to_unicode(cell)
             line = u'%-*s%s' % (col_width[cidx] - tw(cell) + len(cell),
                                 cell, sp)
-            if isinstance(line, unicode):
-                line = line.encode(charset, 'replace')
+            line = line.encode(charset, 'replace')
             out.write(line)
 
         out.write('\n')
         if ridx == 0 and headers:
-            out.write(''.join(['-' for x in xrange(0, tw(sep) * cidx +
-                                                      sum(col_width))]))
+            out.write('-' * (tw(sep) * cidx + sum(col_width)))
             out.write('\n')
 
     out.write('\n')

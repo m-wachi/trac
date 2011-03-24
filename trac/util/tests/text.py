@@ -121,6 +121,25 @@ Trac 0.5  | 2004-02-23 | Incognito
         self._validate_print_table(expected, data, headers=headers, sep=' | ',
                                    ambiwidth=1)
 
+    def test_various_types(self):
+        data = (
+            ('NoneType', 'None',  None),
+            ('bool',     'True',  True),
+            ('bool',     'False', False),
+            ('int',      '0',     0),
+            ('float',    '0.0',   0.0),
+        )
+        expected = u"""\
+
+NoneType | None  |      
+bool     | True  | True 
+bool     | False | False
+int      | 0     | 0    
+float    | 0.0   | 0.0  
+
+"""
+        self._validate_print_table(expected, data, sep=' | ', ambiwidth=1)
+
     def test_ambiwidth_1(self):
         data = (
             ('foo@localhost', 'foo@localhost'),
