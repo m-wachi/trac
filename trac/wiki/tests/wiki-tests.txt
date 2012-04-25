@@ -1491,6 +1491,21 @@ OTOH, the following is a roman numbered list:
 Paragraph
 </p>
 ------------------------------
+============================== Unicode digits will not a numbered list
+ ³. This will not a numbered list.
+ ੧. This will not a numbered list.
+ ൬. This will not a numbered list.
+ ➀. This will not a numbered list.
+------------------------------
+<blockquote>
+<p>
+³. This will not a numbered list.
+੧. This will not a numbered list.
+൬. This will not a numbered list.
+➀. This will not a numbered list.
+</p>
+</blockquote>
+------------------------------
 ============================== Mixed lists multi-line items
  1. multi-line
     numbered list
