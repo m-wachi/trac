@@ -1491,18 +1491,18 @@ OTOH, the following is a roman numbered list:
 Paragraph
 </p>
 ------------------------------
-============================== Unicode digits will not a numbered list
- ³. This will not a numbered list.
- ੧. This will not a numbered list.
- ൬. This will not a numbered list.
- ➀. This will not a numbered list.
+============================== Unicode digits will not start a numbered list
+ ³. U+00B3 will not start a numbered list.
+ ੧. U+0A67 will not start a numbered list.
+ ൬. U+0D6C will not start a numbered list.
+ ➀. U+2780 will not start a numbered list.
 ------------------------------
 <blockquote>
 <p>
-³. This will not a numbered list.
-੧. This will not a numbered list.
-൬. This will not a numbered list.
-➀. This will not a numbered list.
+³. U+00B3 will not start a numbered list.
+੧. U+0A67 will not start a numbered list.
+൬. U+0D6C will not start a numbered list.
+➀. U+2780 will not start a numbered list.
 </p>
 </blockquote>
 ------------------------------
