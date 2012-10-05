@@ -2,7 +2,7 @@
 #
 # Copyright (C) 2005-2009 Edgewall Software
 # Copyright (C) 2005 Christopher Lenz <cmlenz@gmx.de>
-# Copyright (C) 2005-2007 Christian Boos <cboos@neuf.fr>
+# Copyright (C) 2005-2007 Christian Boos <cboos@edgewall.org>
 # All rights reserved.
 #
 # This software is licensed as described in the file COPYING, which
@@ -14,7 +14,7 @@
 # history and logs, available at http://trac.edgewall.org/log/.
 #
 # Author: Christopher Lenz <cmlenz@gmx.de>
-#         Christian Boos <cboos@neuf.fr>
+#         Christian Boos <cboos@edgewall.org>
 
 """Filesystem access to Subversion repositories.
 
@@ -604,6 +604,14 @@ class SubversionRepository(Repository):
 
     def get_changes(self, old_path, old_rev, new_path, new_rev,
                     ignore_ancestry=0):
+         def key(value):
+             return value[1] and value[1].path or value[0].path
+         return iter(sorted(self._get_changes(old_path, old_rev, new_path,
+                                              new_rev, ignore_ancestry),
+                            key=key))
+         
+    def _get_changes(self, old_path, old_rev, new_path, new_rev,
+                     ignore_ancestry):
         old_node = new_node = None
         old_rev = self.normalize_rev(old_rev)
         new_rev = self.normalize_rev(new_rev)

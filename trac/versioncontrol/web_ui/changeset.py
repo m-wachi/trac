@@ -3,7 +3,7 @@
 # Copyright (C) 2003-2009 Edgewall Software
 # Copyright (C) 2003-2005 Jonas Borgström <jonas@edgewall.com>
 # Copyright (C) 2004-2006 Christopher Lenz <cmlenz@gmx.de>
-# Copyright (C) 2005-2006 Christian Boos <cboos@neuf.fr>
+# Copyright (C) 2005-2006 Christian Boos <cboos@edgewall.org>
 # All rights reserved.
 #
 # This software is licensed as described in the file COPYING, which
@@ -16,7 +16,7 @@
 #
 # Author: Jonas Borgström <jonas@edgewall.com>
 #         Christopher Lenz <cmlenz@gmx.de>
-#         Christian Boos <cboos@neuf.fr>
+#         Christian Boos <cboos@edgewall.org>
 
 from itertools import groupby
 import os
@@ -680,7 +680,7 @@ class ChangesetModule(Component):
         req.send_response(200)
         req.send_header('Content-Type', 'text/x-patch;charset=utf-8')
         req.send_header('Content-Disposition',
-                        content_disposition('inline', filename + '.diff'))
+                        content_disposition('attachment', filename + '.diff'))
         buf = StringIO()
         mimeview = Mimeview(self.env)
 
@@ -757,7 +757,7 @@ class ChangesetModule(Component):
         req.send_response(200)
         req.send_header('Content-Type', 'application/zip')
         req.send_header('Content-Disposition',
-                        content_disposition('inline', filename + '.zip'))
+                        content_disposition('attachment', filename + '.zip'))
 
         from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED as compression
 

@@ -2,7 +2,7 @@
 #
 # Copyright (C) 2003-2009 Edgewall Software
 # Copyright (C) 2003-2004 Jonas Borgström <jonas@edgewall.com>
-# Copyright (C) 2006 Christian Boos <cboos@neuf.fr>
+# Copyright (C) 2006 Christian Boos <cboos@edgewall.org>
 # Copyright (C) 2006 Matthew Good <trac@matt-good.net>
 # All rights reserved.
 #
@@ -764,7 +764,7 @@ class ReportModule(Component):
         req.send_header('Content-Length', len(data))
         if filename:
             req.send_header('Content-Disposition',
-                            content_disposition(filename=filename))
+                            content_disposition('attachment', filename))
         req.end_headers()
         req.write(data)
         raise RequestDone
@@ -785,7 +785,8 @@ class ReportModule(Component):
         req.send_header('Content-Length', len(data))
         if id:
             req.send_header('Content-Disposition',
-                            content_disposition(filename='report_%s.sql' % id))
+                            content_disposition('attachment',
+                                                'report_%s.sql' % id))
         req.end_headers()
         req.write(data)
         raise RequestDone
