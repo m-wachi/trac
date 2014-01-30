@@ -970,7 +970,7 @@ class Storage(object):
 
     def history_timerange(self, start, stop):
         return [ rev.strip() for rev in \
-                     self.repo.rev_list('--reverse',
+                     self.repo.rev_list('--date-order',
                                         '--max-age=%d' % start,
                                         '--min-age=%d' % stop,
                                         '--all').splitlines() ]

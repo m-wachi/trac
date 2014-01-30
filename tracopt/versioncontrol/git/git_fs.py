@@ -57,8 +57,16 @@ class GitCachedRepository(CachedRepository):
             raise NoSuchChangeset(rev)
         return normrev
 
+    def get_changesets(self, start, stop):
+        for rev in self.repos.git.history_timerange(to_timestamp(start),
+                                                    to_timestamp(stop)):
+            yield self._get_changeset(rev)
+
     def get_changeset(self, rev):
-        return GitCachedChangeset(self, self.normalize_rev(rev), self.env)
+        return self._get_changeset(self.normalize_rev(rev))
+
+    def _get_changeset(self, rev):
+        return GitCachedChangeset(self, rev, self.env)
 
 
 class GitCachedChangeset(CachedChangeset):
