@@ -14,7 +14,7 @@
 import os
 import tempfile
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta
 from subprocess import Popen, PIPE
 
 from trac.core import TracError
@@ -168,10 +168,10 @@ class HistoryTimeRangeTestCase(BaseTestCase):
         self._git_init()
         filename = os.path.join(self.repos_path, '.gitignore')
         start = datetime(2000, 1, 1, 0, 0, 0, 0, utc)
-        stop = datetime(2014, 2, 5, 15, 24, 6, 0, utc)
+        ts = datetime(2014, 2, 5, 15, 24, 6, 0, utc)
         env = os.environ.copy()
-        env['GIT_COMMITTER_DATE'] = stop.isoformat()
-        env['GIT_AUTHOR_DATE'] = stop.isoformat()
+        env['GIT_COMMITTER_DATE'] = ts.isoformat()
+        env['GIT_AUTHOR_DATE'] = ts.isoformat()
         for idx in xrange(3):
             create_file(filename, 'commit-%d.txt' % idx)
             self._git('commit', '-a', '-m', 'commit %d' % idx, env=env)
@@ -187,7 +187,11 @@ class HistoryTimeRangeTestCase(BaseTestCase):
             revs.extend(parents)
         self.assertEqual(4, len(revs))
 
-        csets = repos.get_changesets(start, stop)
+        csets = list(repos.get_changesets(start, ts))
+        self.assertEqual(1, len(csets))
+        self.assertEqual(revs[-1], csets[0].rev)  # is oldest rev
+
+        csets = list(repos.get_changesets(start, ts + timedelta(seconds=1)))
         self.assertEqual(revs, [cset.rev for cset in csets])
 
 
