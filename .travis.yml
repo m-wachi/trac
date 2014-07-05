@@ -21,4 +21,7 @@ script:
   - make Trac.egg-info unit-test functional-test
 notifications:
   email:
-    - jun66j5@gmail.com
+    recipients:
+      - jun66j5@gmail.com
+    on_success: always
+    on_failure: always
