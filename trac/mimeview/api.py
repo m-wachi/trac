@@ -59,8 +59,8 @@ that can be `read()`.
   corresponding ticket (#3332 as well).
 """
 
+import io
 import re
-from StringIO import StringIO
 from collections import namedtuple
 
 from genshi import Markup, Stream
@@ -614,7 +614,7 @@ class Content(object):
         if size == 0:
             return ''
         if self.content is None:
-            self.content = StringIO(self.input.read(self.max_size))
+            self.content = io.StringIO(self.input.read(self.max_size))
         return self.content.read(size)
 
     def reset(self):
@@ -858,7 +858,7 @@ class Mimeview(Component):
         annotations = [a for a in annotations if a in annotators]
 
         if isinstance(stream, list):
-            stream = HTMLParser(StringIO(u'\n'.join(stream)))
+            stream = HTMLParser(io.StringIO(u'\n'.join(stream)))
         elif isinstance(stream, unicode):
             text = stream
             def linesplitter():

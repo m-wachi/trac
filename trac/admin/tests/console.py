@@ -16,13 +16,13 @@
 import copy
 import difflib
 import inspect
+import io
 import os
 import re
 import shutil
 import sys
 import tempfile
 import unittest
-from StringIO import StringIO
 
 # IAdminCommandProvider implementations
 import trac.admin.api
@@ -90,9 +90,9 @@ def execute_cmd(tracadmin, cmd, strip_trailing_space=True, input=None):
     _out = sys.stdout
     try:
         if input:
-            sys.stdin = StringIO(input.encode('utf-8'))
+            sys.stdin = io.BytesIO(input.encode('utf-8'))
             sys.stdin.encoding = 'utf-8' # fake input encoding
-        sys.stderr = sys.stdout = out = StringIO()
+        sys.stderr = sys.stdout = out = io.BytesIO()
         out.encoding = 'utf-8' # fake output encoding
         retval = None
         try:

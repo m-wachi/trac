@@ -19,7 +19,6 @@
 import csv
 import io
 import re
-from StringIO import StringIO
 
 from genshi.builder import tag
 
@@ -836,7 +835,7 @@ class ReportModule(Component):
                 add_value(param)
             return db.concat(*parts)
 
-        sql_io = StringIO()
+        sql_io = io.StringIO()
 
         # break SQL into literals and non-literals to handle replacing
         # variables within them with query parameters
@@ -910,7 +909,7 @@ class ReportModule(Component):
     def _send_sql(self, req, id, title, description, sql):
         req.perm('report', id).require('REPORT_SQL_VIEW')
 
-        out = StringIO()
+        out = io.BytesIO()
         out.write('-- ## %s: %s ## --\n\n' % (id, title.encode('utf-8')))
         if description:
             lines = description.encode('utf-8').splitlines()

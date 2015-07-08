@@ -14,8 +14,8 @@
 import doctest
 from datetime import datetime, timedelta
 
+import io
 import unittest
-from StringIO import StringIO
 
 import trac.tests.compat
 from trac.db.mysql_backend import MySQLConnection
@@ -48,7 +48,7 @@ class ReportTestCase(unittest.TestCase):
     def _make_environ(self, scheme='http', server_name='example.org',
                       server_port=80, method='GET', script_name='/trac',
                       **kwargs):
-        environ = {'wsgi.url_scheme': scheme, 'wsgi.input': StringIO(''),
+        environ = {'wsgi.url_scheme': scheme, 'wsgi.input': io.BytesIO(''),
                    'REQUEST_METHOD': method, 'SERVER_NAME': server_name,
                    'SERVER_PORT': server_port, 'SCRIPT_NAME': script_name}
         environ.update(kwargs)
@@ -56,21 +56,21 @@ class ReportTestCase(unittest.TestCase):
 
     def test_sub_var_no_quotes(self):
         sql, values, missing_args = self.report_module.sql_sub_vars(
-            "$VAR", {'VAR': 'value'})
+            u"$VAR", {'VAR': 'value'})
         self.assertEqual("%s", sql)
         self.assertEqual(['value'], values)
         self.assertEqual([], missing_args)
 
     def test_sub_var_digits_underscore(self):
         sql, values, missing_args = self.report_module.sql_sub_vars(
-            "$_VAR, $VAR2, $2VAR", {'_VAR': 'value1', 'VAR2': 'value2'})
+            u"$_VAR, $VAR2, $2VAR", {'_VAR': 'value1', 'VAR2': 'value2'})
         self.assertEqual("%s, %s, $2VAR", sql)
         self.assertEqual(['value1', 'value2'], values)
         self.assertEqual([], missing_args)
 
     def test_sub_var_quotes(self):
         sql, values, missing_args = self.report_module.sql_sub_vars(
-            "'$VAR'", {'VAR': 'value'})
+            u"'$VAR'", {'VAR': 'value'})
         with self.env.db_query as db:
             concatenated = db.concat("''", '%s', "''")
         self.assertEqual(concatenated, sql)
@@ -79,13 +79,13 @@ class ReportTestCase(unittest.TestCase):
 
     def test_sub_var_missing_args(self):
         sql, values, missing_args = self.report_module.sql_sub_vars(
-            "$VAR, $PARAM, $MISSING", {'VAR': 'value'})
+            u"$VAR, $PARAM, $MISSING", {'VAR': 'value'})
         self.assertEqual("%s, %s, %s", sql)
         self.assertEqual(['value', '', ''], values)
         self.assertEqual(['PARAM', 'MISSING'], missing_args)
 
     def test_csv_escape(self):
-        buf = StringIO()
+        buf = io.BytesIO()
         def start_response(status, headers):
             return buf.write
         environ = self._make_environ()
@@ -126,7 +126,7 @@ class ReportTestCase(unittest.TestCase):
                    perm=MockPerm(), authname=None, tz=None)
         name = """%s"`'%%%?"""
         with self.env.db_query as db:
-            sql = 'SELECT 1 AS %s, $USER AS user' % db.quote(name)
+            sql = u'SELECT 1 AS %s, $USER AS user' % db.quote(name)
             rv = self.report_module.execute_paginated_report(req, 1, sql,
                                                              {'USER': 'joe'})
         self.assertEqual(5, len(rv), repr(rv))
