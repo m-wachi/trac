@@ -11,12 +11,12 @@
 # individuals. For the exact contribution history, see the revision
 # history and logs, available at http://trac.edgewall.org/log/.
 
+import io
 import os.path
 import shutil
 import sys
 import tempfile
 import unittest
-from StringIO import StringIO
 
 import trac.tests.compat
 from genshi.builder import tag
@@ -79,7 +79,7 @@ class RequestHandlerPermissionsTestCaseBase(unittest.TestCase):
 def _make_environ(scheme='http', server_name='example.org',
                   server_port=80, method='GET', script_name='/trac',
                   **kwargs):
-    environ = {'wsgi.url_scheme': scheme, 'wsgi.input': StringIO(''),
+    environ = {'wsgi.url_scheme': scheme, 'wsgi.input': io.BytesIO(''),
                'REQUEST_METHOD': method, 'SERVER_NAME': server_name,
                'SERVER_PORT': server_port, 'SCRIPT_NAME': script_name}
     environ.update(kwargs)
@@ -241,21 +241,21 @@ class RequestTestCase(unittest.TestCase):
             'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1)'))
 
     def test_write_iterable(self):
-        buf = StringIO()
+        buf = io.BytesIO()
         def write(data):
             buf.write(data)
         def start_response(status, headers):
             return write
         environ = self._make_environ(method='GET')
 
-        buf = StringIO()
+        buf = io.BytesIO()
         req = Request(environ, start_response)
         req.send_header('Content-Type', 'text/plain;charset=utf-8')
         req.write(('Foo', 'bar', 'baz'))
         self.assertEqual('Foobarbaz', buf.getvalue())
 
     def test_write_unicode(self):
-        buf = StringIO()
+        buf = io.BytesIO()
         def write(data):
             buf.write(data)
         def start_response(status, headers):
@@ -270,7 +270,7 @@ class RequestTestCase(unittest.TestCase):
         self.assertRaises(ValueError, req.write, ('F', u'öo'))
 
     def test_send_iterable(self):
-        baton = {'content': StringIO(), 'status': None, 'headers': None}
+        baton = {'content': io.BytesIO(), 'status': None, 'headers': None}
         def write(data):
             baton['content'].write(data)
         def start_response(status, headers):
@@ -306,12 +306,12 @@ class RequestTestCase(unittest.TestCase):
                          str(req.incookie).rstrip(';'))
 
     def test_read(self):
-        environ = self._make_environ(**{'wsgi.input': StringIO('test input')})
+        environ = self._make_environ(**{'wsgi.input': io.BytesIO('test input')})
         req = Request(environ, None)
         self.assertEqual('test input', req.read())
 
     def test_read_size(self):
-        environ = self._make_environ(**{'wsgi.input': StringIO('test input')})
+        environ = self._make_environ(**{'wsgi.input': io.BytesIO('test input')})
         req = Request(environ, None)
         self.assertEqual('test', req.read(size=4))
 
@@ -324,7 +324,7 @@ class RequestTestCase(unittest.TestCase):
         req = Request(environ, None)
         self.assertEqual('foo', req.args['action'])
         environ = self._make_environ(method='POST',
-                                     **{'wsgi.input': StringIO('action=bar'),
+                                     **{'wsgi.input': io.BytesIO('action=bar'),
                                         'CONTENT_LENGTH': '10',
                                         'CONTENT_TYPE': 'application/x-www-form-urlencoded',
                                         'QUERY_STRING': 'action=foo'})
@@ -347,7 +347,7 @@ class RequestSendFileTestCase(unittest.TestCase):
     def setUp(self):
         self.status = None
         self.headers = None
-        self.response = StringIO()
+        self.response = io.BytesIO()
         self.dir = tempfile.mkdtemp(prefix='trac-')
         self.filename = os.path.join(self.dir, 'test.txt')
         self.data = 'contents\n'
@@ -496,7 +496,7 @@ class SendErrorTestCase(unittest.TestCase):
         self.env.config.set('project', 'admin_trac_url', admin_trac_url)
         self.assertEquals(admin_trac_url, self.env.project_admin_trac_url)
 
-        content = StringIO()
+        content = io.BytesIO()
         result = {'status': None, 'headers': []}
         def write(data):
             content.write(data)
