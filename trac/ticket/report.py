@@ -877,6 +877,7 @@ class ReportModule(Component):
                 writer.writerow([value.encode('utf-8') for value in values])
                 rv = out.getvalue()
                 out.truncate(0)
+                out.seek(0)
                 return rv
 
             converters = [col_conversions.get(c.strip('_'), cell_value)
