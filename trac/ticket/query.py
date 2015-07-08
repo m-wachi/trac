@@ -1175,6 +1175,7 @@ class QueryModule(Component):
                                  for value in values])
                 rv = out.getvalue()
                 out.truncate(0)
+                out.seek(0)
                 return rv
 
             yield '\xef\xbb\xbf'  # BOM
