@@ -102,12 +102,6 @@ def wait_for_file_mtime_change(filename):
 try:
     from collections import OrderedDict
 except ImportError:
-
-    try:
-        from thread import get_ident as _get_ident
-    except ImportError:
-        from dummy_thread import get_ident as _get_ident
-
     class OrderedDict(dict):
         'Dictionary that remembers insertion order'
         # An inherited dict maps keys to values.
@@ -309,7 +303,8 @@ except ImportError:
 
         def __repr__(self, _repr_running={}):
             """od.__repr__() <==> repr(od)"""
-            call_key = id(self), _get_ident()
+            from trac.util.concurrency import get_thread_id
+            call_key = id(self), get_thread_id()
             if call_key in _repr_running:
                 return '...'
             _repr_running[call_key] = 1
