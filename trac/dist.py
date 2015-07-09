@@ -349,7 +349,8 @@ try:
                     f.close()
                 for message in catalog:
                     for error in self._check_message(catalog, message):
-                        log.warn('%s:%d: %s', filename, message.lineno, error)
+                        log.warning('%s:%d: %s', filename, message.lineno,
+                                    error)
 
         def _get_po_files(self):
             if self.input_file:

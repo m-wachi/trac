@@ -410,8 +410,8 @@ class RequestDispatcher(Component):
         else:
             if not self._warn_xsendfile_header:
                 self._warn_xsendfile_header = True
-                self.log.warn("[trac] xsendfile_header is invalid: '%s'",
-                              header)
+                self.log.warning("[trac] xsendfile_header is invalid: '%s'",
+                                 header)
             return None
 
     def _pre_process_request(self, req, chosen_handler):
@@ -589,7 +589,8 @@ def dispatch_request(environ, start_response):
             ##uncollectable = len(gc.garbage)
             ##if uncollectable:
             ##    del gc.garbage[:]
-            ##    env.log.warn("%d uncollectable objects found.", uncollectable)
+            ##    env.log.warning("%d uncollectable objects found.",
+            ##                    uncollectable)
 
 
 def _dispatch_request(req, env, env_error):
@@ -618,7 +619,7 @@ def _dispatch_request(req, env, env_error):
 def _send_user_error(req, env, e):
     # See trac/web/api.py for the definition of HTTPException subclasses.
     if env:
-        env.log.warn('[%s] %s', req.remote_addr, exception_to_unicode(e))
+        env.log.warning('[%s] %s', req.remote_addr, exception_to_unicode(e))
     data = {'title': e.title, 'type': 'TracError', 'message': e.message,
             'frames': [], 'traceback': None}
     if e.code == 403 and req.authname == 'anonymous':
