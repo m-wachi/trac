@@ -102,7 +102,7 @@ def Mock(bases=(), *initargs, **kw):
     def dummyfn(self, *args, **kwargs):
         raise NotImplementedError
     for base in bases:
-        if getattr(base, '__metaclass__', None) is not abc.ABCMeta:
+        if not getattr(base, '__abstractmethods__', None):
             continue
         fn = types.MethodType(dummyfn, base)
         for name, attr in inspect.getmembers(base):

@@ -16,6 +16,7 @@
 import re
 from abc import ABCMeta, abstractmethod
 from email.utils import formatdate
+from six import add_metaclass
 
 from genshi.builder import tag
 
@@ -31,6 +32,7 @@ from trac.util.translation import _, deactivate, reactivate, tag_
 __all__ = ['Notify', 'NotifyEmail']
 
 
+@add_metaclass(ABCMeta)
 class Notify(object):
     """Generic notification class for Trac.
 
@@ -38,7 +40,6 @@ class Notify(object):
 
     :since 1.1.3: deprecated and will be removed in 1.3.1
     """
-    __metaclass__ = ABCMeta
 
     def __init__(self, env):
         self.env = env

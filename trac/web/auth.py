@@ -19,6 +19,7 @@ from __future__ import print_function
 from abc import ABCMeta, abstractmethod
 from base64 import b64decode, b64encode
 from hashlib import md5, sha1
+from six import add_metaclass
 import os
 import re
 import sys
@@ -285,9 +286,8 @@ class LoginModule(Component):
         return req.args.get('referer') or req.get_header('Referer')
 
 
+@add_metaclass(ABCMeta)
 class HTTPAuthentication(object):
-
-    __metaclass__ = ABCMeta
 
     @abstractmethod
     def do_auth(self, environ, start_response):

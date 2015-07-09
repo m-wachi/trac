@@ -25,6 +25,7 @@ import io
 import mimetypes
 import os
 import re
+from six import add_metaclass
 import socket
 import sys
 import urlparse
@@ -158,9 +159,8 @@ HTTP_STATUS = dict([(code, reason.title()) for code, (reason, description)
                     in BaseHTTPRequestHandler.responses.items()])
 
 
+@add_metaclass(ABCMeta)
 class HTTPException(TracBaseError):
-
-    __metaclass__ = ABCMeta
 
     def __init__(self, detail, *args):
         """Factory for HTTPException classes."""
