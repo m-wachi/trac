@@ -18,10 +18,9 @@
 #         Christopher Lenz <cmlenz@gmx.de>
 #         Christian Boos <cboos@edgewall.org>
 
+import io
 import re
 import os
-
-from StringIO import StringIO
 
 from genshi.builder import tag, Element
 from genshi.core import Stream, Markup, escape
@@ -227,7 +226,7 @@ class WikiProcessor(object):
         if WikiSystem(self.env).render_unsafe_content:
             return Markup(text)
         try:
-            stream = Stream(HTMLParser(StringIO(text)))
+            stream = Stream(HTMLParser(io.StringIO(text)))
             return (stream | self._sanitizer).render('xhtml', encoding=None)
         except ParseError as e:
             self.env.log.warn(e)
@@ -239,7 +238,7 @@ class WikiProcessor(object):
         if "--" in text:
             return system_message(_('Error: Forbidden character sequence '
                                     '"--" in htmlcomment wiki code block'))
-        return Markup('<!--\n%s-->\n' % text)
+        return Markup(u'<!--\n%s-->\n' % text)
 
     def _elt_processor(self, eltname, format_to, text):
         # Note: as long as _processor_param_re is not re.UNICODE, **args is OK.
@@ -326,14 +325,14 @@ class WikiProcessor(object):
 
     def _format_row(self, env, context, text):
         if text:
-            out = StringIO()
+            out = io.StringIO()
             Formatter(env, context).format(text, out)
             text = self._parse_inner_table(out.getvalue())
         return text
 
     def _format_table(self, env, context, text):
         if text:
-            out = StringIO()
+            out = io.StringIO()
             Formatter(env, context).format(text, out)
             text = self._parse_inner_table(out.getvalue())
         return text
@@ -447,14 +446,14 @@ class Formatter(object):
     # -- Pre- IWikiSyntaxProvider rules (Font styles)
 
     _indirect_tags = {
-        'MM_BOLD': ('<strong>', '</strong>'),
-        'WC_BOLD': ('<strong>', '</strong>'),
-        'MM_ITALIC': ('<em>', '</em>'),
-        'WC_ITALIC': ('<em>', '</em>'),
-        'MM_UNDERLINE': ('<span class="underline">', '</span>'),
-        'MM_STRIKE': ('<del>', '</del>'),
-        'MM_SUBSCRIPT': ('<sub>', '</sub>'),
-        'MM_SUPERSCRIPT': ('<sup>', '</sup>'),
+        'MM_BOLD': (u'<strong>', u'</strong>'),
+        'WC_BOLD': (u'<strong>', u'</strong>'),
+        'MM_ITALIC': (u'<em>', u'</em>'),
+        'WC_ITALIC': (u'<em>', u'</em>'),
+        'MM_UNDERLINE': (u'<span class="underline">', u'</span>'),
+        'MM_STRIKE': (u'<del>', u'</del>'),
+        'MM_SUBSCRIPT': (u'<sub>', u'</sub>'),
+        'MM_SUPERSCRIPT': (u'<sup>', u'</sup>'),
     }
 
     def _get_open_tag(self, tag):
@@ -605,7 +604,8 @@ class Formatter(object):
     # HTML escape of &, < and >
 
     def _htmlescape_formatter(self, match, fullmatch):
-        return "&amp;" if match == "&" else "&lt;" if match == "<" else "&gt;"
+        return u"&amp;" if match == "&" \
+                        else u"&lt;" if match == "<" else u"&gt;"
 
     # Short form (shref) and long form (lhref) of TracLinks
 
@@ -840,7 +840,7 @@ class Formatter(object):
         self.close_list()
         self.close_def_list()
         depth, heading, anchor = self._parse_heading(match, fullmatch, False)
-        self.out.write('<h%d id="%s">%s</h%d>' %
+        self.out.write(u'<h%d id="%s">%s</h%d>' %
                        (depth, anchor, heading, depth))
 
     # Generic indentation (as defined by lists and quotes)
@@ -904,14 +904,14 @@ class Formatter(object):
             self._set_tab(depth)
             class_attr = ' class="%s"' % lclass if lclass else ''
             start_attr = ' start="%s"' % start if start is not None else ''
-            self.out.write('<' + new_type + class_attr + start_attr + '><li>')
+            self.out.write(u'<' + new_type + class_attr + start_attr + '><li>')
         def close_item():
             self.flush_tags()
-            self.out.write('</li>')
+            self.out.write(u'</li>')
         def close_list(tp):
             self._list_stack.pop()
             close_item()
-            self.out.write('</%s>' % tp)
+            self.out.write(u'</%s>' % tp)
 
         # depending on the indent/dedent, open or close lists
         if depth > self._get_list_depth():
@@ -932,7 +932,7 @@ class Formatter(object):
                         if old_offset != depth: # adjust last depth
                             self._list_stack[-1] = (old_type, depth)
                         close_item()
-                        self.out.write('<li>')
+                        self.out.write(u'<li>')
                 else:
                     open_list()
 
@@ -951,7 +951,7 @@ class Formatter(object):
 
     def close_def_list(self):
         if self.in_def_list:
-            self.out.write('</dd></dl>\n')
+            self.out.write(u'</dd></dl>\n')
         self.in_def_list = False
 
     # Blockquote
@@ -989,7 +989,7 @@ class Formatter(object):
                 self._quote_stack.append(d)
                 self._set_tab(d)
                 class_attr = ' class="citation"' if citation else ''
-                self.out.write('<blockquote%s>' % class_attr + os.linesep)
+                self.out.write(u'<blockquote%s>' % class_attr + os.linesep)
             if citation:
                 for d in range(quote_depth+1, depth+1):
                     open_one_quote(d)
@@ -999,7 +999,7 @@ class Formatter(object):
             self.close_table()
             self.close_paragraph()
             self._quote_stack.pop()
-            self.out.write('</blockquote>' + os.linesep)
+            self.out.write(u'</blockquote>' + os.linesep)
         quote_depth = self._get_quote_depth()
         if depth > quote_depth:
             self._set_tab(depth)
@@ -1093,40 +1093,40 @@ class Formatter(object):
             self.close_list()
             self.close_def_list()
             self.in_table = 1
-            self.out.write('<table class="wiki">' + os.linesep)
+            self.out.write(u'<table class="wiki">' + os.linesep)
 
     def open_table_row(self, params=''):
         if not self.in_table_row:
             self.open_table()
             self.in_table_row = 1
-            self.out.write('<tr%s>' % params)
+            self.out.write(u'<tr%s>' % params)
 
     def close_table_row(self, force=False):
         if self.in_table_row and (not self.continue_table_row or force):
             self.in_table_row = 0
             if self.in_table_cell:
-                self.out.write('</%s>' % self.in_table_cell)
+                self.out.write(u'</%s>' % self.in_table_cell)
                 self.in_table_cell = ''
-            self.out.write('</tr>')
+            self.out.write(u'</tr>')
         self.continue_table_row = 0
 
     def close_table(self):
         if self.in_table:
             self.close_table_row(force=True)
-            self.out.write('</table>' + os.linesep)
+            self.out.write(u'</table>' + os.linesep)
             self.in_table = 0
 
     # Paragraphs
 
     def open_paragraph(self):
         if not self.paragraph_open:
-            self.out.write('<p>' + os.linesep)
+            self.out.write(u'<p>' + os.linesep)
             self.paragraph_open = 1
 
     def close_paragraph(self):
         self.flush_tags()
         if self.paragraph_open:
-            self.out.write('</p>' + os.linesep)
+            self.out.write(u'</p>' + os.linesep)
             self.paragraph_open = 0
 
     # Code blocks
@@ -1219,10 +1219,10 @@ class Formatter(object):
             if all(not line or line[0] in '> ' for line in self._quote_buffer):
                 self._quote_buffer = [line[bool(line and line[0] == ' '):]
                                       for line in self._quote_buffer]
-            self.out.write('<blockquote class="citation">\n')
+            self.out.write(u'<blockquote class="citation">\n')
             Formatter(self.env, self.context).format(self._quote_buffer,
                                                      self.out, escape_newlines)
-            self.out.write('</blockquote>\n')
+            self.out.write(u'</blockquote>\n')
             self._quote_buffer = []
 
     # -- Wiki engine
@@ -1304,7 +1304,7 @@ class Formatter(object):
                 self.close_indentation()
                 self.close_list()
                 self.close_def_list()
-                self.out.write('<hr />' + os.linesep)
+                self.out.write(u'<hr />' + os.linesep)
                 continue
             # Handle new paragraph
             if line == '':
@@ -1403,7 +1403,7 @@ class OneLinerFormatter(Formatter):
         # Simplify code blocks
         in_code_block = 0
         processor = None
-        buf = StringIO()
+        buf = io.StringIO()
         for line in text.strip().splitlines():
             if WikiParser.ENDBLOCK not in line and \
                    WikiParser._startblock_re.match(line):
@@ -1413,7 +1413,7 @@ class OneLinerFormatter(Formatter):
                     in_code_block -= 1
                     if in_code_block == 0:
                         if processor != 'comment':
-                            buf.write(' [...]' + os.linesep)
+                            buf.write(u' [...]' + os.linesep)
                         processor = None
             elif in_code_block:
                 if not processor:
@@ -1472,30 +1472,30 @@ class OutlineFormatter(Formatter):
         min_depth = max(1, min_depth)
 
         curr_depth = min_depth - 1
-        out.write('\n')
+        out.write(u'\n')
         for depth, anchor, text in self.outline:
             if depth < min_depth or depth > max_depth:
                 continue
             if depth > curr_depth: # Deeper indent
                 for i in range(curr_depth, depth):
-                    out.write(whitespace_indent * (2*i) + '<ol>\n' +
-                              whitespace_indent * (2*i+1) + '<li>\n')
+                    out.write(whitespace_indent * (2*i) + u'<ol>\n' +
+                              whitespace_indent * (2*i+1) + u'<li>\n')
             elif depth < curr_depth: # Shallower indent
                 for i in range(curr_depth-1, depth-1, -1):
-                    out.write(whitespace_indent * (2*i+1) + '</li>\n' +
-                              whitespace_indent * (2*i) + '</ol>\n')
-                out.write(whitespace_indent * (2*depth-1) + '</li>\n' +
-                          whitespace_indent * (2*depth-1) + '<li>\n')
+                    out.write(whitespace_indent * (2*i+1) + u'</li>\n' +
+                              whitespace_indent * (2*i) + u'</ol>\n')
+                out.write(whitespace_indent * (2*depth-1) + u'</li>\n' +
+                          whitespace_indent * (2*depth-1) + u'<li>\n')
             else: # Same indent
-                out.write( whitespace_indent * (2*depth-1) + '</li>\n' +
-                           whitespace_indent * (2*depth-1) + '<li>\n')
+                out.write( whitespace_indent * (2*depth-1) + u'</li>\n' +
+                           whitespace_indent * (2*depth-1) + u'<li>\n')
             curr_depth = depth
             out.write(whitespace_indent * (2*depth) +
-                      '<a href="#%s">%s</a>\n' % (anchor, text))
+                      u'<a href="#%s">%s</a>\n' % (anchor, text))
         # Close out all indentation
         for i in range(curr_depth-1, min_depth-2, -1):
-            out.write(whitespace_indent * (2*i+1) + '</li>\n' +
-                      whitespace_indent * (2*i) + '</ol>\n')
+            out.write(whitespace_indent * (2*i+1) + u'</li>\n' +
+                      whitespace_indent * (2*i) + u'</ol>\n')
 
     def _heading_formatter(self, match, fullmatch):
         depth, heading, anchor = self._parse_heading(match, fullmatch,
@@ -1532,7 +1532,7 @@ class HtmlFormatter(object):
         self.context = context
         if isinstance(wikidom, basestring):
             wikidom = WikiParser(env).parse(wikidom)
-        self.wikidom = wikidom
+        self.wikidom = unicode(wikidom)
 
     def generate(self, escape_newlines=False):
         """Generate HTML elements.
@@ -1540,7 +1540,7 @@ class HtmlFormatter(object):
         newlines in the wikidom will be preserved if `escape_newlines` is set.
         """
         # FIXME: compatibility code only for now
-        out = StringIO()
+        out = io.StringIO()
         Formatter(self.env, self.context).format(self.wikidom, out,
                                                  escape_newlines)
         return Markup(out.getvalue())
@@ -1559,7 +1559,7 @@ class InlineHtmlFormatter(object):
         self.context = context
         if isinstance(wikidom, basestring):
             wikidom = WikiParser(env).parse(wikidom)
-        self.wikidom = wikidom
+        self.wikidom = unicode(wikidom)
 
     def generate(self, shorten=False):
         """Generate HTML inline elements.
@@ -1568,7 +1568,7 @@ class InlineHtmlFormatter(object):
         have been emitted.
         """
         # FIXME: compatibility code only for now
-        out = StringIO()
+        out = io.StringIO()
         OneLinerFormatter(self.env, self.context).format(self.wikidom, out,
                                                          shorten)
         return Markup(out.getvalue())
@@ -1612,7 +1612,7 @@ def wiki_to_html(wikitext, env, req, db=None,
     abs_ref, href = (req or env).abs_href, (req or env).href
     from trac.web.chrome import web_context
     context = web_context(req, absurls=absurls)
-    out = StringIO()
+    out = io.StringIO()
     Formatter(env, context).format(wikitext, out, escape_newlines)
     return Markup(out.getvalue())
 
@@ -1624,7 +1624,7 @@ def wiki_to_oneliner(wikitext, env, db=None, shorten=False, absurls=False,
     abs_ref, href = (req or env).abs_href, (req or env).href
     from trac.web.chrome import web_context
     context = web_context(req, absurls=absurls)
-    out = StringIO()
+    out = io.StringIO()
     OneLinerFormatter(env, context).format(wikitext, out, shorten)
     return Markup(out.getvalue())
 
@@ -1636,6 +1636,6 @@ def wiki_to_outline(wikitext, env, db=None,
     abs_ref, href = (req or env).abs_href, (req or env).href
     from trac.web.chrome import web_context
     context = web_context(req, absurls=absurls)
-    out = StringIO()
+    out = io.StringIO()
     OutlineFormatter(env, context).format(wikitext, out, max_depth, min_depth)
     return Markup(out.getvalue())
