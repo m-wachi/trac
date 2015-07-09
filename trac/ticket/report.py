@@ -17,6 +17,7 @@
 # Author: Jonas Borgström <jonas@edgewall.com>
 
 import csv
+import io
 import re
 from StringIO import StringIO
 
@@ -869,8 +870,7 @@ class ReportModule(Component):
         }
 
         def iterate():
-            from cStringIO import StringIO
-            out = StringIO()
+            out = io.BytesIO()
             writer = csv.writer(out, delimiter=sep, quoting=csv.QUOTE_MINIMAL)
 
             def writerow(values):

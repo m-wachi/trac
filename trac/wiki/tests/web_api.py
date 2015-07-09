@@ -11,8 +11,8 @@
 # individuals. For the exact contribution history, see the revision
 # history and logs, available at http://trac.edgewall.org/log/.
 
+import io
 import unittest
-from cStringIO import StringIO
 
 import trac.tests.compat
 from trac.mimeview.patch import PatchRenderer
@@ -29,7 +29,7 @@ class WikiRendererTestCase(unittest.TestCase):
         self.mod = WikiRenderer(self.env)
 
     def test_load_stylesheet(self):
-        buf = StringIO()
+        buf = io.BytesIO()
         def send(data):
             buf.write(data)
             raise RequestDone
