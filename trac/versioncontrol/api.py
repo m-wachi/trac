@@ -17,6 +17,7 @@
 import os.path
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
+from six import add_metaclass
 
 from trac.admin import AdminCommandError, IAdminCommandProvider, get_dir_list
 from trac.config import ConfigSection, ListOption, Option
@@ -794,10 +795,9 @@ class NoSuchNode(ResourceNotFound):
         ResourceNotFound.__init__(self, msg, _('No such node'))
 
 
+@add_metaclass(ABCMeta)
 class Repository(object):
     """Base class for a repository provided by a version control system."""
-
-    __metaclass__ = ABCMeta
 
     has_linear_changesets = False
 
@@ -1066,10 +1066,9 @@ class Repository(object):
     can_view = is_viewable  # 0.12 compatibility
 
 
+@add_metaclass(ABCMeta)
 class Node(object):
     """Represents a directory or file in the repository at a given revision."""
-
-    __metaclass__ = ABCMeta
 
     DIRECTORY = "dir"
     FILE = "file"
@@ -1220,10 +1219,9 @@ class Node(object):
     can_view = is_viewable  # 0.12 compatibility
 
 
+@add_metaclass(ABCMeta)
 class Changeset(object):
     """Represents a set of changes committed at once in a repository."""
-
-    __metaclass__ = ABCMeta
 
     ADD = 'add'
     COPY = 'copy'

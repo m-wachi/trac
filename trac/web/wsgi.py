@@ -16,6 +16,7 @@
 
 from abc import ABCMeta, abstractmethod
 import errno
+from six import add_metaclass
 import socket
 import six
 import sys
@@ -61,10 +62,9 @@ class _FileWrapper(object):
     next = __next__
 
 
+@add_metaclass(ABCMeta)
 class WSGIGateway(object):
     """Abstract base class for WSGI servers or gateways."""
-
-    __metaclass__ = ABCMeta
 
     wsgi_version = (1, 0)
     wsgi_multithread = True

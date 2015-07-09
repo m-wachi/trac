@@ -16,6 +16,8 @@
 # Author: Jonas Borgström <jonas@edgewall.com>
 #         Christopher Lenz <cmlenz@gmx.de>
 
+from six import add_metaclass
+
 __all__ = ['Component', 'ExtensionPoint', 'implements', 'Interface',
            'TracBaseError', 'TracError']
 
@@ -147,14 +149,13 @@ class ComponentMeta(type):
         return self
 
 
+@add_metaclass(ComponentMeta)
 class Component(object):
     """Base class for components.
 
     Every component can declare what extension points it provides, as
     well as what extension points of other components it extends.
     """
-    __metaclass__ = ComponentMeta
-
     @staticmethod
     def implements(*interfaces):
         """Can be used in the class definition of `Component`

@@ -18,6 +18,7 @@ import os
 import time
 import urllib
 from abc import ABCMeta, abstractmethod
+from six import add_metaclass
 
 from genshi.builder import tag
 from trac.config import BoolOption, ConfigurationError, IntOption, Option
@@ -182,10 +183,9 @@ class QueryContextManager(DbContextManager):
                 self.db.close()
 
 
+@add_metaclass(ABCMeta)
 class ConnectionBase(object):
     """Abstract base class for database connection classes."""
-
-    __metaclass__ = ABCMeta
 
     @abstractmethod
     def cast(self, column, type):
