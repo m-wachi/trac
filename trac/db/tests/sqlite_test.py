@@ -11,10 +11,10 @@
 # individuals. For the exact contribution history, see the revision
 # history and logs, available at http://trac.edgewall.org/log/.
 
+import io
 import os
 import tempfile
 import unittest
-from cStringIO import StringIO
 
 from trac.config import ConfigurationError
 from trac.env import Environment
@@ -44,7 +44,7 @@ class DatabaseFileTestCase(unittest.TestCase):
     def _make_environ(self, scheme='http', server_name='example.org',
                       server_port=80, method='GET', script_name='/trac',
                       cookie=None, **kwargs):
-        environ = {'wsgi.url_scheme': scheme, 'wsgi.input': StringIO(''),
+        environ = {'wsgi.url_scheme': scheme, 'wsgi.input': io.BytesIO(''),
                    'REQUEST_METHOD': method, 'SERVER_NAME': server_name,
                    'SERVER_PORT': server_port, 'SCRIPT_NAME': script_name}
         if cookie:

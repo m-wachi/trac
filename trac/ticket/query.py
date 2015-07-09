@@ -15,11 +15,11 @@
 #
 # Author: Christopher Lenz <cmlenz@gmx.de>
 
-from cStringIO import StringIO
 from datetime import datetime, timedelta
 from itertools import groupby
 from math import ceil
 import csv
+import io
 import re
 
 from genshi.builder import tag
@@ -1167,7 +1167,7 @@ class QueryModule(Component):
 
     def _export_csv(self, req, query, sep=',', mimetype='text/plain'):
         def iterate():
-            out = StringIO()
+            out = io.BytesIO()
             writer = csv.writer(out, delimiter=sep, quoting=csv.QUOTE_MINIMAL)
 
             def writerow(values):

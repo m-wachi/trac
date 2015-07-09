@@ -16,10 +16,10 @@
 # Author: Jonas Borgström <jonas@edgewall.com>
 #         Christopher Lenz <cmlenz@gmx.de>
 
-from cStringIO import StringIO
 from datetime import datetime
 import errno
 import hashlib
+import io
 import os.path
 import posixpath
 import re
@@ -509,7 +509,7 @@ class AttachmentModule(Component):
 
         from zipfile import ZipFile, ZIP_DEFLATED
 
-        buf = StringIO()
+        buf = io.BytesIO()
         zipfile = ZipFile(buf, 'w', ZIP_DEFLATED)
         for attachment in attachments:
             zipinfo = create_zipinfo(attachment.filename,

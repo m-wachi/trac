@@ -11,11 +11,11 @@
 # individuals. For the exact contribution history, see the revision
 # history and logs, available at http://trac.edgewall.org/log/.
 
+import io
 import os
 import sys
 import tempfile
 import unittest
-from cStringIO import StringIO
 from datetime import datetime, timedelta
 from subprocess import Popen, PIPE
 
@@ -645,7 +645,7 @@ merge :%(dev)d
 M 100644 :1 dev%(dev)08d.txt
 
 """
-        data = StringIO()
+        data = io.BytesIO()
         data.write(init % {'timestamp': timestamp})
         for idx in xrange(n):
             data.write(merge % {'timestamp': timestamp,
