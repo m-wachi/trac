@@ -20,8 +20,8 @@ min_python = (2, 6)
 if sys.version_info < min_python:
     print("Trac requires Python %d.%d or later" % min_python)
     sys.exit(1)
-if sys.version_info >= (3,):
-    print("Trac doesn't support Python 3 (yet)")
+if (3,) <= sys.version_info < (3, 3):
+    print("Trac doesn't support Python 3.2 or early")
     sys.exit(1)
 
 extra = {}
@@ -96,10 +96,12 @@ facilities.
     zip_safe = True,
 
     setup_requires = [
+        'six>=1.9.0',
         'Genshi>=0.6',
     ],
     install_requires = [
         'setuptools>=0.6',
+        'six>=1.9.0',
         'Genshi>=0.6',
     ],
     extras_require = {
