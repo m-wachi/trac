@@ -20,6 +20,7 @@
 import math
 import os
 import re
+import six
 import sys
 import time
 from datetime import tzinfo, timedelta, datetime, date
@@ -93,7 +94,7 @@ if os.name == 'nt':
             st.wHour = st.wMinute = st.wSecond = st.wMilliseconds = 0
             ft = FILETIME()
             if SystemTimeToFileTime(ctypes.pointer(st), ctypes.pointer(ft)):
-                return ft.dwHighDateTime * 0x100000000L + ft.dwLowDateTime
+                return ft.dwHighDateTime * 0x100000000 + ft.dwLowDateTime
             else:
                 raise RuntimeError('[LastError SystemTimeToFileTime %d]' %
                                    GetLastError())
@@ -106,8 +107,8 @@ if os.name == 'nt':
             if not get_systime(ctypes.pointer(ft)):
                 raise RuntimeError('[LastError %s %d]' %
                                    (func_systime, GetLastError()))
-            ft = ft.dwHighDateTime * 0x100000000L + ft.dwLowDateTime
-            usec = (ft - ft_epoch) / 10L
+            ft = ft.dwHighDateTime * 0x100000000 + ft.dwLowDateTime
+            usec = (ft - ft_epoch) / 10
             return usec / 1000000.0
 
         def datetime_now(tz=None):
@@ -152,7 +153,7 @@ def to_datetime(t, tzinfo=None):
             dt = tz.localize(t)
     elif isinstance(t, date):
         dt = tz.localize(datetime(t.year, t.month, t.day))
-    elif isinstance(t, (int, long, float)):
+    elif isinstance(t, six.integer_types) or isinstance(t, float):
         if not (_min_ts <= t <= _max_ts):
             # Handle microsecond timestamps for 0.11 compatibility
             t *= 0.000001
@@ -184,7 +185,7 @@ def to_utimestamp(dt):
     if not dt:
         return 0
     diff = dt - _epoc
-    return (diff.days * 86400000000L + diff.seconds * 1000000
+    return (diff.days * 86400000000 + diff.seconds * 1000000
             + diff.microseconds)
 
 def from_utimestamp(ts):

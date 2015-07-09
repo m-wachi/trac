@@ -17,6 +17,7 @@
 #         Christian Boos <cboos@edgewall.org>
 
 import re
+import six
 
 from genshi.builder import tag
 from genshi.core import Markup
@@ -501,8 +502,8 @@ class RevRanges(object):
         self._reduce()
 
     def _reduce(self):
-        if all(isinstance(pair[0], (int, long)) and
-               isinstance(pair[1], (int, long))
+        if all(isinstance(pair[0], six.integer_types) and
+               isinstance(pair[1], six.integer_types)
                for pair in self.pairs):
             try:
                 ranges = Ranges(unicode(self), reorder=True)
