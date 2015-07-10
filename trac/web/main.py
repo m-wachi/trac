@@ -29,6 +29,7 @@ import os
 import pkg_resources
 from pprint import pformat, pprint
 import re
+import six
 import sys
 
 from genshi.builder import tag
@@ -292,7 +293,7 @@ class RequestDispatcher(Component):
                     self.log.error("Exception caught while post-processing"
                                    " request: %s",
                                    exception_to_unicode(e, traceback=True))
-                raise err[0], err[1], err[2]
+                six.reraise(err[0], err[1], err[2])
         except PermissionError as e:
             raise HTTPForbidden(e)
         except ResourceNotFound as e:

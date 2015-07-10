@@ -40,6 +40,7 @@ __author__ = 'Allan Saddi <allan@saddi.com>'
 __version__ = '$Revision: 2025 $'
 
 import io
+import six
 import sys
 import os
 import signal
@@ -1238,7 +1239,7 @@ class WSGIServer(Server):
                 try:
                     if headers_sent:
                         # Re-raise if too late
-                        raise exc_info[0], exc_info[1], exc_info[2]
+                        six.reraise(exc_info[0], exc_info[1], exc_info[2])
                 finally:
                     exc_info = None # avoid dangling circular ref
             else:
