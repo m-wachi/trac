@@ -62,6 +62,7 @@ that can be `read()`.
 import io
 import re
 from collections import namedtuple
+from six import string_types as basestring, text_type as unicode
 
 from genshi import Markup, Stream
 from genshi.core import TEXT, START, END, START_NS, END_NS

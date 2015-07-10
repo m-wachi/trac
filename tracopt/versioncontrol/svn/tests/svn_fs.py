@@ -19,6 +19,7 @@ import io
 import os.path
 import tempfile
 import unittest
+from six import text_type as unicode
 
 try:
     from svn import core, repos

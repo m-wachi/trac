@@ -16,6 +16,8 @@
 # Author: Christian Boos <cboos@edgewall.org>
 #         Alec Thomas <alec@swapoff.org>
 
+from six import text_type as unicode
+
 from trac.core import *
 from trac.util.presentation import classes
 from trac.util.translation import _

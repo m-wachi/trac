@@ -19,6 +19,7 @@ from trac.core import *
 from trac.core import ComponentManager
 
 import unittest
+from six import text_type as unicode
 
 
 class TracErrorTestCase(unittest.TestCase):

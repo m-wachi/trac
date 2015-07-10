@@ -23,6 +23,7 @@ import urllib
 import urlparse
 from os.path import abspath, dirname, join
 from pkg_resources import parse_version as pv
+from six import text_type as unicode
 
 from trac.util.text import to_unicode
 

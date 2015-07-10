@@ -17,6 +17,7 @@ import shutil
 import sys
 import tempfile
 import unittest
+from six import text_type as unicode
 
 import trac.tests.compat
 from genshi.builder import tag

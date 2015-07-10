@@ -15,6 +15,7 @@ import io
 import os
 import socket
 import unittest
+from six import text_type as unicode
 
 import trac.tests.compat
 from trac.util.text import empty, expandtabs, fix_eol, javascript_quote, \

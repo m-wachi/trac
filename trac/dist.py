@@ -23,6 +23,7 @@ from itertools import izip
 import io
 import os
 import re
+from six import text_type as unicode
 from tokenize import generate_tokens, COMMENT, NAME, OP, STRING
 
 from distutils import log

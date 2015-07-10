@@ -25,6 +25,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate, parseaddr, getaddresses
 from hashlib import md5
+from six import string_types as basestring, text_type as unicode
 from subprocess import Popen, PIPE
 
 from genshi.builder import tag

@@ -30,6 +30,7 @@ import os.path
 import pkg_resources
 import pprint
 import re
+from six import text_type as unicode, string_types as basestring
 
 from genshi import Markup
 from genshi.builder import tag, Element
@@ -1000,6 +1001,8 @@ class Chrome(Component):
             return get_resource_url(self.env, resource, abs_href, **kwargs)
 
         d.update({
+            'unicode': unicode,
+            'basestring': basestring,
             'context': web_context(req) if req else None,
             'Resource': Resource,
             'url_of': get_rel_url,

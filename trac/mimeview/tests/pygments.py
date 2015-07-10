@@ -16,6 +16,7 @@ from __future__ import absolute_import
 import os
 import unittest
 from pkg_resources import parse_version
+from six import text_type as unicode
 
 from genshi.core import Stream, TEXT
 from genshi.input import HTMLParser

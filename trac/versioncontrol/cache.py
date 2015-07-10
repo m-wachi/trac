@@ -15,6 +15,7 @@
 # Author: Christopher Lenz <cmlenz@gmx.de>
 
 import os
+from six import string_types as basestring
 
 from trac.cache import cached
 from trac.core import TracError

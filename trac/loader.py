@@ -20,6 +20,7 @@ import os.path
 import pkg_resources
 from pkg_resources import working_set, DistributionNotFound, VersionConflict, \
                           UnknownExtra
+from six import string_types as basestring
 import sys
 
 from trac.util import get_doc, get_module_path, get_sources, get_pkginfo

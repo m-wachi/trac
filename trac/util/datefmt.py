@@ -25,6 +25,7 @@ import sys
 import time
 from datetime import tzinfo, timedelta, datetime, date
 from locale import getlocale, LC_TIME
+from six import text_type as unicode
 
 try:
     import babel

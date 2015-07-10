@@ -18,6 +18,7 @@ import os
 from ConfigParser import ParsingError
 from fnmatch import fnmatchcase
 from itertools import groupby
+from six import string_types as basestring
 
 from trac.config import ConfigurationError, PathOption, UnicodeConfigParser
 from trac.core import *

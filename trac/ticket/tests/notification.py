@@ -23,6 +23,7 @@ import tempfile
 import re
 import unittest
 from datetime import datetime, timedelta
+from six import text_type as unicode
 
 import trac.tests.compat
 from trac.attachment import Attachment

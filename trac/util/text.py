@@ -24,6 +24,7 @@ import os
 import re
 import sys
 import textwrap
+from six import text_type as unicode
 from urllib import quote, quote_plus, unquote
 from unicodedata import east_asian_width
 

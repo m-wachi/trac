@@ -17,7 +17,7 @@
 import os.path
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
-from six import add_metaclass
+from six import add_metaclass, text_type as unicode
 
 from trac.admin import AdminCommandError, IAdminCommandProvider, get_dir_list
 from trac.config import ConfigSection, ListOption, Option

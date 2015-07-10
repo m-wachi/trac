@@ -14,6 +14,7 @@
 import os
 import tempfile
 import unittest
+from six import text_type as unicode
 
 from genshi.builder import tag
 import trac.tests.compat
@@ -423,11 +424,11 @@ class ChromeTestCase(unittest.TestCase):
         item = self._get_navigation_item(items, 'test1')
         self.assertEqual('Test 1', item['label'])
         item = self._get_navigation_item(items, 'test2')
-        self.assertEqual(str(tag.a('Test 2', href='testtwo')),
-                         str(item['label']))
+        self.assertEqual(unicode(tag.a('Test 2', href='testtwo')),
+                         unicode(item['label']))
         item = self._get_navigation_item(items, 'test3')
-        self.assertEqual(str(tag.a('Test Three', href='testthree')),
-                         str(item['label']))
+        self.assertEqual(unicode(tag.a('Test Three', href='testthree')),
+                         unicode(item['label']))
 
     def test_attributes_preserved_in_navigation_item(self):
         class TestNavigationContributor1(Component):
@@ -456,12 +457,13 @@ class ChromeTestCase(unittest.TestCase):
         items = chrome.prepare_request(req)['nav']['mainnav']
 
         item = self._get_navigation_item(items, 'test1')
-        self.assertEqual(str(tag.a('Test One', href='test1', target='blank')),
-                         str(item['label']))
+        self.assertEqual(unicode(tag.a('Test One', href='test1',
+                                       target='blank')),
+                         unicode(item['label']))
         item = self._get_navigation_item(items, 'test2')
-        self.assertEqual(str(tag.a('Test Two', href='testtwo',
-                                   target='blank')),
-                         str(item['label']))
+        self.assertEqual(unicode(tag.a('Test Two', href='testtwo',
+                                       target='blank')),
+                         unicode(item['label']))
 
     def test_cc_list(self):
         """Split delimited string to a list of email addresses."""
@@ -777,25 +779,25 @@ user2 =
         chrome = Chrome(self.env)
         req = Request()
         self.assertEqual('<span class="trac-author-anonymous">anonymous</span>',
-                         str(chrome.authorinfo(req, 'anonymous')))
+                         unicode(chrome.authorinfo(req, 'anonymous')))
         self.assertEqual('<span class="trac-author-anonymous">anonymous</span>',
-                         str(chrome.authorinfo_short('anonymous')))
+                         unicode(chrome.authorinfo_short('anonymous')))
 
     def test_subject_is_none(self):
         chrome = Chrome(self.env)
         req = Request(authname=None)
         self.assertEqual('<span class="trac-author">(none)</span>',
-                         str(chrome.authorinfo(req, '(none)')))
+                         unicode(chrome.authorinfo(req, '(none)')))
         self.assertEqual('<span class="trac-author-none">(none)</span>',
-                         str(chrome.authorinfo(req, None)))
+                         unicode(chrome.authorinfo(req, None)))
         self.assertEqual('<span class="trac-author-none">(none)</span>',
-                         str(chrome.authorinfo(req, '')))
+                         unicode(chrome.authorinfo(req, '')))
         self.assertEqual('<span class="trac-author">(none)</span>',
-                         str(chrome.authorinfo_short('(none)')))
+                         unicode(chrome.authorinfo_short('(none)')))
         self.assertEqual('<span class="trac-author-none">(none)</span>',
-                         str(chrome.authorinfo_short(None)))
+                         unicode(chrome.authorinfo_short(None)))
         self.assertEqual('<span class="trac-author-none">(none)</span>',
-                         str(chrome.authorinfo_short('')))
+                         unicode(chrome.authorinfo_short('')))
 
     def test_actor_has_email_view(self):
         chrome = Chrome(self.env)
@@ -806,9 +808,9 @@ user2 =
         self.assertEqual('<span class="trac-author">User One &lt;user@example.org&gt;</span>',
                          unicode(chrome.authorinfo(req, 'User One <user@example.org>')))
         self.assertEqual('<span class="trac-author">user</span>',
-                         str(chrome.authorinfo_short('User One <user@example.org>')))
+                         unicode(chrome.authorinfo_short('User One <user@example.org>')))
         self.assertEqual('<span class="trac-author">user</span>',
-                         str(chrome.authorinfo_short('user@example.org')))
+                         unicode(chrome.authorinfo_short('user@example.org')))
 
     def test_actor_no_email_view(self):
         req = Mock(Request, authname='user2',

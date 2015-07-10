@@ -16,6 +16,7 @@
 # Author: Christopher Lenz <cmlenz@gmx.de>
 
 from datetime import datetime, timedelta
+from six import text_type as unicode
 import io
 import re
 

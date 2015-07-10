@@ -15,6 +15,7 @@ import os
 import tempfile
 import unittest
 from datetime import datetime
+from six import text_type as unicode
 from subprocess import Popen, PIPE
 
 import trac.tests.compat

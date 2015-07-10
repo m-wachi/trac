@@ -14,6 +14,7 @@
 import io
 import unittest
 from datetime import datetime
+from six import text_type as unicode
 
 import trac.tests.compat
 from trac.core import Component, TracError, implements

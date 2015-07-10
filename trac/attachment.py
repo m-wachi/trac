@@ -17,6 +17,7 @@
 #         Christopher Lenz <cmlenz@gmx.de>
 
 from datetime import datetime
+from six import text_type as unicode
 import errno
 import hashlib
 import io

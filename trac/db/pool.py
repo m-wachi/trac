@@ -17,6 +17,7 @@
 import os
 import six
 import sys
+from six import text_type as unicode
 
 from trac.core import TracError
 from trac.db.util import ConnectionWrapper

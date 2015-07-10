@@ -27,6 +27,7 @@ import socket
 import string
 import threading
 import unittest
+from six import text_type as unicode
 
 from trac.config import ConfigurationError
 from trac.notification import SendmailEmailSender, SmtpEmailSender

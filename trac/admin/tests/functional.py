@@ -13,6 +13,7 @@
 # history and logs, available at http://trac.edgewall.org/log/.
 
 import unittest
+from six import string_types as basestring
 
 from trac.perm import PermissionSystem
 from trac.tests.functional import FunctionalTwillTestCaseSetup, tc

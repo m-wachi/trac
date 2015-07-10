@@ -21,6 +21,7 @@
 import io
 import re
 import os
+from six import string_types as basestring, text_type as unicode
 
 from genshi.builder import tag, Element
 from genshi.core import Stream, Markup, escape

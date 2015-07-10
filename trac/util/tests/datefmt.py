@@ -19,6 +19,7 @@ import locale
 import os
 import time
 import unittest
+from six import string_types as basestring, text_type as unicode
 
 import trac.tests.compat
 from trac.core import TracError

@@ -17,6 +17,7 @@ import sys
 import tempfile
 import unittest
 from datetime import datetime, timedelta
+from six import string_types as basestring
 from subprocess import Popen, PIPE
 
 import trac.tests.compat

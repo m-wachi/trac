@@ -13,6 +13,7 @@
 
 from datetime import datetime, timedelta
 import unittest
+from six import text_type as unicode
 
 from trac.core import TracError
 from trac.resource import ResourceNotFound

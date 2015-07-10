@@ -14,6 +14,8 @@
 #
 # Author: Christopher Lenz <cmlenz@gmx.de>
 
+from six import string_types as basestring
+
 
 class Table(object):
     """Declare a table in a database schema."""

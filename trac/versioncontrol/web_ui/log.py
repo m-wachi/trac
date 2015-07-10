@@ -18,6 +18,7 @@
 
 import re
 import six
+from six import text_type as unicode
 
 from genshi.builder import tag
 from genshi.core import Markup

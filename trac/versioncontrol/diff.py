@@ -16,6 +16,7 @@
 
 import difflib
 import re
+from six import text_type as unicode
 
 from genshi import Markup, escape
 

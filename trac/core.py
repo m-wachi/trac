@@ -16,7 +16,7 @@
 # Author: Jonas Borgström <jonas@edgewall.com>
 #         Christopher Lenz <cmlenz@gmx.de>
 
-from six import add_metaclass
+from six import add_metaclass, text_type as unicode
 
 __all__ = ['Component', 'ExtensionPoint', 'implements', 'Interface',
            'TracBaseError', 'TracError']

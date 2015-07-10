@@ -17,6 +17,7 @@
 #         Christopher Lenz <cmlenz@gmx.de>
 
 import re
+from six import text_type as unicode
 
 from trac.util.text import unicode_quote, unicode_urlencode
 
