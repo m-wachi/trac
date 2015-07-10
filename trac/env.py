@@ -21,6 +21,7 @@ import os.path
 import setuptools
 import shutil
 import sys
+from six import string_types as basestring
 from urlparse import urlsplit
 
 from trac import db_default, log

@@ -51,6 +51,7 @@ import os.path
 import re
 import weakref
 import posixpath
+from six import string_types as basestring, text_type as unicode
 from urllib import quote
 
 from trac.config import ListOption, ChoiceOption

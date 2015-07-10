@@ -18,6 +18,7 @@
 
 from collections import defaultdict
 from operator import itemgetter
+from six import string_types as basestring
 
 from trac.config import (BoolOption, ConfigSection, ExtensionOption,
                          ListOption, Option)

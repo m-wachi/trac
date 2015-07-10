@@ -13,6 +13,7 @@
 
 import doctest
 import unittest
+from six import text_type as unicode
 
 from genshi.builder import tag
 from trac import resource

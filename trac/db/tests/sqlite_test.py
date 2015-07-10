@@ -15,6 +15,7 @@ import io
 import os
 import tempfile
 import unittest
+from six import text_type as unicode
 
 from trac.config import ConfigurationError
 from trac.env import Environment

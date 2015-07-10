@@ -12,6 +12,7 @@
 # history and logs, available at http://trac.edgewall.org/log/.
 
 import unittest
+from six import text_type as unicode
 
 from trac import perm
 from trac.core import *

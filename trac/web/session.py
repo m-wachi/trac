@@ -19,6 +19,7 @@
 #         Christopher Lenz <cmlenz@gmx.de>
 
 import re
+from six import text_type as unicode
 
 from trac.admin.api import AdminCommandError, IAdminCommandProvider, \
                            console_date_format, get_console_locale

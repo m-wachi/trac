@@ -18,6 +18,7 @@
 from datetime import datetime, timedelta
 from itertools import groupby
 from math import ceil
+from six import string_types as basestring, text_type as unicode
 import csv
 import io
 import re

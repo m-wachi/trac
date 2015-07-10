@@ -12,6 +12,7 @@
 # history and logs, available at http://trac.edgewall.org/.
 
 from datetime import datetime, timedelta
+from six import text_type as unicode
 import unittest
 
 from trac.core import Component, TracError, implements

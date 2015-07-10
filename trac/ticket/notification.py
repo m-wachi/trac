@@ -18,6 +18,7 @@
 
 import re
 from contextlib import contextmanager
+from six import text_type as unicode
 
 from genshi.template.text import NewTextTemplate
 

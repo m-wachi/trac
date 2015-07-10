@@ -14,6 +14,7 @@
 #
 # Author: Christopher Lenz <cmlenz@gmx.de>
 
+from six import text_type as unicode
 import errno
 import os
 import re

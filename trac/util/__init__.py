@@ -29,6 +29,7 @@ import os.path
 from pkg_resources import find_distributions
 import random
 import re
+from six import string_types as basestring, text_type as unicode
 import shutil
 import sys
 import string

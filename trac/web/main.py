@@ -30,6 +30,7 @@ import pkg_resources
 from pprint import pformat, pprint
 import re
 import six
+from six import text_type as unicode
 import sys
 
 from genshi.builder import tag

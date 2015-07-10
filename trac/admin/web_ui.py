@@ -15,6 +15,7 @@
 # Author: Jonas Borgström <jonas@edgewall.com>
 
 from functools import partial
+from six import text_type as unicode
 import os
 import pkg_resources
 import re

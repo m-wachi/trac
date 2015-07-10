@@ -16,6 +16,7 @@
 
 import unittest
 from datetime import datetime
+from six import text_type as unicode
 
 from trac.core import TracError
 from trac.resource import Resource, get_resource_description, get_resource_url

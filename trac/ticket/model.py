@@ -18,6 +18,7 @@
 #         Christopher Lenz <cmlenz@gmx.de>
 
 import re
+from six import text_type as unicode
 
 from trac import core
 from trac.attachment import Attachment

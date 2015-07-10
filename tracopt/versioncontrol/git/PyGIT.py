@@ -19,6 +19,7 @@ from collections import deque
 from contextlib import contextmanager
 from functools import partial
 import re
+from six import text_type as unicode
 from subprocess import Popen, PIPE
 from threading import Lock
 import weakref

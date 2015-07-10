@@ -25,7 +25,8 @@ import io
 import mimetypes
 import os
 import re
-from six import add_metaclass
+from six import add_metaclass, string_types as basestring, \
+                text_type as unicode
 import socket
 import sys
 import urlparse

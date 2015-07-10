@@ -15,6 +15,7 @@
 # Author: Christian Boos <cboos@edgewall.org>
 
 import re
+from six import string_types as basestring
 
 from genshi.builder import Element, Fragment, tag
 

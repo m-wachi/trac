@@ -16,6 +16,7 @@
 
 import os
 import re
+from six import string_types as basestring, text_type as unicode
 
 from genshi import Markup
 

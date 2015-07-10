@@ -19,6 +19,7 @@ import io
 import os.path
 import pkg_resources
 from shlex import shlex
+from six import text_type as unicode
 import sys
 import traceback
 

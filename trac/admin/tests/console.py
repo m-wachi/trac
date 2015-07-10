@@ -23,6 +23,7 @@ import shutil
 import sys
 import tempfile
 import unittest
+from six import string_types as basestring, text_type as unicode
 
 # IAdminCommandProvider implementations
 import trac.admin.api

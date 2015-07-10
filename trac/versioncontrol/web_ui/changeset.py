@@ -20,6 +20,7 @@
 
 from functools import partial
 from itertools import groupby
+from six import text_type as unicode
 import os
 import posixpath
 import re

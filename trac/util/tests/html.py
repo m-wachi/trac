@@ -12,6 +12,8 @@
 # history and logs, available at http://trac.edgewall.org/log/.
 
 import unittest
+from six import text_type as unicode
+
 from genshi.builder import Element, Fragment, tag
 from genshi.input import HTML
 

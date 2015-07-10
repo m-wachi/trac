@@ -20,6 +20,7 @@ from functools import partial
 import io
 import pkg_resources
 import re
+from six import string_types as basestring, text_type as unicode
 
 from genshi.core import Markup
 from genshi.builder import tag

@@ -15,6 +15,7 @@ import difflib
 import os
 import re
 import unittest
+from six import text_type as unicode
 
 # Python 2.7 `assertMultiLineEqual` calls `safe_repr(..., short=True)`
 # which breaks our custom failure display in WikiTestCase.

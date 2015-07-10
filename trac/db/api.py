@@ -18,7 +18,7 @@ import os
 import time
 import urllib
 from abc import ABCMeta, abstractmethod
-from six import add_metaclass
+from six import add_metaclass, text_type as unicode
 
 from genshi.builder import tag
 from trac.config import BoolOption, ConfigurationError, IntOption, Option

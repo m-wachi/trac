@@ -21,6 +21,7 @@ import os
 import re
 import sys
 import time
+from six import string_types as basestring
 from subprocess import call, Popen, PIPE, STDOUT
 
 from trac.config import UnicodeConfigParser

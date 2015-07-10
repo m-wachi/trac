@@ -13,6 +13,7 @@
 
 import unittest
 from email import message_from_string
+from six import text_type as unicode
 
 from genshi.builder import tag
 

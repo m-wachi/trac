@@ -18,6 +18,7 @@ tasks such as grouping or pagination.
 
 from json import dumps
 from math import ceil
+from six import string_types as basestring
 import re
 
 from trac.core import TracError

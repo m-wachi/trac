@@ -15,6 +15,7 @@
 
 import pkg_resources
 import re
+from six import string_types as basestring
 
 from genshi.builder import tag
 

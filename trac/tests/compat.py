@@ -19,6 +19,7 @@ import os
 import shutil
 import sys
 import unittest
+from six import text_type as unicode
 
 
 if not hasattr(unittest.TestCase, 'assertIs'):
