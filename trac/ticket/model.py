@@ -967,7 +967,7 @@ class MilestoneCache(core.Component):
         for data in self.milestones.itervalues():
             yield self.factory(data)
 
-    def factory(self, (name, due, completed, description), milestone=None):
+    def factory(self, values, milestone=None):
         """Build a `Milestone` object from milestone data.
 
         That instance remains *private*, i.e. can't be retrieved by
@@ -975,6 +975,7 @@ class MilestoneCache(core.Component):
         process, until its `~Milestone.insert` method gets called with
         success.
         """
+        name, due, completed, description = values
         milestone = milestone or Milestone(self.env)
         milestone.name = name
         milestone.due = due
