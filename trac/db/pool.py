@@ -15,6 +15,7 @@
 # Author: Christopher Lenz <cmlenz@gmx.de>
 
 import os
+import six
 import sys
 
 from trac.core import TracError
@@ -126,7 +127,7 @@ class ConnectionPoolBackend(object):
 
         # if we didn't get a cnx after wait(), something's fishy...
         if isinstance(exc_info[1], TracError):
-            raise exc_info[0], exc_info[1], exc_info[2]
+            six.reraise(exc_info[0], exc_info[1], exc_info[2])
         timeout = time_now() - start
         errmsg = _("Unable to get database connection within %(time)d seconds.",
                    time=timeout)

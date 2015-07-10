@@ -17,6 +17,7 @@
 from abc import ABCMeta, abstractmethod
 import errno
 import socket
+import six
 import sys
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 from SocketServer import ForkingMixIn, ThreadingMixIn
@@ -115,7 +116,7 @@ class WSGIGateway(object):
         if exc_info:
             try:
                 if self.headers_sent: # Re-raise original exception
-                    raise exc_info[0], exc_info[1], exc_info[2]
+                    six.reraise(exc_info[0], exc_info[1], exc_info[2])
             finally:
                 exc_info = None # avoid dangling circular ref
         else:
