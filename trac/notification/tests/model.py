@@ -12,8 +12,8 @@
 # history and logs, available at http://trac.edgewall.org/log/.
 
 import unittest
-from Cookie import SimpleCookie as Cookie
 from datetime import datetime
+from six.moves.http_cookies import SimpleCookie as Cookie
 
 from trac.notification.model import Subscription
 from trac.test import EnvironmentStub, Mock

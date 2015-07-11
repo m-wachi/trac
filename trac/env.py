@@ -23,7 +23,7 @@ import shutil
 import six
 import sys
 from six import string_types as basestring
-from urlparse import urlsplit
+from six.moves.urllib.parse import urlsplit
 
 from trac import db_default, log
 from trac.admin import AdminCommandError, IAdminCommandProvider

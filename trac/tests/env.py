@@ -11,7 +11,7 @@
 # individuals. For the exact contribution history, see the revision
 # history and logs, available at http://trac.edgewall.org/log/.
 
-from ConfigParser import RawConfigParser
+from six.moves.configparser import RawConfigParser
 import shutil
 import tempfile
 import unittest

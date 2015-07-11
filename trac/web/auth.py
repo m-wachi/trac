@@ -20,11 +20,15 @@ from abc import ABCMeta, abstractmethod
 from base64 import b64decode, b64encode
 from hashlib import md5, sha1
 from six import add_metaclass
+from six.moves.urllib.parse import urlparse, urlunparse
 import os
 import re
+import six
 import sys
-import urllib2
-import urlparse
+if six.PY2:
+    from urllib2 import parse_http_list
+else:
+    from urllib.request import parse_http_list
 
 from genshi.builder import tag
 
@@ -265,9 +269,8 @@ class LoginModule(Component):
         if referer:
             if not referer.startswith(('http://', 'https://')):
                 # Make URL absolute
-                scheme, host = urlparse.urlparse(req.base_url)[:2]
-                referer = urlparse.urlunparse((scheme, host, referer, None,
-                                               None, None))
+                scheme, host = urlparse(req.base_url)[:2]
+                referer = urlunparse((scheme, host, referer, None, None, None))
             pos = req.base_url.find(':')
             base_scheme = req.base_url[:pos]
             base_noscheme = req.base_url[pos:]
@@ -411,7 +414,7 @@ class DigestAuthentication(PasswordFileAuthentication):
 
     def parse_auth_header(self, authorization):
         values = {}
-        for value in urllib2.parse_http_list(authorization):
+        for value in parse_http_list(authorization):
             n, v = value.split('=', 1)
             if v[0] == '"' and v[-1] == '"':
                 values[n] = v[1:-1]

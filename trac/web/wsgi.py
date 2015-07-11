@@ -20,9 +20,9 @@ from six import add_metaclass
 import socket
 import six
 import sys
-from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
-from SocketServer import ForkingMixIn, ThreadingMixIn
-import urllib
+from six.moves.BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
+from six.moves.socketserver import ForkingMixIn, ThreadingMixIn
+from six.moves.urllib.parse import unquote
 
 
 class _ErrorsWrapper(object):
@@ -152,7 +152,7 @@ class WSGIRequestHandler(BaseHTTPRequestHandler):
             path_info, query_string = self.path.split('?', 1)
         else:
             path_info, query_string = self.path, ''
-        environ['PATH_INFO'] = urllib.unquote(path_info)
+        environ['PATH_INFO'] = unquote(path_info)
         environ['QUERY_STRING'] = query_string
 
         host = self.address_string()

@@ -19,12 +19,12 @@ we also modify the standard `distutils.command.build` and
 for compiling catalogs are issued upon install.
 """
 
-from itertools import izip
 import io
 import os
 import re
 import six
 from six import text_type as unicode
+from six.moves import zip as izip
 from tokenize import generate_tokens, COMMENT, NAME, OP, STRING
 
 from distutils import log

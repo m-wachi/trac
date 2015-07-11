@@ -18,11 +18,11 @@
 
 import io
 import six
-from ConfigParser import ParsingError, RawConfigParser
 from collections import defaultdict
 from functools import partial
 from pkg_resources import resource_filename
 from six import text_type as unicode, string_types as basestring
+from six.moves.configparser import ParsingError, RawConfigParser
 
 from genshi.builder import tag
 

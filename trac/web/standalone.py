@@ -26,7 +26,7 @@ import os
 import socket
 import six
 import sys
-from SocketServer import ThreadingMixIn
+from six.moves.socketserver import ThreadingMixIn
 
 from trac import __version__ as VERSION
 from trac.util import autoreload, daemon

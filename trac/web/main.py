@@ -19,7 +19,6 @@
 from __future__ import print_function
 
 import cgi
-import dircache
 import fnmatch
 from functools import partial
 import gc
@@ -826,8 +825,10 @@ def get_environments(environ, warn=False):
     env_parent_dir = environ.get('trac.env_parent_dir')
     if env_parent_dir:
         env_parent_dir = os.path.normpath(env_parent_dir)
-        paths = dircache.listdir(env_parent_dir)[:]
-        dircache.annotate(env_parent_dir, paths)
+        paths = [(name + '/'
+                  if os.path.isdir(os.path.join(env_parent_dir, name))
+                  else name)
+                 for name in os.listdir(env_parent_dir)]
 
         # Filter paths that match the .tracignore patterns
         ignore_patterns = get_tracignore_patterns(env_parent_dir)

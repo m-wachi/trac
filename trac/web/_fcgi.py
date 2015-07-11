@@ -51,11 +51,11 @@ import errno
 import traceback
 
 try:
-    import thread
+    from six.moves import _thread as thread
     import threading
     thread_available = True
 except ImportError:
-    import dummy_thread as thread
+    from six.moves import _dummy_thread as thread
     import dummy_threading as threading
     thread_available = False
 

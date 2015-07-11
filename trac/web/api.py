@@ -15,8 +15,6 @@
 # Author: Christopher Lenz <cmlenz@gmx.de>
 
 from abc import ABCMeta
-from BaseHTTPServer import BaseHTTPRequestHandler
-from Cookie import CookieError, BaseCookie, SimpleCookie
 import cgi
 from datetime import datetime
 import errno
@@ -28,9 +26,11 @@ import re
 import six
 from six import add_metaclass, string_types as basestring, \
                 text_type as unicode
+from six.moves.BaseHTTPServer import BaseHTTPRequestHandler
+from six.moves.http_cookies import CookieError, BaseCookie, SimpleCookie
+from six.moves.urllib.parse import urlparse, urlunparse
 import socket
 import sys
-import urlparse
 
 from genshi.builder import Fragment
 from trac.core import Interface, TracBaseError
@@ -559,8 +559,8 @@ class Request(object):
         self.send_response(status)
         if not url.startswith(('http://', 'https://')):
             # Make sure the URL is absolute
-            scheme, host = urlparse.urlparse(self.base_url)[:2]
-            url = urlparse.urlunparse((scheme, host, url, None, None, None))
+            scheme, host = urlparse(self.base_url)[:2]
+            url = urlunparse((scheme, host, url, None, None, None))
 
         # Workaround #10382, IE6-IE9 bug when post and redirect with hash
         if status == 303 and '#' in url:
@@ -831,8 +831,8 @@ class Request(object):
                 host = '%s:%d' % (self.server_name, self.server_port)
             else:
                 host = self.server_name
-        return urlparse.urlunparse((self.scheme, host, self.base_path, None,
-                                    None, None))
+        return urlunparse((self.scheme, host, self.base_path, None, None,
+                           None))
 
     def _send_cookie_headers(self):
         for name in self.outcookie.keys():

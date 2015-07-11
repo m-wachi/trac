@@ -19,7 +19,7 @@ from trac.test import EnvironmentStub, Mock
 from trac.web.auth import BasicAuthentication, LoginModule
 from trac.web.href import Href
 
-from Cookie import SimpleCookie as Cookie
+from six.moves.http_cookies import SimpleCookie as Cookie
 import unittest
 
 

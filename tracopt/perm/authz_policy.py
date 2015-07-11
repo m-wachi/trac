@@ -16,10 +16,10 @@
 
 import os
 import six
-from ConfigParser import ParsingError
 from fnmatch import fnmatchcase
 from itertools import groupby
 from six import string_types as basestring
+from six.moves.configparser import ParsingError
 
 from trac.config import ConfigurationError, PathOption, UnicodeConfigParser
 from trac.core import *

@@ -17,7 +17,7 @@
 #         Christopher Lenz <cmlenz@gmx.de>
 
 from datetime import datetime
-from six import text_type as unicode
+from six import unichr, text_type as unicode
 from six.moves import xrange
 import errno
 import hashlib

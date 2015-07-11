@@ -18,16 +18,15 @@
 #         Matthew Good <trac@matt-good.net>
 #         Christian Boos <cboos@edgewall.org>
 
-import __builtin__
 import locale
 import os
 import re
 import six
 import sys
 import textwrap
-from six import text_type as unicode
-from six.moves import xrange
-from urllib import quote, quote_plus, unquote
+from six import text_type as unicode, unichr
+from six.moves import input, xrange
+from six.moves.urllib.parse import quote, quote_plus, unquote
 from unicodedata import east_asian_width
 
 CRLF = '\r\n'
@@ -294,7 +293,7 @@ def raw_input(prompt):
     appropriate.
     """
     printout(prompt, newline=False)
-    return to_unicode(__builtin__.raw_input(), sys.stdin.encoding)
+    return to_unicode(input(), sys.stdin.encoding)
 
 
 _preferredencoding = locale.getpreferredencoding()
