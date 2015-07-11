@@ -22,6 +22,10 @@ import csv
 import os
 import six
 from itertools import groupby
+try:
+    StandardError = StandardError
+except NameError:
+    StandardError = Exception
 
 from trac.admin import AdminCommandError, IAdminCommandProvider, get_dir_list
 from trac.cache import cached
@@ -38,7 +42,7 @@ __all__ = ['IPermissionRequestor', 'IPermissionStore', 'IPermissionPolicy',
            'IPermissionGroupProvider', 'PermissionError', 'PermissionSystem']
 
 
-class PermissionError(StandardError, TracBaseError):
+class PermissionError(TracBaseError, StandardError):
     """Insufficient permissions to perform the operation.
 
     :since 1.0.5: the `msg` attribute is deprecated and will be removed in

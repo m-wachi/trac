@@ -53,7 +53,8 @@ import re
 import six
 import weakref
 from six import string_types as basestring, text_type as unicode
-from urllib import quote
+from six.moves import reduce
+from six.moves.urllib.parse import quote
 
 from trac.config import ListOption, ChoiceOption
 from trac.core import *

@@ -17,8 +17,7 @@
 #         Christian Boos <cboos@edgewall.org>
 
 import io
-from itertools import izip
-from six.moves import xrange
+from six.moves import zip as izip, xrange
 from zipfile import ZipFile, ZIP_DEFLATED
 
 from genshi.builder import tag

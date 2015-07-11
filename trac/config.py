@@ -16,9 +16,9 @@ import copy
 import os.path
 import re
 import six
-from ConfigParser import ConfigParser, ParsingError
 from copy import deepcopy
 from six import string_types as basestring, text_type as unicode
+from six.moves.configparser import ConfigParser, ParsingError
 
 from genshi.builder import tag
 

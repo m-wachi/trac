@@ -239,10 +239,17 @@ _BABEL_FORMATS = {
 _STRFTIME_HINTS = {'%x %X': 'datetime', '%x': 'date', '%X': 'time'}
 
 def _format_datetime_without_babel(t, format):
-    text = t.strftime(str(format))
-    encoding = getlocale(LC_TIME)[1] or getpreferredencoding() \
-               or sys.getdefaultencoding()
-    return unicode(text, encoding, 'replace')
+    if os.name == 'nt':
+        encoding = 'mbcs'
+    else:
+        encoding = getlocale(LC_TIME)[1] or getpreferredencoding() \
+                   or sys.getdefaultencoding()
+    if six.PY2 and not isinstance(format, bytes):
+        format = format.encode(encoding, 'replace')
+    text = t.strftime(format)
+    if not isinstance(text, unicode):
+        text = unicode(text, encoding, 'replace')
+    return text
 
 def _format_datetime_iso8601(t, format, hint):
     if format != 'full':

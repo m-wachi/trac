@@ -17,7 +17,7 @@
 #         Christopher Lenz <cmlenz@gmx.de>
 
 import re
-from six import text_type as unicode
+from six import unichr, text_type as unicode
 from six.moves import xrange
 
 from genshi.builder import tag

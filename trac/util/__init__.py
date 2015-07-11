@@ -23,21 +23,21 @@ import functools
 import hashlib
 import inspect
 import io
-from itertools import izip, tee
+from itertools import tee
 import locale
 import os.path
 from pkg_resources import find_distributions
 import random
 import re
-from six import string_types as basestring, text_type as unicode
-from six.moves import xrange
 import shutil
 import six
+from six import string_types as basestring, text_type as unicode
+from six.moves import xrange, zip as izip
+from six.moves.urllib.parse import quote, unquote, urlencode
 import sys
 import string
 import struct
 import tempfile
-from urllib import quote, unquote, urlencode
 
 from trac.util.compat import any, md5, sha1, sorted  # Remove in 1.3.1
 from trac.util.datefmt import time_now, to_datetime, to_timestamp, utc
