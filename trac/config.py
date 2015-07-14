@@ -13,6 +13,7 @@
 # history and logs, available at http://trac.edgewall.org/log/.
 
 import copy
+import io
 import os.path
 import re
 import six
@@ -148,6 +149,9 @@ class UnicodeConfigParser(ConfigParser):
         def set(self, section, option, value=None):
             value = to_unicode(value) if value is not None else ''
             ConfigParser.set(self, section, option, value)
+
+        def read(self, filename):
+            return ConfigParser.read(self, filename, encoding='utf-8')
 
     def __copy__(self):
         parser = self.__class__()
@@ -429,9 +433,19 @@ class Configuration(object):
         if not self.filename:
             return
         wait_for_file_mtime_change(self.filename)
-        with AtomicFile(self.filename, 'w') as fd:
-            fd.writelines(['# -*- coding: utf-8 -*-\n', '\n'])
-            parser.write(fd)
+        self._write_atomic(parser)
+
+    if six.PY2:
+        def _write_atomic(self, parser):
+            with AtomicFile(self.filename, 'w') as fd:
+                fd.write('# -*- coding: utf-8 -*-\n\n')
+                parser.write(fd)
+    else:
+        def _write_atomic(self, parser):
+            with AtomicFile(self.filename, 'wb') as fd:
+                with io.TextIOWrapper(fd, encoding='utf-8') as out:
+                    out.write(u'# -*- coding: utf-8 -*-\n\n')
+                    parser.write(out)
 
 
 class Section(object):

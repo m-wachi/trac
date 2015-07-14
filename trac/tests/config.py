@@ -13,6 +13,7 @@
 # history and logs, available at http://trac.edgewall.org/log/.
 
 import contextlib
+import io
 import os
 import shutil
 import six
@@ -25,22 +26,25 @@ from trac.config import *
 from trac.config import UnicodeConfigParser
 from trac.core import Component, ComponentMeta, Interface, implements
 from trac.test import Configuration, EnvironmentStub
-from trac.util import create_file, read_file
+from trac.util import create_file
 from trac.util.compat import wait_for_file_mtime_change
 from trac.util.datefmt import time_now
 
 
 def _write(filename, lines):
     wait_for_file_mtime_change(filename)
-    create_file(filename, '\n'.join(lines + ['']).encode('utf-8'))
+    with io.open(filename, 'w', encoding='utf-8') as f:
+        for line in lines:
+            f.write(line + u'\n')
 
 
 def _read(filename):
-    return read_file(filename).decode('utf-8')
+    with io.open(filename, encoding='utf-8') as f:
+        return f.read()
 
 
 def readlines(filename):
-    with open(filename, 'r') as f:
+    with io.open(filename, encoding='utf-8') as f:
         return f.readlines()
 
 
@@ -50,11 +54,14 @@ class UnicodeParserTestCase(unittest.TestCase):
         self.tempdir = tempfile.mkdtemp()
         self.filename = os.path.join(self.tempdir, 'config.ini')
         _write(self.filename, [
-            u'[ä]', u'öption = ÿ',
-            u'[ä]', u'optīon = 1.1',
-            u'[č]', u'ôption = ž',
-            u'[č]', u'optïon = 1',
-            u'[ė]', u'optioñ = true',
+            u'[ä]',
+            u'öption = ÿ',
+            u'optīon = 1.1',
+            u'[č]',
+            u'ôption = ž',
+            u'optïon = 1',
+            u'[ė]',
+            u'optioñ = true',
         ])
         self.parser = UnicodeConfigParser()
         self._read()
@@ -63,8 +70,12 @@ class UnicodeParserTestCase(unittest.TestCase):
         shutil.rmtree(self.tempdir)
 
     def _write(self):
-        with open(self.filename, 'w') as f:
-            self.parser.write(f)
+        if six.PY2:
+            with open(self.filename, 'w') as f:
+                self.parser.write(f)
+        else:
+            with io.open(self.filename, 'w', encoding='utf-8') as f:
+                self.parser.write(f)
 
     def _read(self):
         self.parser.read(self.filename)
@@ -617,20 +628,20 @@ class IntegrationTestCase(BaseTestCase):
         self.assertEqual('', config.get(u'aä', 'öption2'))
         config.save()
 
-        self.assertEqual(['# -*- coding: utf-8 -*-\n',
-                          '\n',
-                          '[aä]\n',
-                          "option1 = Voilà l'été\n",
-                          "option2 = Voilà l'été\n",
-                          'öption0 = x\n',
-                          'öption1 = z\n',
-                          'öption2 = \n',
-                          # "option3 = VoilÃ  l'Ã©tÃ©\n",
-                          '\n',
-                          '[b]\n',
-                          'option1 = \n',
-                          'öption0 = y\n',
-                          '\n'], readlines(self.filename))
+        self.assertEqual([u'# -*- coding: utf-8 -*-\n',
+                          u'\n',
+                          u'[aä]\n',
+                          u"option1 = Voilà l'été\n",
+                          u"option2 = Voilà l'été\n",
+                          u'öption0 = x\n',
+                          u'öption1 = z\n',
+                          u'öption2 = \n',
+                          # u"option3 = VoilÃ  l'Ã©tÃ©\n",
+                          u'\n',
+                          u'[b]\n',
+                          u'option1 = \n',
+                          u'öption0 = y\n',
+                          u'\n'], readlines(self.filename))
         config2 = Configuration(self.filename)
         self.assertEqual('x', config2.get(u'aä', u'öption0'))
         self.assertEqual(u"Voilà l'été", config2.get(u'aä', 'option1'))
@@ -648,15 +659,15 @@ class IntegrationTestCase(BaseTestCase):
             self.assertEqual(u"Voilà l'été", config.get('a', 'option2'))
             config.save()
 
-            self.assertEqual(['# -*- coding: utf-8 -*-\n',
-                              '\n',
-                              '[a]\n',
-                              "option1 = Voilà l'été\n",
-                              "option2 = Voilà l'été\n",
-                              '\n',
-                              '[inherit]\n',
-                              "file = trac-site.ini\n",
-                              '\n'], readlines(self.filename))
+            self.assertEqual([u'# -*- coding: utf-8 -*-\n',
+                              u'\n',
+                              u'[a]\n',
+                              u"option1 = Voilà l'été\n",
+                              u"option2 = Voilà l'été\n",
+                              u'\n',
+                              u'[inherit]\n',
+                              u"file = trac-site.ini\n",
+                              u'\n'], readlines(self.filename))
             config2 = Configuration(self.filename)
             self.assertEqual('x', config2.get('a', 'option'))
             self.assertEqual(u"Voilà l'été", config2.get('a', 'option1'))
@@ -673,33 +684,33 @@ class IntegrationTestCase(BaseTestCase):
             config.save()
 
             self.assertEqual(
-                '# -*- coding: utf-8 -*-\n'
-                '\n'
-                '[inherit]\n'
-                'file = trac-site.ini\n'
-                '\n', read_file(self.filename))
+                u'# -*- coding: utf-8 -*-\n'
+                u'\n'
+                u'[inherit]\n'
+                u'file = trac-site.ini\n'
+                u'\n', _read(self.filename))
 
             config.set('a', u'ôption', 'y')
             config.save()
 
             self.assertEqual(
-                '# -*- coding: utf-8 -*-\n'
-                '\n'
-                '[a]\n'
-                'ôption = y\n'
-                '\n'
-                '[inherit]\n'
-                'file = trac-site.ini\n'
-                '\n', read_file(self.filename))
+                u'# -*- coding: utf-8 -*-\n'
+                u'\n'
+                u'[a]\n'
+                u'ôption = y\n'
+                u'\n'
+                u'[inherit]\n'
+                u'file = trac-site.ini\n'
+                u'\n', _read(self.filename))
 
             config.set('a', u'ôption', 'x')
             config.save()
             self.assertEqual(
-                '# -*- coding: utf-8 -*-\n'
-                '\n'
-                '[inherit]\n'
-                'file = trac-site.ini\n'
-                '\n', read_file(self.filename))
+                u'# -*- coding: utf-8 -*-\n'
+                u'\n'
+                u'[inherit]\n'
+                u'file = trac-site.ini\n'
+                u'\n', _read(self.filename))
 
     def test_simple_remove(self):
         self._write(['[a]', 'option = x'])
@@ -836,12 +847,12 @@ class IntegrationTestCase(BaseTestCase):
         relsite2 = os.path.join('sub2', 'trac-site2.ini')
         site2 = os.path.join(base, relsite2)
         os.mkdir(os.path.dirname(site1))
-        create_file(site1, '[a]\noption1 = x\n'
-                           '[c]\noption = 1\npath1 = site1\n')
+        _write(site1, [u'[a]', u'option1 = x',
+                       u'[c]', u'option = 1', u'path1 = site1'])
         try:
             os.mkdir(os.path.dirname(site2))
-            create_file(site2, '[b]\noption2 = y\n'
-                               '[c]\noption = 2\npath2 = site2\n')
+            _write(site2, [u'[b]', u'option2 = y',
+                           u'[c]', u'option = 2', u'path2 = site2'])
             try:
                 self._write(['[inherit]',
                              'file = %s, %s' % (relsite1, relsite2)])
@@ -884,17 +895,17 @@ class IntegrationTestCase(BaseTestCase):
         config.set_defaults()
         config.save()
         expected = [
-            '# -*- coding: utf-8 -*-\n',
-            '\n',
-            '[a]\n',
-            'blah = Blàh!\n',
-            'choice = -42\n',
-            'false = disabled\n',
-            'list = #cc0|4.2|42|0||enabled|disabled|\n',
-            'list-seps = #cc0,4.2,42,0,,enabled,disabled,\n',
-            'none = \n',
-            'true = enabled\n',
-            '\n',
+            u'# -*- coding: utf-8 -*-\n',
+            u'\n',
+            u'[a]\n',
+            u'blah = Blàh!\n',
+            u'choice = -42\n',
+            u'false = disabled\n',
+            u'list = #cc0|4.2|42|0||enabled|disabled|\n',
+            u'list-seps = #cc0,4.2,42,0,,enabled,disabled,\n',
+            u'none = \n',
+            u'true = enabled\n',
+            u'\n',
         ]
         self.assertEqual(expected, readlines(self.filename))
 
@@ -915,16 +926,16 @@ class IntegrationTestCase(BaseTestCase):
         config.set_defaults()
         config.save()
         expected = [
-            '# -*- coding: utf-8 -*-\n',
-            '\n',
-            '[résumé]\n',
-            'bláh = Blàh!\n',
-            'chöicé = -42\n',
-            'fálsé = disabled\n',
-            'liśt = #ccö|4.2|42|0||enabled|disabled|\n',
-            'nöné = \n',
-            'trüé = enabled\n',
-            '\n',
+            u'# -*- coding: utf-8 -*-\n',
+            u'\n',
+            u'[résumé]\n',
+            u'bláh = Blàh!\n',
+            u'chöicé = -42\n',
+            u'fálsé = disabled\n',
+            u'liśt = #ccö|4.2|42|0||enabled|disabled|\n',
+            u'nöné = \n',
+            u'trüé = enabled\n',
+            u'\n',
         ]
         self.assertEqual(expected, readlines(self.filename))
 
@@ -939,16 +950,16 @@ class IntegrationTestCase(BaseTestCase):
             option_bool_no = (BoolOption)('a', 'bool-no', 'no')
 
         expected = [
-            '# -*- coding: utf-8 -*-\n',
-            '\n',
-            '[a]\n',
-            'bool-0 = disabled\n',
-            'bool-1 = enabled\n',
-            'bool-no = disabled\n',
-            'bool-yes = enabled\n',
-            'float-0 = 0.0\n',
-            'int-0 = 0\n',
-            '\n',
+            u'# -*- coding: utf-8 -*-\n',
+            u'\n',
+            u'[a]\n',
+            u'bool-0 = disabled\n',
+            u'bool-1 = enabled\n',
+            u'bool-no = disabled\n',
+            u'bool-yes = enabled\n',
+            u'float-0 = 0.0\n',
+            u'int-0 = 0\n',
+            u'\n',
         ]
 
         config = self._read()
@@ -1021,16 +1032,16 @@ class ConfigurationSetDefaultsTestCase(BaseTestCase):
         config.set_defaults(component='trac.tests.config')
         config.save()
         expected = [
-            '# -*- coding: utf-8 -*-\n',
-            '\n',
-            '[compa]\n',
-            'opt1 = 1\n',
-            'opt2 = a\n',
-            '\n',
-            '[compb]\n',
-            'opt3 = 2\n',
-            'opt4 = b\n',
-            '\n',
+            u'# -*- coding: utf-8 -*-\n',
+            u'\n',
+            u'[compa]\n',
+            u'opt1 = 1\n',
+            u'opt2 = a\n',
+            u'\n',
+            u'[compb]\n',
+            u'opt3 = 2\n',
+            u'opt4 = b\n',
+            u'\n',
         ]
         self.assertEqual(expected, readlines(self.filename))
 
@@ -1042,16 +1053,16 @@ class ConfigurationSetDefaultsTestCase(BaseTestCase):
         config.set_defaults(component='trac.tests.config.*')
         config.save()
         expected = [
-            '# -*- coding: utf-8 -*-\n',
-            '\n',
-            '[compa]\n',
-            'opt1 = 1\n',
-            'opt2 = a\n',
-            '\n',
-            '[compb]\n',
-            'opt3 = 2\n',
-            'opt4 = b\n',
-            '\n',
+            u'# -*- coding: utf-8 -*-\n',
+            u'\n',
+            u'[compa]\n',
+            u'opt1 = 1\n',
+            u'opt2 = a\n',
+            u'\n',
+            u'[compb]\n',
+            u'opt3 = 2\n',
+            u'opt4 = b\n',
+            u'\n',
         ]
         self.assertEqual(expected, readlines(self.filename))
 
@@ -1061,12 +1072,12 @@ class ConfigurationSetDefaultsTestCase(BaseTestCase):
         config.set_defaults(component='trac.tests.config.CompA')
         config.save()
         expected = [
-            '# -*- coding: utf-8 -*-\n',
-            '\n',
-            '[compa]\n',
-            'opt1 = 1\n',
-            'opt2 = a\n',
-            '\n',
+            u'# -*- coding: utf-8 -*-\n',
+            u'\n',
+            u'[compa]\n',
+            u'opt1 = 1\n',
+            u'opt2 = a\n',
+            u'\n',
         ]
         self.assertEqual(expected, readlines(self.filename))
 
@@ -1078,12 +1089,12 @@ class ConfigurationSetDefaultsTestCase(BaseTestCase):
         config.set_defaults(component='trac.tests.config.CompA')
         config.save()
         expected = [
-            '# -*- coding: utf-8 -*-\n',
-            '\n',
-            '[compa]\n',
-            'opt1 = 3\n',
-            'opt2 = a\n',
-            '\n',
+            u'# -*- coding: utf-8 -*-\n',
+            u'\n',
+            u'[compa]\n',
+            u'opt1 = 3\n',
+            u'opt2 = a\n',
+            u'\n',
         ]
         self.assertEqual(expected, readlines(self.filename))
 
@@ -1100,23 +1111,23 @@ class ConfigurationSetDefaultsTestCase(BaseTestCase):
         config.save()
 
         expected = [
-            '# -*- coding: utf-8 -*-\n',
-            '\n',
-            '[compa]\n',
-            'opt1 = 3\n',
-            '\n',
+            u'# -*- coding: utf-8 -*-\n',
+            u'\n',
+            u'[compa]\n',
+            u'opt1 = 3\n',
+            u'\n',
         ]
         self.assertEqual(expected, readlines(self.sitename))
 
         expected = [
-            '# -*- coding: utf-8 -*-\n',
-            '\n',
-            '[compa]\n',
-            'opt2 = a\n',
-            '\n',
-            '[inherit]\n',
-            'file = trac-site.ini\n',
-            '\n',
+            u'# -*- coding: utf-8 -*-\n',
+            u'\n',
+            u'[compa]\n',
+            u'opt2 = a\n',
+            u'\n',
+            u'[inherit]\n',
+            u'file = trac-site.ini\n',
+            u'\n',
         ]
         self.assertEqual(expected, readlines(self.filename))
 
