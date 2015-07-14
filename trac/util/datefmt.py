@@ -239,16 +239,16 @@ _BABEL_FORMATS = {
 _STRFTIME_HINTS = {'%x %X': 'datetime', '%x': 'date', '%X': 'time'}
 
 def _format_datetime_without_babel(t, format):
-    if os.name == 'nt':
-        encoding = 'mbcs'
-    else:
+    if six.PY2:
         encoding = getlocale(LC_TIME)[1] or getpreferredencoding() \
                    or sys.getdefaultencoding()
-    if six.PY2 and not isinstance(format, bytes):
-        format = format.encode(encoding, 'replace')
-    text = t.strftime(format)
-    if not isinstance(text, unicode):
-        text = unicode(text, encoding, 'replace')
+        if not isinstance(format, bytes):
+            format = format.encode(encoding, 'replace')
+        text = t.strftime(format)
+        if not isinstance(text, unicode):
+            text = unicode(text, encoding, 'replace')
+    else:
+        text = t.strftime(format)
     return text
 
 def _format_datetime_iso8601(t, format, hint):
@@ -265,7 +265,9 @@ def _format_datetime_iso8601(t, format, hint):
         text = text.split('T', 1)[0]
     elif hint == 'time':
         text = text.split('T', 1)[1]
-    return unicode(text, 'ascii')
+    if not isinstance(text, unicode):
+        text = unicode(text, 'ascii')
+    return text
 
 def _format_datetime(t, format, tzinfo, locale, hint):
     t = to_datetime(t, tzinfo or localtz)
@@ -1149,11 +1151,19 @@ try:
 
     def get_timezone(tzname):
         """Fetch timezone instance by name or return `None`"""
-        try:
-            # if given unicode parameter, pytz.timezone fails with:
-            # "type() argument 1 must be string, not unicode"
-            tz = pytz.timezone(to_unicode(tzname).encode('ascii', 'replace'))
-        except (KeyError, IOError):
+        tz = None
+        if tzname:
+            if six.PY2:
+                # if given unicode parameter, pytz.timezone fails with:
+                # "type() argument 1 must be string, not unicode"
+                name = to_unicode(tzname).encode('ascii', 'replace')
+            else:
+                name = tzname
+            try:
+                tz = pytz.timezone(name)
+            except (KeyError, IOError):
+                pass
+        if not tz:
             tz = _tzmap.get(tzname)
         if tz and tzname.startswith('Etc/'):
             tz = _tzoffsetmap.get(tz.utcoffset(None))

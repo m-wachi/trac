@@ -41,21 +41,22 @@ def classes(*args, **kwargs):
     Any positional arguments are added to the list of class names. All
     positional arguments must be strings:
 
-    >>> classes('foo', 'bar')
-    u'foo bar'
+    >>> print(classes('foo', 'bar'))
+    foo bar
 
     In addition, the names of any supplied keyword arguments are added if they
     have a truth value:
 
-    >>> classes('foo', bar=True)
-    u'foo bar'
-    >>> classes('foo', bar=False)
-    u'foo'
+    >>> print(classes('foo', bar=True))
+    foo bar
+    >>> print(classes('foo', bar=False))
+    foo
 
     If none of the arguments are added to the list, this function returns
     `None`:
 
-    >>> classes(bar=False)
+    >>> print(classes(bar=False))
+    None
     """
     classes = list(filter(None, args))
     classes.extend(k for k, v in six.iteritems(kwargs) if v)

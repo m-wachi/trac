@@ -18,6 +18,7 @@ from six import text_type as unicode
 import errno
 import os
 import re
+import six
 import weakref
 
 from genshi.builder import tag
@@ -207,7 +208,7 @@ class SQLiteConnector(Component):
             dir = os.path.dirname(path)
             if not os.path.exists(dir):
                 os.makedirs(dir)
-            if isinstance(path, unicode):  # needed with 2.4.0
+            if six.PY2 and isinstance(path, unicode):  # needed with 2.4.0
                 path = path.encode('utf-8')
             # this direct connect will create the database if needed
             cnx = sqlite.connect(path,
@@ -303,7 +304,7 @@ class SQLiteConnection(ConnectionBase, ConnectionWrapper):
         timeout = int(params.get('timeout', 10.0))
         self._eager = params.get('cursor', 'eager') == 'eager'
         # eager is default, can be turned off by specifying ?cursor=
-        if isinstance(path, unicode):  # needed with 2.4.0
+        if six.PY2 and isinstance(path, unicode):  # needed with 2.4.0
             path = path.encode('utf-8')
         cnx = sqlite.connect(path, detect_types=sqlite.PARSE_DECLTYPES,
                              check_same_thread=sqlite_version < (3, 3, 1),
