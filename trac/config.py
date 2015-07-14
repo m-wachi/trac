@@ -96,51 +96,58 @@ class UnicodeConfigParser(ConfigParser):
         dict_type = kwargs.pop('dict_type', None) or OrderedDict
         ConfigParser.__init__(self, dict_type=dict_type, **kwargs)
 
-    def sections(self):
-        return map(to_unicode, ConfigParser.sections(self))
+    if six.PY2:
+        def sections(self):
+            return map(to_unicode, ConfigParser.sections(self))
 
-    def add_section(self, section):
-        section_str = to_utf8(section)
-        ConfigParser.add_section(self, section_str)
+        def add_section(self, section):
+            section_str = to_utf8(section)
+            ConfigParser.add_section(self, section_str)
 
-    def has_section(self, section):
-        section_str = to_utf8(section)
-        return ConfigParser.has_section(self, section_str)
+        def has_section(self, section):
+            section_str = to_utf8(section)
+            return ConfigParser.has_section(self, section_str)
 
-    def options(self, section):
-        section_str = to_utf8(section)
-        return map(to_unicode, ConfigParser.options(self, section_str))
+        def options(self, section):
+            section_str = to_utf8(section)
+            return map(to_unicode, ConfigParser.options(self, section_str))
 
-    def get(self, section, option, raw=False, vars=None):
-        section_str = to_utf8(section)
-        option_str = to_utf8(option)
-        return to_unicode(ConfigParser.get(self, section_str,
-                                           option_str, raw, vars))
+        def get(self, section, option, raw=False, vars=None):
+            section_str = to_utf8(section)
+            option_str = to_utf8(option)
+            return to_unicode(ConfigParser.get(self, section_str,
+                                               option_str, raw, vars))
 
-    def items(self, section, raw=False, vars=None):
-        section_str = to_utf8(section)
-        return [(to_unicode(k), to_unicode(v))
-                for k, v in ConfigParser.items(self, section_str, raw, vars)]
+        def items(self, section, raw=False, vars=None):
+            section_str = to_utf8(section)
+            return [(to_unicode(k), to_unicode(v))
+                    for k, v in ConfigParser.items(self, section_str, raw,
+                                                   vars)]
 
-    def has_option(self, section, option):
-        section_str = to_utf8(section)
-        option_str = to_utf8(option)
-        return ConfigParser.has_option(self, section_str, option_str)
+        def has_option(self, section, option):
+            section_str = to_utf8(section)
+            option_str = to_utf8(option)
+            return ConfigParser.has_option(self, section_str, option_str)
 
-    def set(self, section, option, value=None):
-        section_str = to_utf8(section)
-        option_str = to_utf8(option)
-        value_str = to_utf8(value) if value is not None else ''
-        ConfigParser.set(self, section_str, option_str, value_str)
+        def set(self, section, option, value=None):
+            section_str = to_utf8(section)
+            option_str = to_utf8(option)
+            value_str = to_utf8(value) if value is not None else ''
+            ConfigParser.set(self, section_str, option_str, value_str)
 
-    def remove_option(self, section, option):
-        section_str = to_utf8(section)
-        option_str = to_utf8(option)
-        ConfigParser.remove_option(self, section_str, option_str)
+        def remove_option(self, section, option):
+            section_str = to_utf8(section)
+            option_str = to_utf8(option)
+            ConfigParser.remove_option(self, section_str, option_str)
 
-    def remove_section(self, section):
-        section_str = to_utf8(section)
-        ConfigParser.remove_section(self, section_str)
+        def remove_section(self, section):
+            section_str = to_utf8(section)
+            ConfigParser.remove_section(self, section_str)
+
+    else:
+        def set(self, section, option, value=None):
+            value = to_unicode(value) if value is not None else ''
+            ConfigParser.set(self, section, option, value)
 
     def __copy__(self):
         parser = self.__class__()

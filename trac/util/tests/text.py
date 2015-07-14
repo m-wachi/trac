@@ -13,34 +13,35 @@
 
 import io
 import os
+import re
+import six
 import socket
 import unittest
 from six import text_type as unicode
 
 import trac.tests.compat
-from trac.util.text import empty, expandtabs, fix_eol, javascript_quote, \
-                           levenshtein_distance, normalize_whitespace, \
-                           print_table, quote_query_string, shorten_line, \
-                           strip_line_ws, stripws, sub_vars, text_width, \
-                           to_js_string, to_unicode, to_utf8, \
-                           unicode_from_base64, unicode_quote, \
-                           unicode_quote_plus, unicode_to_base64, \
-                           unicode_unquote, unicode_urlencode, wrap
+from trac.util.text import (
+    empty, exception_to_unicode, expandtabs, fix_eol, javascript_quote,
+    levenshtein_distance, normalize_whitespace, print_table,
+    quote_query_string, shorten_line, strip_line_ws, stripws, sub_vars,
+    text_width, to_js_string, to_unicode, to_utf8, unicode_from_base64,
+    unicode_quote, unicode_quote_plus, unicode_to_base64, unicode_unquote,
+    unicode_urlencode, wrap)
 
 
 class ToUnicodeTestCase(unittest.TestCase):
     def test_explicit_charset(self):
-        uc = to_unicode('\xc3\xa7', 'utf-8')
+        uc = to_unicode(b'\xc3\xa7', 'utf-8')
         self.assertIsInstance(uc, unicode)
         self.assertEqual(u'\xe7', uc)
 
     def test_explicit_charset_with_replace(self):
-        uc = to_unicode('\xc3', 'utf-8')
+        uc = to_unicode(b'\xc3', 'utf-8')
         self.assertIsInstance(uc, unicode)
         self.assertEqual(u'\xc3', uc)
 
     def test_implicit_charset(self):
-        uc = to_unicode('\xc3\xa7')
+        uc = to_unicode(b'\xc3\xa7')
         self.assertIsInstance(uc, unicode)
         self.assertEqual(u'\xe7', uc)
 
@@ -56,7 +57,10 @@ class ToUnicodeTestCase(unittest.TestCase):
         try:
             raise ValueError(u.encode('utf-8'))
         except ValueError as e:
-            self.assertEqual(u, to_unicode(e))
+            if six.PY2:
+                self.assertEqual(u, to_unicode(e))
+            else:
+                self.assertEqual(repr(u.encode('utf-8')), to_unicode(e))
 
     def test_from_windows_error(self):
         try:
@@ -149,10 +153,10 @@ class UnicodeQuoteTestCase(unittest.TestCase):
         self.assertEqual(up, unicode_unquote(unicode_quote(up)))
 
     def test_unicode_urlencode(self):
-        self.assertEqual('thing=%C3%9C&%C3%9C=thing&%C3%9Cthing',
-                         unicode_urlencode({u'Ü': 'thing',
-                                            'thing': u'Ü',
-                                            u'Üthing': empty}))
+        result = unicode_urlencode({u'Ü': 'thing', 'thing': u'Ü',
+                                    u'Üthing': empty})
+        self.assertEqual(['%C3%9C=thing', '%C3%9Cthing', 'thing=%C3%9C'],
+                         sorted(result.split('&')))
 
 
 class QuoteQueryStringTestCase(unittest.TestCase):
@@ -164,27 +168,33 @@ class QuoteQueryStringTestCase(unittest.TestCase):
 
 class ToUtf8TestCase(unittest.TestCase):
     def test_unicode(self):
-        self.assertEqual('à', to_utf8('à'))
-        self.assertEqual('ç', to_utf8('ç'))
+        self.assertEqual(b'\xc3\xa0', to_utf8('à'))
+        self.assertEqual(b'\xc3\xa7', to_utf8('ç'))
 
     def test_boolean(self):
-        self.assertEqual('True', to_utf8(True))
-        self.assertEqual('False', to_utf8(False))
+        self.assertEqual(b'True', to_utf8(True))
+        self.assertEqual(b'False', to_utf8(False))
 
     def test_int(self):
-        self.assertEqual('-1', to_utf8(-1))
-        self.assertEqual('0', to_utf8(0))
-        self.assertEqual('1', to_utf8(1))
+        self.assertEqual(b'-1', to_utf8(-1))
+        self.assertEqual(b'0', to_utf8(0))
+        self.assertEqual(b'1', to_utf8(1))
 
     def test_utf8(self):
-        self.assertEqual('à', to_utf8(u'à'))
-        self.assertEqual('ç', to_utf8(u'ç'))
+        self.assertEqual(b'\xc3\xa0', to_utf8(u'à'))
+        self.assertEqual(b'\xc3\xa7', to_utf8(u'ç'))
 
     def test_exception_with_utf8_message(self):
-        self.assertEqual('thė mèssägē', to_utf8(Exception('thė mèssägē')))
+        text = u'thė mèssägē'.encode('utf-8')
+        if six.PY2:
+            self.assertEqual(text, to_utf8(Exception(text)))
+        else:
+            self.assertEqual(bytes(repr(text), 'ascii'),
+                             to_utf8(Exception(text)))
 
     def test_exception_with_unicode_message(self):
-        self.assertEqual('thė mèssägē', to_utf8(Exception(u'thė mèssägē')))
+        text = u'thė mèssägē'
+        self.assertEqual(text.encode('utf-8'), to_utf8(Exception(text)))
 
 
 class WhitespaceTestCase(unittest.TestCase):
@@ -301,8 +311,8 @@ bar@….com    | bar@example.com
         out = io.BytesIO()
         kwargs['out'] = out
         print_table(data, **kwargs)
-        self.assertEqual(expected.encode('utf-8'),
-                         strip_line_ws(out.getvalue(), leading=False))
+        out = out.getvalue().decode('utf-8')
+        self.assertEqual(expected, strip_line_ws(out, leading=False))
 
 
 class WrapTestCase(unittest.TestCase):
@@ -428,6 +438,28 @@ class ShortenLineTestCase(unittest.TestCase):
         self.assertEqual('abcde ...', shorten_line(text, 9))
 
 
+class ExceptionToUnicodeTestCase(unittest.TestCase):
+
+    def test_without_traceback(self):
+        try:
+            raise ValueError('test')
+        except ValueError as e:
+            self.assertEqual('ValueError: test', exception_to_unicode(e))
+
+    def test_with_traceback(self):
+        try:
+            raise ValueError('test')
+        except ValueError as e:
+            result = exception_to_unicode(e, traceback=True)
+            result = re.sub(r'\n  File "[^"]+", line [0-9]+, ',
+                            '\n  File "<file>", line <line>, ', result)
+            self.assertEqual("""
+Traceback (most recent call last):
+  File "<file>", line <line>, in test_with_traceback
+    raise ValueError('test')
+ValueError: test""", result)
+
+
 def suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(ToUnicodeTestCase))
@@ -447,6 +479,7 @@ def suite():
     suite.addTest(unittest.makeSuite(LevenshteinDistanceTestCase))
     suite.addTest(unittest.makeSuite(SubVarsTestCase))
     suite.addTest(unittest.makeSuite(ShortenLineTestCase))
+    suite.addTest(unittest.makeSuite(ExceptionToUnicodeTestCase))
     return suite
 
 if __name__ == '__main__':

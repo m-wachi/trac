@@ -77,7 +77,7 @@ def print_status():
     warnings.filterwarnings('ignore', '', DeprecationWarning) # Twill 0.9...
     buf = io.BytesIO()
     package_versions(PACKAGES, buf)
-    printout(shift('  ', buf.getvalue()))
+    printout(shift('  ', buf.getvalue().decode('utf-8')))
 
 
 if __name__ == '__main__':

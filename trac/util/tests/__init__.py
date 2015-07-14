@@ -127,7 +127,7 @@ class RandomTestCase(unittest.TestCase):
             self.assertEqual(i, len(util.urandom(i)))
         # For a large enough sample, each value should appear at least once
         entropy = util.urandom(65536)
-        values = set(ord(c) for c in entropy)
+        values = set(entropy)
         self.assertEqual(256, len(values))
 
     def test_hex_entropy(self):
@@ -177,7 +177,7 @@ class SafeReprTestCase(unittest.TestCase):
         self.assertRaises(Exception, repr, eh_ix())
         sr = util.safe_repr(eh_ix())
         sr = re.sub('[A-F0-9]{4,}', 'ADDRESS', sr)
-        sr = re.sub(r'__main__|trac\.util\.tests', 'MODULE', sr)
+        sr = re.sub(r'__main__|trac\.util\.tests(?:\.__init__)?', 'MODULE', sr)
         self.assertEqual("<MODULE.eh_ix object at 0xADDRESS "
                          "(repr() error: TypeError: unsupported operand "
                          "type(s) for +: 'int' and 'str')>", sr)
@@ -285,7 +285,7 @@ class FileTestCase(unittest.TestCase):
     def setUp(self):
         self.dir = tempfile.mkdtemp()
         self.filename = os.path.join(self.dir, 'trac-tempfile')
-        self.data = 'Lorem\ripsum\ndolor\r\nsit\namet,\rconsectetur\r\n'
+        self.data = b'Lorem\ripsum\ndolor\r\nsit\namet,\rconsectetur\r\n'
 
     def tearDown(self):
         shutil.rmtree(self.dir)

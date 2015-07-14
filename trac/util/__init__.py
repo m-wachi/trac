@@ -152,7 +152,7 @@ if os.name == 'nt':
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
-            old = "%s-%08x" % (dst, random.randint(0, sys.maxint))
+            old = "%s-%08x" % (dst, random.randint(0, 0xffffffff))
             os.rename(dst, old)
             os.rename(src, dst)
             try:
@@ -243,7 +243,7 @@ def create_file(path, data='', mode='w'):
     """
     with open(path, mode) as f:
         if data:
-            if isinstance(data, basestring):
+            if isinstance(data, (unicode, bytes)):
                 f.write(data)
             else:  # Assume iterable
                 f.writelines(data)
@@ -546,9 +546,14 @@ def arity(f):
 def get_last_traceback():
     """Retrieve the last traceback as an `unicode` string."""
     import traceback
-    tb = io.BytesIO()
-    traceback.print_exc(file=tb)
-    return to_unicode(tb.getvalue())
+    if six.PY2:
+        tb = io.BytesIO()
+        traceback.print_exc(file=tb)
+        return to_unicode(tb.getvalue())
+    else:
+        tb = io.StringIO()
+        traceback.print_exc(file=tb)
+        return tb.getvalue()
 
 
 _egg_path_re = re.compile(r'build/bdist\.[^/]+/egg/(.*)')
@@ -849,7 +854,12 @@ except NotImplementedError:
 
 def hex_entropy(digits=32):
     """Generate `digits` number of hex digits of entropy."""
-    result = ''.join('%.2x' % ord(v) for v in urandom((digits + 1) // 2))
+    data = urandom((digits + 1) // 2)
+    if six.PY2:
+        data = map(ord, data)
+    else:
+        data = iter(data)
+    result = ''.join('%.2x' % v for v in data)
     return result[:digits] if len(result) > digits else result
 
 
@@ -1012,6 +1022,9 @@ class Ranges(object):
 
     RE_STR = u'[0-9]+(?:[-:][0-9]+)?(?:,\u200b?[0-9]+(?:[-:][0-9]+)?)*'
 
+    MAX = min(sys.maxsize, sys.maxint) \
+          if hasattr(sys, 'maxint') else sys.maxsize
+
     def __init__(self, r=None, reorder=False):
         self.pairs = []
         self.a = self.b = None
@@ -1109,7 +1122,7 @@ class Ranges(object):
         if self.a is None or self.b is None:
             return 0
         # Result must fit an int
-        return min(self.b - self.a + 1, sys.maxint)
+        return min(self.b - self.a + 1, self.MAX)
 
     def __nonzero__(self):
         """Return True iff the range is not empty.
@@ -1218,8 +1231,8 @@ def embedded_numbers(s):
 
 def partition(iterable, order=None):
     """
-    >>> partition([(1, "a"), (2, "b"), (3, "a")])
-    {'a': [1, 3], 'b': [2]}
+    >>> sorted(partition([(1, "a"), (2, "b"), (3, "a")]).items())
+    [('a', [1, 3]), ('b', [2])]
     >>> partition([(1, "a"), (2, "b"), (3, "a")], "ab")
     [[1, 3], [2]]
     """

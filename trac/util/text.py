@@ -18,6 +18,7 @@
 #         Matthew Good <trac@matt-good.net>
 #         Christian Boos <cboos@edgewall.org>
 
+import base64
 import locale
 import os
 import re
@@ -197,7 +198,12 @@ def unicode_unquote(value):
                 `unicode_quote`).
     :rtype: `unicode`
     """
-    return unquote(value).decode('utf-8')
+    if six.PY2:
+        return unquote(value).decode('utf-8')
+    else:
+        if isinstance(value, bytes):
+            value = value.decode('utf-8')
+        return unquote(value, errors='strict')
 
 
 def unicode_urlencode(params, safe=''):
@@ -227,7 +233,7 @@ def quote_query_string(text):
 
 
 def to_utf8(text, charset='latin1'):
-    """Convert input to a UTF-8 `str` object.
+    """Convert input to a UTF-8 `bytes` object.
 
     If the input is not an `unicode` object, we assume the encoding is
     already UTF-8, ISO Latin-1, or as specified by the optional
@@ -272,10 +278,12 @@ def console_print(out, *args, **kwargs):
                    (defaults to `True`)
     """
     cons_charset = stream_encoding(out)
-    out.write(' '.join([to_unicode(a).encode(cons_charset, 'replace')
-                        for a in args]))
+    if hasattr(out, 'buffer'):
+        out = out.buffer
+    out.write(b' '.join(to_unicode(a).encode(cons_charset, 'replace')
+                        for a in args))
     if kwargs.get('newline', True):
-        out.write('\n')
+        out.write(b'\n')
 
 
 def printout(*args, **kwargs):
@@ -358,6 +366,8 @@ def print_table(data, headers=None, sep='  ', out=None, ambiwidth=None):
     if out is None:
         out = sys.stdout
     charset = getattr(out, 'encoding', None) or 'utf-8'
+    if hasattr(out, 'buffer'):
+        out = out.buffer
     if ambiwidth is None:
         ambiwidth = _default_ambiwidth
     data = list(data)
@@ -383,7 +393,7 @@ def print_table(data, headers=None, sep='  ', out=None, ambiwidth=None):
     col_width = [max(tw(row[idx]) for row in data)
                  for idx in xrange(num_cols)]
 
-    out.write('\n')
+    out.write(b'\n')
     for ridx, row in enumerate(data):
         for cidx, cell in enumerate(row):
             if headers and ridx == 0:
@@ -398,11 +408,11 @@ def print_table(data, headers=None, sep='  ', out=None, ambiwidth=None):
             line = line.encode(charset, 'replace')
             out.write(line)
 
-        out.write('\n')
+        out.write(b'\n')
         if ridx == 0 and headers:
-            out.write('-' * (tw(sep) * cidx + sum(col_width)))
-            out.write('\n')
-    out.write('\n')
+            out.write(b'-' * (tw(sep) * cidx + sum(col_width)))
+            out.write(b'\n')
+    out.write(b'\n')
 
 
 def shorten_line(text, maxlen=75):
@@ -487,8 +497,7 @@ class UnicodeTextWrapper(textwrap.TextWrapper):
 
     def _split(self, text):
         chunks = self.split_re.split(to_unicode(text))
-        chunks = filter(None, chunks)
-        return chunks
+        return [c for c in chunks if c]
 
     def _text_width(self, text):
         return text_width(text, ambiwidth=self.ambiwidth)
@@ -698,21 +707,31 @@ def fix_eol(text, eol):
     lines.append('')
     return eol.join(lines)
 
+_b64_encodebytes = base64.encodebytes \
+                   if hasattr(base64, 'encodebytes') else \
+                   base64.encodestring
+_b64_decodebytes = base64.decodebytes \
+                   if hasattr(base64, 'decodebytes') else \
+                   base64.decodestring
+
 def unicode_to_base64(text, strip_newlines=True):
     """Safe conversion of ``text`` to base64 representation using
     utf-8 bytes.
 
     Strips newlines from output unless ``strip_newlines`` is `False`.
     """
-    text = to_unicode(text)
+    text = to_unicode(text).encode('utf-8')
     if strip_newlines:
-        return text.encode('utf-8').encode('base64').replace('\n', '')
-    return text.encode('utf-8').encode('base64')
+        rv = base64.b64encode(text)
+    else:
+        rv = _b64_encodebytes(text)
+    return unicode(rv, 'ascii')
 
 def unicode_from_base64(text):
     """Safe conversion of ``text`` to unicode based on utf-8 bytes."""
-    return text.decode('base64').decode('utf-8')
-
+    if isinstance(text, unicode):
+        text = text.encode('utf-8')
+    return _b64_decodebytes(text).decode('utf-8')
 
 def levenshtein_distance(lhs, rhs):
     """Return the Levenshtein distance between two strings."""

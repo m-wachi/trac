@@ -154,7 +154,7 @@ class WikiAdmin(Component):
                 if page in ignore:
                     continue
                 filename = os.path.join(dir, page)
-                page = unicode_unquote(page.encode('utf-8'))
+                page = unicode_unquote(page)
                 if os.path.isfile(filename):
                     if self.import_page(filename, page, create_only, replace):
                         printout(_("  %(page)s imported from %(filename)s",
@@ -248,7 +248,7 @@ class WikiAdmin(Component):
                     self.load_pages(path, replace=replace)
                 else:
                     page = os.path.basename(path)
-                    page = unicode_unquote(page.encode('utf-8'))
+                    page = unicode_unquote(page)
                     if self.import_page(path, page, replace=replace):
                         printout(_("  %(page)s imported from %(filename)s",
                                    filename=path_to_unicode(path), page=page))
