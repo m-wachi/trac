@@ -107,7 +107,7 @@ user2 =
 
     def test_get_navigation_items_with_timeline_view(self):
         req = self.create_request('user1', path_info='/timeline')
-        self.assertEqual('timeline', self.get_navigation_items(req).next()[1])
+        self.assertEqual('timeline', next(self.get_navigation_items(req))[1])
 
     def test_get_navigation_items_without_timeline_view(self):
         req = self.create_request('user2', path_info='/timeline')
