@@ -40,7 +40,7 @@ from trac.util import arity, copytree, create_file, get_pkginfo, lazy, \
                       makedirs, read_file
 from trac.util.concurrency import threading
 from trac.util.text import exception_to_unicode, path_to_unicode, printerr, \
-                           printout
+                           printout, to_utf8
 from trac.util.translation import _, N_
 from trac.web.href import Href
 
@@ -663,7 +663,7 @@ class Environment(Component, ComponentManager):
         if logtype == 'file' and not os.path.isabs(logfile):
             logfile = os.path.join(self.get_log_dir(), logfile)
         format = self.log_format
-        logid = 'Trac.%s' % hashlib.sha1(self.path).hexdigest()
+        logid = 'Trac.%s' % hashlib.sha1(to_utf8(self.path)).hexdigest()
         if format:
             basename = os.path.basename(self.path)
             format = format.replace('$(', '%(') \
