@@ -61,16 +61,17 @@ class py_groupby(object):
         self.tgtkey = self.currkey = self.currvalue = xrange(0)
     def __iter__(self):
         return self
-    def next(self):
+    def __next__(self):
         while self.currkey == self.tgtkey:
-            self.currvalue = self.it.next() # Exit on StopIteration
+            self.currvalue = next(self.it) # Exit on StopIteration
             self.currkey = self.keyfunc(self.currvalue)
         self.tgtkey = self.currkey
         return (self.currkey, self._grouper(self.tgtkey))
+    next = __next__
     def _grouper(self, tgtkey):
         while self.currkey == tgtkey:
             yield self.currvalue
-            self.currvalue = self.it.next() # Exit on StopIteration
+            self.currvalue = next(self.it) # Exit on StopIteration
             self.currkey = self.keyfunc(self.currvalue)
 
 def rpartition(s, sep):

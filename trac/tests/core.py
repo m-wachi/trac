@@ -199,7 +199,7 @@ class ComponentTestCase(unittest.TestCase):
             implements(ITest)
         tests = iter(ComponentA(self.compmgr).tests)
         try:
-            tests.next().test()
+            next(tests).test()
             self.fail('Expected AttributeError')
         except AttributeError:
             pass
@@ -212,7 +212,7 @@ class ComponentTestCase(unittest.TestCase):
         class ComponentA(Component):
             tests = ExtensionPoint(ITest)
         tests = iter(ComponentA(self.compmgr).tests)
-        self.assertRaises(StopIteration, tests.next)
+        self.assertRaises(StopIteration, next, tests)
 
     def test_extension_point_with_one_extension(self):
         """
@@ -227,8 +227,8 @@ class ComponentTestCase(unittest.TestCase):
             def test(self):
                 return 'x'
         tests = iter(ComponentA(self.compmgr).tests)
-        self.assertEqual('x', tests.next().test())
-        self.assertRaises(StopIteration, tests.next)
+        self.assertEqual('x', next(tests).test())
+        self.assertRaises(StopIteration, next, tests)
 
     def test_extension_point_with_two_extensions(self):
         """
@@ -261,8 +261,8 @@ class ComponentTestCase(unittest.TestCase):
             def test(self):
                 return 'x'
         tests = iter(ConcreteComponent(self.compmgr).tests)
-        self.assertEqual('x', tests.next().test())
-        self.assertRaises(StopIteration, tests.next)
+        self.assertEqual('x', next(tests).test())
+        self.assertRaises(StopIteration, next, tests)
 
     def test_inherited_implements(self):
         """
@@ -311,8 +311,8 @@ class ComponentTestCase(unittest.TestCase):
         mgr = ManagerComponent('Test', 42)
         self.assertEqual(id(mgr), id(mgr[ManagerComponent]))
         tests = iter(mgr.tests)
-        self.assertEqual('x', tests.next().test())
-        self.assertRaises(StopIteration, tests.next)
+        self.assertEqual('x', next(tests).test())
+        self.assertRaises(StopIteration, next, tests)
 
     def test_component_manager_component_isolation(self):
         """
