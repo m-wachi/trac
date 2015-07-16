@@ -13,6 +13,7 @@
 
 from six.moves.configparser import RawConfigParser
 import shutil
+import six
 import tempfile
 import unittest
 
@@ -68,6 +69,12 @@ class EnvironmentTestCase(unittest.TestCase):
         self.env.shutdown() # really closes the db connections
         shutil.rmtree(self.env.path)
 
+    def _parser_read(self, parser, filename):
+        if six.PY2:
+            return parser.read(filename)
+        else:
+            return parser.read(filename, encoding='utf-8')
+
     def test_db_exc(self):
         db_exc = self.env.db_exc
         self.assertTrue(hasattr(db_exc, 'IntegrityError'))
@@ -98,7 +105,7 @@ class EnvironmentTestCase(unittest.TestCase):
     def test_dumped_values_in_tracini(self):
         parser = RawConfigParser()
         filename = self.env.config.filename
-        self.assertEqual([filename], parser.read(filename))
+        self.assertEqual([filename], self._parser_read(parser, filename))
         self.assertEqual('#cc0,#0c0,#0cc,#00c,#c0c,#c00',
                          parser.get('revisionlog', 'graph_colors'))
         self.assertEqual('disabled', parser.get('trac', 'secure_cookies'))
@@ -106,7 +113,7 @@ class EnvironmentTestCase(unittest.TestCase):
     def test_dumped_values_in_tracini_sample(self):
         parser = RawConfigParser()
         filename = self.env.config.filename + '.sample'
-        self.assertEqual([filename], parser.read(filename))
+        self.assertEqual([filename], self._parser_read(parser, filename))
         self.assertEqual('#cc0,#0c0,#0cc,#00c,#c0c,#c00',
                          parser.get('revisionlog', 'graph_colors'))
         self.assertEqual('disabled', parser.get('trac', 'secure_cookies'))

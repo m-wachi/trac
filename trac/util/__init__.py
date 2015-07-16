@@ -31,8 +31,9 @@ import random
 import re
 import shutil
 import six
-from six import string_types as basestring, text_type as unicode
-from six.moves import xrange, zip as izip
+from six import get_function_code, get_method_self, \
+                string_types as basestring, text_type as unicode
+from six.moves import xrange
 from six.moves.urllib.parse import quote, unquote, urlencode
 import sys
 import string
@@ -540,7 +541,13 @@ def arity(f):
     """Return the number of arguments expected by the given function, unbound
     or bound method.
     """
-    return f.func_code.co_argcount - bool(getattr(f, 'im_self', False))
+    argcount = get_function_code(f).co_argcount
+    try:
+        get_method_self(f)
+        argcount -= 1
+    except AttributeError:
+        pass
+    return argcount
 
 
 def get_last_traceback():
