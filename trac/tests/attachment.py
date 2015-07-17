@@ -96,7 +96,7 @@ class AttachmentTestCase(unittest.TestCase):
         self.assertEqual(self.datetime, attachment.date)
         self.assertEqual('joe', attachment.author)
         self.assertEqual('::1', attachment.ipnr)
-        self.assertEqual("<Attachment u'foo.txt'>", repr(attachment))
+        self.assertEqual("<Attachment 'foo.txt'>", repr(attachment))
 
     def test_existing_attachment_from_resource(self):
         resource = Resource('ticket', 43).child('attachment', 'foo.txt')
@@ -107,7 +107,7 @@ class AttachmentTestCase(unittest.TestCase):
         self.assertEqual(self.datetime, attachment.date)
         self.assertEqual('joe', attachment.author)
         self.assertEqual('::1', attachment.ipnr)
-        self.assertEqual("<Attachment u'foo.txt'>", repr(attachment))
+        self.assertEqual("<Attachment 'foo.txt'>", repr(attachment))
 
     def test_get_path(self):
         attachment = Attachment(self.env, 'ticket', 42)
@@ -315,7 +315,7 @@ class AttachmentModuleTestCase(unittest.TestCase):
     def test_invalid_post_request_raises_exception(self):
         path_info = '/attachment/parent_realm/parent_id/attachment_id'
         attachment = Attachment(self.env, 'parent_realm', 'parent_id')
-        attachment.insert('attachment_id', StringIO(''), 0, 1)
+        attachment.insert('attachment_id', io.BytesIO(b''), 0, 1)
         req = self._create_request(method='POST', action=None,
                                    path_info=path_info)
         module = AttachmentModule(self.env)
