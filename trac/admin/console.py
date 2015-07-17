@@ -19,6 +19,7 @@ import io
 import os.path
 import pkg_resources
 from shlex import shlex
+import six
 from six import text_type as unicode
 import sys
 import traceback
@@ -116,7 +117,7 @@ class TracAdmin(cmd.Cmd):
         except AdminCommandError as e:
             printerr(_("Error: %(msg)s", msg=to_unicode(e)))
             if e.show_usage:
-                print()
+                printerr()
                 self.do_help(e.cmd or self.arg_tokenize(line)[0])
             rv = 2
         except TracError as e:
@@ -192,12 +193,12 @@ Type:  '?' or 'help' for help on commands.
 
         ... but shlex is not unicode friendly.
         """
-        lex = shlex(argstr.encode('utf-8'), posix=True)
+        lex = shlex(argstr.encode('utf-8') if six.PY2 else argstr, posix=True)
         lex.whitespace_split = True
         lex.commenters = ''
         if os.name == 'nt':
             lex.escape = ''
-        return [unicode(token, 'utf-8') for token in lex] or ['']
+        return [to_unicode(token) for token in lex] or ['']
 
     def word_complete(self, text, words):
         words = list(set(a for a in words if a.startswith(text)))
@@ -335,7 +336,7 @@ Type:  '?' or 'help' for help on commands.
             printout(_("trac-admin - The Trac Administration Console "
                        "%(version)s", version=TRAC_VERSION))
             if not self.interactive:
-                print()
+                printout()
                 printout(_("Usage: trac-admin </path/to/projenv> "
                            "[command [subcommand] [option ...]]\n")
                     )
@@ -351,7 +352,7 @@ Type:  '?' or 'help' for help on commands.
     _help_EOF = _help_quit
 
     def do_quit(self, line):
-        print()
+        printout()
         sys.exit()
 
     do_exit = do_quit # Alias
@@ -407,7 +408,7 @@ in order to initialize and prepare the project database.
         ddb = 'sqlite:db/trac.db'
         prompt = _("Database connection string [%(default)s]> ", default=ddb)
         returnvals.append(raw_input(prompt).strip() or ddb)
-        print()
+        printout()
         return returnvals
 
     def do_initenv(self, line):
@@ -610,12 +611,13 @@ def run(args=None):
             printout(os.path.basename(sys.argv[0]), TRAC_VERSION)
         else:
             env_path = os.path.abspath(args[0])
-            try:
-                unicode(env_path, 'ascii')
-            except UnicodeDecodeError:
-                printerr(_("Non-ascii environment path '%(path)s' not "
-                           "supported.", path=to_unicode(env_path)))
-                sys.exit(2)
+            if six.PY2:
+                try:
+                    unicode(env_path, 'ascii')
+                except UnicodeDecodeError:
+                    printerr(_("Non-ascii environment path '%(path)s' not "
+                               "supported.", path=to_unicode(env_path)))
+                    sys.exit(2)
             admin.env_set(env_path)
             if len(args) > 1:
                 s_args = ' '.join(["'%s'" % c for c in args[2:]])

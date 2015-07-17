@@ -21,6 +21,7 @@ from __future__ import print_function
 import csv
 import os
 import six
+import sys
 from itertools import groupby
 try:
     StandardError = StandardError
@@ -32,7 +33,7 @@ from trac.cache import cached
 from trac.config import ExtensionOption, OrderedExtensionsOption
 from trac.core import *
 from trac.resource import Resource, get_resource_name
-from trac.util import file_or_std
+from trac.util.csv import UnicodeCsvReader, UnicodeCsvWriter
 from trac.util.datefmt import time_now
 from trac.util.text import path_to_unicode, print_table, printout, \
                            stream_encoding, to_unicode, wrap
@@ -685,14 +686,14 @@ class PermissionAdmin(Component):
             rows = permsys.get_all_permissions()
         rows.sort()
         print_table(rows, [_('User'), _('Action')])
-        print()
+        printout()
         printout(_("Available actions:"))
         actions = permsys.get_actions()
         actions.sort()
         text = ', '.join(actions)
         printout(wrap(text, initial_indent=' ', subsequent_indent=' ',
                       linesep='\n'))
-        print()
+        printout()
 
     def _do_add(self, user, *actions):
         permsys = PermissionSystem(self.env)
@@ -733,16 +734,21 @@ class PermissionAdmin(Component):
                 raise AdminCommandError(msg)
 
     def _do_export(self, filename=None):
+        if filename:
+            fileobj = filename
+            encoding = 'utf-8'
+            linesep = os.linesep
+        else:
+            fileobj = sys.stdout
+            encoding = stream_encoding(fileobj)
+            linesep = '\n'
         try:
-            with file_or_std(filename, 'wb') as f:
-                encoding = stream_encoding(f)
-                linesep = os.linesep if filename else '\n'
-                writer = csv.writer(f, lineterminator=linesep)
+            with UnicodeCsvWriter(fileobj, encoding=encoding,
+                                  lineterminator=linesep) as writer:
                 users = self.get_user_list()
                 for user in sorted(users):
                     actions = sorted(self.get_user_perms(user))
-                    writer.writerow([s.encode(encoding, 'replace')
-                                     for s in [user] + actions])
+                    writer.writerow([user] + actions)
         except IOError as e:
             raise AdminCommandError(
                 _("Cannot export to %(filename)s: %(error)s",
@@ -751,20 +757,24 @@ class PermissionAdmin(Component):
 
     def _do_import(self, filename=None):
         permsys = PermissionSystem(self.env)
+        if filename:
+            fileobj = filename
+            encoding = 'utf-8'
+        else:
+            fileobj = sys.stdin
+            encoding = stream_encoding(fileobj)
+        linesep = os.linesep if filename else '\n'
         try:
-            with file_or_std(filename, 'rb') as f:
-                encoding = stream_encoding(f)
-                linesep = os.linesep if filename else '\n'
-                reader = csv.reader(f, lineterminator=linesep)
+            with UnicodeCsvReader(fileobj, encoding=encoding,
+                                  lineterminator=linesep) as reader:
                 for row in reader:
                     if len(row) < 2:
                         raise AdminCommandError(
                             _("Invalid row %(line)d. Expected <user>, "
                               "<action>, [action], [...]",
                               line=reader.line_num))
-                    user = to_unicode(row[0], encoding)
-                    actions = [to_unicode(action, encoding)
-                               for action in row[1:]]
+                    user = row[0]
+                    actions = row[1:]
                     if user.isupper():
                         raise AdminCommandError(
                             _("Invalid user %(user)s on line %(line)d: All "
