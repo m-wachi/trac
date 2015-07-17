@@ -24,31 +24,9 @@ import six
 import sys
 import tempfile
 import unittest
+from contextlib import contextmanager
 from six import string_types as basestring, text_type as unicode
 from six.moves import xrange
-
-# IAdminCommandProvider implementations
-import trac.admin.api
-import trac.attachment
-import trac.perm
-import trac.ticket.admin
-import trac.versioncontrol.admin
-import trac.versioncontrol.api
-import trac.versioncontrol.web_ui
-import trac.wiki.admin
-
-# IPermissionRequestor implementations (for 'permission' related tests)
-import trac.about
-import trac.admin.web_ui
-import trac.config
-import trac.ticket.api
-import trac.ticket.batch
-import trac.ticket.report
-import trac.ticket.roadmap
-import trac.ticket.web_ui
-import trac.search.web_ui
-import trac.timeline.web_ui
-import trac.wiki.web_ui
 
 from trac.admin.api import AdminCommandManager, IAdminCommandProvider, \
                            console_date_format, get_console_locale
@@ -56,6 +34,7 @@ from trac.admin.console import TracAdmin, TracAdminHelpMacro
 from trac.config import ConfigSection, Option
 from trac.core import Component, ComponentMeta, implements
 from trac.env import Environment
+from trac.loader import load_components
 from trac.test import EnvironmentStub
 from trac.util import create_file
 from trac.util.datefmt import format_date, get_date_format_hint, \
@@ -88,31 +67,29 @@ def load_expected_results(file, pattern):
 
 
 def execute_cmd(tracadmin, cmd, strip_trailing_space=True, input=None):
-    _in = sys.stdin
-    _err = sys.stderr
-    _out = sys.stdout
+    saved = (sys.stdin, sys.stdout, sys.stderr)
     try:
-        if input:
-            sys.stdin = io.BytesIO(input.encode('utf-8'))
-            sys.stdin.encoding = 'utf-8' # fake input encoding
-        sys.stderr = sys.stdout = out = io.BytesIO()
-        out.encoding = 'utf-8' # fake output encoding
-        retval = None
+        stdin = io.BytesIO(b'' if input is None else input.encode('utf-8'))
+        buf = io.BytesIO()
+        if six.PY2:
+            stdin.encoding = 'utf-8'  # fake input encoding
+            buf.encoding = 'utf-8'  # fake output encoding
+            stdout = buf
+        else:
+            stdin = io.TextIOWrapper(stdin, encoding='utf-8', newline='\n')
+            stdout = io.TextIOWrapper(buf, encoding='utf-8', newline='\n')
+        sys.stdin = stdin
+        sys.stderr = sys.stdout = stdout
         try:
             retval = tracadmin.onecmd(cmd)
         except SystemExit:
-            pass
-        value = out.getvalue()
-        if isinstance(value, bytes):  # reverse what print_listing did
-            value = value.decode('utf-8')
+            retval = None
+        buf = buf.getvalue().decode('utf-8')  # reverse what print_listing did
         if strip_trailing_space:
-            return retval, STRIP_TRAILING_SPACE.sub('', value)
-        else:
-            return retval, value
+            buf = STRIP_TRAILING_SPACE.sub('', buf)
+        return retval, buf
     finally:
-        sys.stdin = _in
-        sys.stderr = _err
-        sys.stdout = _out
+        sys.stdin, sys.stdout, sys.stderr = saved
 
 
 class TracAdminTestCaseBase(unittest.TestCase):
@@ -1655,11 +1632,16 @@ the_plugin.* = enabled
         self.assertEqual(2, rv, output)
         self.assertExpectedResult(output, {
             'env_path': self.env_path,
-            'config_file': config_file,
+            'message': "File contains parsing errors: %s" % config_file
+                       if six.PY2 else
+                       "Source contains parsing errors: '%s'" % config_file,
         })
 
 
 def suite():
+    # load components using `load_components` instead of import statements
+    load_components(EnvironmentStub())
+
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(TracadminTestCase))
     suite.addTest(unittest.makeSuite(TracadminNoEnvTestCase))
