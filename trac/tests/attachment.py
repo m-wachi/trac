@@ -96,7 +96,7 @@ class AttachmentTestCase(unittest.TestCase):
         self.assertEqual(self.datetime, attachment.date)
         self.assertEqual('joe', attachment.author)
         self.assertEqual('::1', attachment.ipnr)
-        self.assertEqual("<Attachment u'foo.txt'>", repr(attachment))
+        self.assertEqual("<Attachment 'foo.txt'>", repr(attachment))
 
     def test_existing_attachment_from_resource(self):
         resource = Resource('ticket', 43).child('attachment', 'foo.txt')
@@ -107,7 +107,7 @@ class AttachmentTestCase(unittest.TestCase):
         self.assertEqual(self.datetime, attachment.date)
         self.assertEqual('joe', attachment.author)
         self.assertEqual('::1', attachment.ipnr)
-        self.assertEqual("<Attachment u'foo.txt'>", repr(attachment))
+        self.assertEqual("<Attachment 'foo.txt'>", repr(attachment))
 
     def test_get_path(self):
         attachment = Attachment(self.env, 'ticket', 42)

@@ -685,7 +685,9 @@ class Attachment(object):
             self.ipnr = None
 
     def __repr__(self):
-        return '<%s %r>' % (self.__class__.__name__, self.filename)
+        filename = repr(self.filename)
+        return '<%s %s>' % (self.__class__.__name__,
+                            filename[filename.startswith('u'):])
 
     def _from_database(self, filename, description, size, time, author, ipnr):
         self.filename = filename
@@ -941,7 +943,7 @@ class Attachment(object):
         while 1:
             path = os.path.join(dir, self._get_hashed_filename(filename))
             try:
-                return filename, os.fdopen(os.open(path, flags, 0o666), 'w')
+                return filename, os.fdopen(os.open(path, flags, 0o666), 'wb')
             except OSError as e:
                 if e.errno != errno.EEXIST:
                     raise
