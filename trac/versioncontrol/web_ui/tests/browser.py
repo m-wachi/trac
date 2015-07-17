@@ -48,7 +48,7 @@ class MockRepositoryConnector(Component):
                         created_path=path, created_rev=rev,
                         get_entries=lambda: iter([]),
                         get_properties=lambda: {},
-                        get_content=lambda: io.BytesIO('content'),
+                        get_content=lambda: io.BytesIO(b'content'),
                         get_content_length=lambda: 7,
                         get_content_type=lambda: 'application/octet-stream')
             return node

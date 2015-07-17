@@ -1528,7 +1528,7 @@ class AttachmentNotificationTestCase(unittest.TestCase):
         return attachment
 
     def test_ticket_notify_attachment_enabled_attachment_added(self):
-        self.attachment.insert('foo.txt', io.BytesIO(''), 1)
+        self.attachment.insert('foo.txt', io.BytesIO(b''), 1)
 
         message = notifysuite.smtpd.get_message()
         headers, body = parse_smtp_message(message)
@@ -1538,7 +1538,7 @@ class AttachmentNotificationTestCase(unittest.TestCase):
         self.assertIn("The attachment description", body)
 
     def test_ticket_notify_attachment_enabled_attachment_removed(self):
-        self.attachment.insert('foo.txt', io.BytesIO(''), 1)
+        self.attachment.insert('foo.txt', io.BytesIO(b''), 1)
         self.attachment.delete()
 
         message = notifysuite.smtpd.get_message()

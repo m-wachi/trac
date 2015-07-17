@@ -48,7 +48,7 @@ class ReportTestCase(unittest.TestCase):
     def _make_environ(self, scheme='http', server_name='example.org',
                       server_port=80, method='GET', script_name='/trac',
                       **kwargs):
-        environ = {'wsgi.url_scheme': scheme, 'wsgi.input': io.BytesIO(''),
+        environ = {'wsgi.url_scheme': scheme, 'wsgi.input': io.BytesIO(b''),
                    'REQUEST_METHOD': method, 'SERVER_NAME': server_name,
                    'SERVER_PORT': server_port, 'SCRIPT_NAME': script_name}
         environ.update(kwargs)
