@@ -758,7 +758,7 @@ class Request(object):
             ctype, options = cgi.parse_header(ctype)
         if ctype not in ('application/x-www-form-urlencoded',
                          'multipart/form-data'):
-            fp = io.BytesIO('')
+            fp = io.BytesIO(b'')
 
         # Python 2.6 introduced a backwards incompatible change for
         # FieldStorage where QUERY_STRING is no longer ignored for POST

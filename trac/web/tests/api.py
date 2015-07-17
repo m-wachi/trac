@@ -79,7 +79,7 @@ class RequestHandlerPermissionsTestCaseBase(unittest.TestCase):
 def _make_environ(scheme='http', server_name='example.org',
                   server_port=80, method='GET', script_name='/trac',
                   **kwargs):
-    environ = {'wsgi.url_scheme': scheme, 'wsgi.input': io.BytesIO(''),
+    environ = {'wsgi.url_scheme': scheme, 'wsgi.input': io.BytesIO(b''),
                'REQUEST_METHOD': method, 'SERVER_NAME': server_name,
                'SERVER_PORT': server_port, 'SCRIPT_NAME': script_name}
     environ.update(kwargs)
@@ -306,12 +306,12 @@ class RequestTestCase(unittest.TestCase):
                          str(req.incookie).rstrip(';'))
 
     def test_read(self):
-        environ = self._make_environ(**{'wsgi.input': io.BytesIO('test input')})
+        environ = self._make_environ(**{'wsgi.input': io.BytesIO(b'test input')})
         req = Request(environ, None)
         self.assertEqual('test input', req.read())
 
     def test_read_size(self):
-        environ = self._make_environ(**{'wsgi.input': io.BytesIO('test input')})
+        environ = self._make_environ(**{'wsgi.input': io.BytesIO(b'test input')})
         req = Request(environ, None)
         self.assertEqual('test', req.read(size=4))
 
@@ -324,7 +324,7 @@ class RequestTestCase(unittest.TestCase):
         req = Request(environ, None)
         self.assertEqual('foo', req.args['action'])
         environ = self._make_environ(method='POST',
-                                     **{'wsgi.input': io.BytesIO('action=bar'),
+                                     **{'wsgi.input': io.BytesIO(b'action=bar'),
                                         'CONTENT_LENGTH': '10',
                                         'CONTENT_TYPE': 'application/x-www-form-urlencoded',
                                         'QUERY_STRING': 'action=foo'})

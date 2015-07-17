@@ -41,7 +41,7 @@ def image_setup(tc):
     tc.env.path = tempfile.mkdtemp(prefix='trac-tempenv-')
     attachment = Attachment(tc.env, 'wiki', 'page:fr')
     attachment.description = "image in page:fr"
-    attachment.insert('img.png', io.BytesIO(''), 0, 2)
+    attachment.insert('img.png', io.BytesIO(b''), 0, 2)
     tc.env.config.set('interwiki', 'shields', 'https://img.shields.io/')
     tc.env.config.set('interwiki', 'travis',
                       'https://travis-ci.org/$1?branch=$2')
