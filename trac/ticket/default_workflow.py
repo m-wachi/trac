@@ -21,7 +21,7 @@ from ConfigParser import ParsingError, RawConfigParser
 from collections import defaultdict
 from functools import partial
 from pkg_resources import resource_filename
-from six import text_type as unicode
+from six import text_type as unicode, string_types as basestring
 
 from genshi.builder import tag
 
@@ -76,7 +76,7 @@ def parse_workflow_config(rawactions):
         else:
             attribute = parts[1]
             if attribute not in known_attrs.keys() or \
-                    isinstance(known_attrs[attribute], str):
+                    isinstance(known_attrs[attribute], basestring):
                 actions[name][attribute] = value
             elif isinstance(known_attrs[attribute], int):
                 actions[name][attribute] = int(value)

@@ -101,7 +101,7 @@ def execute_cmd(tracadmin, cmd, strip_trailing_space=True, input=None):
         except SystemExit:
             pass
         value = out.getvalue()
-        if isinstance(value, str): # reverse what print_listing did
+        if isinstance(value, bytes):  # reverse what print_listing did
             value = value.decode('utf-8')
         if strip_trailing_space:
             return retval, STRIP_TRAILING_SPACE.sub('', value)

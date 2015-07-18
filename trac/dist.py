@@ -179,7 +179,7 @@ try:
                     # aid=617979&group_id=5470
                     value = eval('# coding=%s\n%s' % (encoding, value),
                                  {'__builtins__':{}}, {})
-                    if isinstance(value, str):
+                    if isinstance(value, bytes):
                         value = value.decode(encoding)
                     buf.append(value)
                 elif tok == OP and value == '=' and prev_tok == NAME:

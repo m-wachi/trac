@@ -46,7 +46,7 @@ else:
 
     class MySQLUnicodeCursor(MySQLdb.cursors.Cursor):
         def _convert_row(self, row):
-            return tuple(v.decode('utf-8') if isinstance(v, str) else v
+            return tuple(v.decode('utf-8') if isinstance(v, bytes) else v
                          for v in row)
 
         def fetchone(self):

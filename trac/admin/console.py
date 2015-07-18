@@ -101,7 +101,7 @@ class TracAdmin(cmd.Cmd):
     def onecmd(self, line):
         """`line` may be a `str` or an `unicode` object"""
         try:
-            if isinstance(line, str):
+            if isinstance(line, bytes):
                 if self.interactive:
                     encoding = sys.stdin.encoding
                 else:

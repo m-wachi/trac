@@ -12,6 +12,7 @@
 # history and logs, available at http://trac.edgewall.org/.
 
 import functools
+from six import string_types as basestring
 
 from trac.core import Component
 from trac.util.concurrency import ThreadLocal, threading
@@ -101,14 +102,14 @@ class CachedProperty(CachedPropertyBase):
         if instance is None:
             return self
         id = getattr(instance, self.key_attr)
-        if isinstance(id, str):
+        if isinstance(id, basestring):
             id = key_to_id(self.make_key(owner) + ':' + id)
             setattr(instance, self.key_attr, id)
         return CacheManager(instance.env).get(id, self.retriever, instance)
 
     def __delete__(self, instance):
         id = getattr(instance, self.key_attr)
-        if isinstance(id, str):
+        if isinstance(id, basestring):
             id = key_to_id(self.make_key(instance.__class__) + ':' + id)
             setattr(instance, self.key_attr, id)
         CacheManager(instance.env).invalidate(id)
