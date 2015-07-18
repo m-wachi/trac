@@ -53,7 +53,7 @@ def to_unicode(text, charset=None):
     For anything else, a simple `unicode()` conversion is attempted,
     with special care taken with `Exception` objects.
     """
-    if isinstance(text, str):
+    if isinstance(text, bytes):
         try:
             return unicode(text, charset or 'utf-8')
         except UnicodeDecodeError:
@@ -92,7 +92,7 @@ def exception_to_unicode(e, traceback=False):
 
 def path_to_unicode(path):
     """Convert a filesystem path to unicode, using the filesystem encoding."""
-    if isinstance(path, str):
+    if isinstance(path, bytes):
         try:
             return unicode(path, sys.getfilesystemencoding())
         except UnicodeDecodeError:
@@ -232,7 +232,7 @@ def to_utf8(text, charset='latin1'):
     already UTF-8, ISO Latin-1, or as specified by the optional
     *charset* parameter.
     """
-    if isinstance(text, str):
+    if isinstance(text, bytes):
         try:
             u = unicode(text, 'utf-8')
         except UnicodeError:

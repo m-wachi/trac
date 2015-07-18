@@ -95,7 +95,7 @@ def rmtree(path):
             function(path)
         else:
             raise
-    if os.name == 'nt' and isinstance(path, str):
+    if os.name == 'nt' and isinstance(path, bytes):
         # Use unicode characters in order to allow non-ansi characters
         # on Windows.
         path = unicode(path, sys.getfilesystemencoding())

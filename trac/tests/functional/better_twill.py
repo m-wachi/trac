@@ -118,7 +118,7 @@ if twill:
                 # lxml will try to convert the URL to unicode by itself,
                 # this won't work for non-ascii URLs, so help him
                 url = b.get_url()
-                if isinstance(url, str):
+                if isinstance(url, bytes):
                     url = unicode(url, 'latin1')
                 etree.parse(io.BytesIO(page), base_url=url)
             except etree.XMLSyntaxError as e:

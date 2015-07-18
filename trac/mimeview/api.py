@@ -433,7 +433,7 @@ def is_binary(data):
 
     Operate on either `str` or `unicode` strings.
     """
-    if isinstance(data, str) and detect_unicode(data):
+    if isinstance(data, bytes) and detect_unicode(data):
         return False
     return '\0' in data[:1000]
 
@@ -917,7 +917,7 @@ class Mimeview(Component):
             ctpos = mimetype.find('charset=')
             if ctpos >= 0:
                 return mimetype[ctpos + 8:].strip()
-        if isinstance(content, str):
+        if isinstance(content, bytes):
             utf = detect_unicode(content)
             if utf is not None:
                 return utf
