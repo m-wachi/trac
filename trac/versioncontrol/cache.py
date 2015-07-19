@@ -462,7 +462,7 @@ class CachedRepository(Repository):
         else:
             try:
                 rev = int(rev)
-                if rev <= self.youngest_rev:
+                if rev <= int(self.youngest_rev):
                     return rev
             except (ValueError, TypeError):
                 pass
