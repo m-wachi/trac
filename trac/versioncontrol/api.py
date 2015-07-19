@@ -831,8 +831,11 @@ class Repository(object):
         self.log = log
 
     def __repr__(self):
-        return '<%s %r %r %r>' % (self.__class__.__name__,
-                                  self.id, self.name, self.scope)
+        name = repr(self.name)
+        scope = repr(self.scope)
+        return '<%s %r %s %s>' % (self.__class__.__name__, self.id,
+                                  name[name.startswith('u'):],
+                                  scope[scope.startswith('u'):])
 
     @abstractmethod
     def close(self):
@@ -1100,7 +1103,9 @@ class Node(object):
         name = u'%s:%s' % (self.repos.name, self.path)
         if self.rev is not None:
             name += '@' + unicode(self.rev)
-        return '<%s %r>' % (self.__class__.__name__, name)
+        name = repr(name)
+        return '<%s %s>' % (self.__class__.__name__,
+                            name[name.startswith('u'):])
 
     @abstractmethod
     def get_content(self):
@@ -1249,8 +1254,9 @@ class Changeset(object):
         self.date = date
 
     def __repr__(self):
-        name = u'%s@%s' % (self.repos.name, self.rev)
-        return '<%s %r>' % (self.__class__.__name__, name)
+        name = repr(u'%s@%s' % (self.repos.name, self.rev))
+        return '<%s %s>' % (self.__class__.__name__,
+                            name[name.startswith('u'):])
 
     def get_properties(self):
         """Returns the properties (meta-data) of the node, as a dictionary.
