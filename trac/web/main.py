@@ -268,9 +268,12 @@ class RequestDispatcher(Component):
                     if 'hdfdump' in req.args:
                         req.perm.require('TRAC_ADMIN')
                         # debugging helper - no need to render first
-                        out = io.BytesIO()
+                        out = io.BytesIO() if six.PY2 else io.StringIO()
                         pprint(data, out)
-                        req.send(out.getvalue(), 'text/plain')
+                        out = out.getvalue()
+                        if isinstance(out, unicode):
+                            out = out.encode('utf-8')
+                        req.send(out, 'text/plain')
                     self.log.debug("Rendering response from handler")
                     output = chrome.render_template(
                             req, template, data, content_type, method=method,

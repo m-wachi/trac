@@ -122,7 +122,7 @@ class AuthenticateTestCase(unittest.TestCase):
                 return bool(req.perm)
             def process_request(self, req):
                 req.authname
-                req.send('')
+                req.send(b'')
         def start_response(status, headers, exc_info=None):
             return lambda data: None
 
@@ -362,6 +362,7 @@ class HdfdumpTestCase(unittest.TestCase):
         ComponentMeta._registry = self.old_registry
 
     def _req_send(self, content, content_type='text/html'):
+        self.assertEqual(bytes, type(content))
         self.content = content
         self.content_type = content_type
         raise RequestDone()
@@ -378,7 +379,7 @@ class HdfdumpTestCase(unittest.TestCase):
         self.env.config.set('trac', 'default_handler', 'HdfdumpRequestHandler')
         self.assertRaises(RequestDone, self.request_dispatcher.dispatch,
                           self.req)
-        self.assertEqual("{'name': 'value'}\n", self.content)
+        self.assertEqual(b"{'name': 'value'}\n", self.content)
         self.assertEqual('text/plain', self.content_type)
 
 
