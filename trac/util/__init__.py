@@ -17,7 +17,8 @@
 # Author: Jonas Borgström <jonas@edgewall.com>
 #         Matthew Good <trac@matt-good.net>
 
-import csv
+from __future__ import absolute_import
+
 import errno
 import functools
 import hashlib
@@ -776,6 +777,7 @@ def get_pkginfo(dist):
                 return any(resource_name == os.path.normpath(name)
                            for name in dist.get_metadata_lines('SOURCES.txt'))
             if dist.has_metadata('RECORD'):  # *.dist-info/RECORD
+                import csv
                 metadata = dist.get_metadata('RECORD')
                 if six.PY2:
                     metadata = io.BytesIO(metadata)
