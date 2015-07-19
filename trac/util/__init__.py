@@ -851,9 +851,10 @@ except NotImplementedError:
 
     def urandom(n):
         result = []
-        hasher = hashlib.sha1(str(os.getpid()) + str(time_now()))
+        hasher = hashlib.sha1((unicode(os.getpid()) + unicode(time_now()))
+                               .encode('ascii'))
         while len(result) * hasher.digest_size < n:
-            hasher.update(str(_entropy.random()))
+            hasher.update(to_utf8(_entropy.random()))
             result.append(hasher.digest())
         result = ''.join(result)
         return result[:n] if len(result) > n else result
@@ -890,26 +891,31 @@ def md5crypt(password, salt, magic='$1$'):
     :param salt: the raw salt
     :param magic: our magic string
     """
+    password = to_utf8(password)
+    salt = to_utf8(salt)
+    magic = to_utf8(magic)
+
     # /* The password first, since that is what is most unknown */
     # /* Then our magic string */
     # /* Then the raw salt */
     m = hashlib.md5(password + magic + salt)
 
     # /* Then just as many characters of the MD5(pw,salt,pw) */
+    data = []
     mixin = hashlib.md5(password + salt + password).digest()
-    for i in xrange(len(password)):
-        m.update(mixin[i % 16])
+    data.extend(mixin[i % 16] for i in xrange(len(password)))
 
     # /* Then something really weird... */
     # Also really broken, as far as I can tell.  -m
     i = len(password)
     while i:
-        if i & 1:
-            m.update('\x00')
-        else:
-            m.update(password[0])
+        data.append((b'\x00' if i & 1 else password)[0])
         i >>= 1
 
+    if six.PY2:
+        m.update(''.join(data))
+    else:
+        m.update(bytes(data))
     final = m.digest()
 
     # /* and now, just to make sure things don't run too fast */
@@ -936,20 +942,21 @@ def md5crypt(password, salt, magic='$1$'):
     # This is the bit that uses to64() in the original code.
 
     itoa64 = './0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
-
     rearranged = ''
     for a, b, c in ((0, 6, 12), (1, 7, 13), (2, 8, 14), (3, 9, 15), (4, 10, 5)):
-        v = ord(final[a]) << 16 | ord(final[b]) << 8 | ord(final[c])
+        v = six.indexbytes(final, a) << 16 | \
+            six.indexbytes(final, b) << 8 | \
+            six.indexbytes(final, c)
         for i in xrange(4):
             rearranged += itoa64[v & 0x3f]
             v >>= 6
 
-    v = ord(final[11])
+    v = six.indexbytes(final, 11)
     for i in xrange(2):
         rearranged += itoa64[v & 0x3f]
         v >>= 6
 
-    return magic + salt + '$' + rearranged
+    return unicode(magic + salt, 'ascii') + '$' + rearranged
 
 
 # -- data structures
