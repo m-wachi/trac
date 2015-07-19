@@ -40,6 +40,7 @@ from trac.util import hex_entropy, md5crypt
 from trac.util.compat import crypt
 from trac.util.concurrency import threading
 from trac.util.datefmt import time_now
+from trac.util.text import to_unicode, to_utf8
 from trac.util.translation import _, tag_
 
 
@@ -353,7 +354,8 @@ class BasicAuthentication(PasswordFileAuthentication):
             return False
 
         if the_hash.startswith('{SHA}'):
-            return b64encode(sha1(password).digest()) == the_hash[5:]
+            result = to_unicode(b64encode(sha1(to_utf8(password)).digest()))
+            return result == the_hash[5:]
 
         if '$' not in the_hash:
             return self.crypt(password, the_hash[:2]) == the_hash
@@ -456,7 +458,7 @@ class DigestAuthentication(PasswordFileAuthentication):
             self.send_auth_request(environ, start_response)
             return None
 
-        kd = lambda x: md5(':'.join(x)).hexdigest()
+        kd = lambda x: md5(b':'.join(to_utf8(v) for v in x)).hexdigest()
         a1 = self.hash[auth['username']]
         a2 = kd([environ['REQUEST_METHOD'], auth['uri']])
         # Is the response correct?
