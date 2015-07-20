@@ -19,6 +19,7 @@
 import csv
 import io
 import re
+import six
 from six import string_types as basestring, text_type as unicode
 
 from genshi.builder import tag
@@ -30,6 +31,7 @@ from trac.perm import IPermissionRequestor
 from trac.resource import Resource, ResourceNotFound
 from trac.ticket.api import TicketSystem
 from trac.util import as_bool, as_int, content_disposition
+from trac.util.csv import UnicodeCsvWriter
 from trac.util.datefmt import format_datetime, format_time, from_utimestamp
 from trac.util.presentation import Paginator
 from trac.util.text import (exception_to_unicode, quote_query_string, sub_vars,
@@ -49,8 +51,14 @@ LIMIT_OFFSET = '@LIMIT_OFFSET@'
 
 def cell_value(v):
     """Normalize a cell value for display.
-    >>> (cell_value(None), cell_value(0), cell_value(1), cell_value('v'))
-    ('', '0', u'1', u'v')
+    >>> cell_value(None)
+    ''
+    >>> print(cell_value(0))
+    0
+    >>> print(cell_value(1))
+    1
+    >>> print(cell_value('v'))
+    v
     """
     return '0' if v == 0 else unicode(v) if v else ''
 
@@ -870,30 +878,33 @@ class ReportModule(Component):
         }
 
         def iterate():
-            out = io.BytesIO()
-            writer = csv.writer(out, delimiter=sep, quoting=csv.QUOTE_MINIMAL)
-
             def writerow(values):
-                writer.writerow([value.encode('utf-8') for value in values])
+                writer.writerow(list(values))
                 rv = out.getvalue()
+                if isinstance(rv, unicode):
+                    rv = rv.encode('utf-8')
                 out.truncate(0)
                 out.seek(0)
                 return rv
 
             converters = [col_conversions.get(c.strip('_'), cell_value)
                           for c in cols]
-            yield '\xef\xbb\xbf'  # BOM
-            yield writerow(c for c in cols if c not in self._html_cols)
-            for row in rows:
-                yield writerow(converters[i](cell)
-                               for i, cell in enumerate(row)
-                               if cols[i] not in self._html_cols)
+
+            out = io.BytesIO()
+            with UnicodeCsvWriter(out, encoding='utf-8', delimiter=sep,
+                                  quoting=csv.QUOTE_MINIMAL) as writer:
+                yield b'\xef\xbb\xbf'  # BOM
+                yield writerow(c for c in cols if c not in self._html_cols)
+                for row in rows:
+                    yield writerow(converters[i](cell)
+                                   for i, cell in enumerate(row)
+                                   if cols[i] not in self._html_cols)
 
         data = iterate()
         if Chrome(self.env).use_chunked_encoding:
             length = None
         else:
-            data = ''.join(data)
+            data = b''.join(data)
             length = len(data)
 
         req.send_response(200)

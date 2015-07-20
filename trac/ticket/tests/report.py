@@ -97,7 +97,8 @@ class ReportTestCase(unittest.TestCase):
             self.report_module._send_csv(req, cols, rows)
         except RequestDone:
             pass
-        self.assertEqual('\xef\xbb\xbfTEST_COL,TEST_ZERO\r\n"value, needs escaped",0\r\n',
+        self.assertEqual(b'\xef\xbb\xbf'
+                         b'TEST_COL,TEST_ZERO\r\n"value, needs escaped",0\r\n',
                          buf.getvalue())
 
     def test_saved_custom_query_redirect(self):
