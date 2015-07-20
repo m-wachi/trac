@@ -236,6 +236,11 @@ del code, exc_name
 class _FieldStorage(cgi.FieldStorage):
     """Our own version of cgi.FieldStorage, with tweaks."""
 
+    def __init__(self, *args, **kwargs):
+        if six.PY3:
+            kwargs['errors'] = 'strict'
+        cgi.FieldStorage.__init__(self, *args, **kwargs)
+
     def read_multi(self, *args, **kwargs):
         try:
             cgi.FieldStorage.read_multi(self, *args, **kwargs)
@@ -419,6 +424,8 @@ class Request(object):
     def path_info(self):
         """Path inside the application"""
         path_info = self.environ.get('PATH_INFO', '')
+        if isinstance(path_info, unicode):
+            return path_info
         try:
             return unicode(path_info, 'utf-8')
         except UnicodeDecodeError:
@@ -606,7 +613,7 @@ class Request(object):
                     try:
                         data = Chrome(env).render_template(self, template,
                                                            data, 'text/html')
-                    except Exception:
+                    except Exception as e:
                         # second chance rendering, in "safe" mode
                         data['trac_error_rendering'] = True
                         data = Chrome(env).render_template(self, template,
@@ -723,7 +730,7 @@ class Request(object):
             bufsize = 0
             buf = []
             buf_append = buf.append
-            if isinstance(data, basestring):
+            if isinstance(data, (bytes, unicode)):
                 data = [data]
             for chunk in data:
                 if isinstance(chunk, unicode):
@@ -733,11 +740,11 @@ class Request(object):
                 bufsize += len(chunk)
                 buf_append(chunk)
                 if bufsize >= chunk_size:
-                    self._write(''.join(buf))
+                    self._write(b''.join(buf))
                     bufsize = 0
                     buf[:] = ()
             if bufsize > 0:
-                self._write(''.join(buf))
+                self._write(b''.join(buf))
         except (IOError, socket.error) as e:
             if e.args[0] in (errno.EPIPE, errno.ECONNRESET, 10053, 10054):
                 raise RequestDone
@@ -771,21 +778,25 @@ class Request(object):
         # requests. We'll keep the pre 2.6 behaviour for now...
         if self.method == 'POST':
             qs_on_post = self.environ.pop('QUERY_STRING', '')
-        fs = _FieldStorage(fp, environ=self.environ, keep_blank_values=True)
+        try:
+            fs = _FieldStorage(fp, environ=self.environ,
+                               keep_blank_values=True)
+            args = []
+            for value in fs.list or ():
+                name = value.name
+                if not isinstance(name, unicode):
+                    name = unicode(name, 'utf-8')
+                if not value.filename:
+                    value = value.value
+                    if not isinstance(value, unicode):
+                        value = unicode(value, 'utf-8')
+                args.append((name, value))
+        except UnicodeDecodeError as e:
+            raise HTTPBadRequest(_("Invalid encoding in form data: %(msg)s",
+                                   msg=exception_to_unicode(e)))
         if self.method == 'POST':
             self.environ['QUERY_STRING'] = qs_on_post
 
-        args = []
-        for value in fs.list or ():
-            try:
-                name = unicode(value.name, 'utf-8')
-                if not value.filename:
-                    value = unicode(value.value, 'utf-8')
-            except UnicodeDecodeError as e:
-                raise HTTPBadRequest(
-                    _("Invalid encoding in form data: %(msg)s",
-                      msg=exception_to_unicode(e)))
-            args.append((name, value))
         return args
 
     def _parse_cookies(self):
