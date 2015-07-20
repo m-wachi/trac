@@ -16,10 +16,10 @@
 
 import os
 import time
-import urllib
 from abc import ABCMeta, abstractmethod
 from six import add_metaclass, text_type as unicode
 from six.moves import xrange
+from six.moves.urllib.parse import unquote
 
 from genshi.builder import tag
 from trac.config import BoolOption, ConfigurationError, IntOption, Option
@@ -629,9 +629,9 @@ def parse_connection_uri(db_str):
         else:
             password = None
         if user:
-            user = urllib.unquote(user)
+            user = unquote(user)
         if password:
-            password = unicode_passwd(urllib.unquote(password))
+            password = unicode_passwd(unquote(password))
     else:
         user = password = None
 
@@ -660,7 +660,7 @@ def parse_connection_uri(db_str):
                 name, value = param.split('=', 1)
             except ValueError:
                 raise _invalid_db_str(db_str)
-            value = urllib.unquote(value)
+            value = unquote(value)
             params[name] = value
 
     args = zip(('user', 'password', 'host', 'port', 'path', 'params'),
