@@ -516,7 +516,8 @@ def dispatch_request(environ, start_response):
             # the remaining path in the `PATH_INFO` variable.
             script_name = environ.get('SCRIPT_NAME', '')
             try:
-                script_name = unicode(script_name, 'utf-8')
+                if not isinstance(script_name, unicode):
+                    script_name = unicode(script_name, 'utf-8')
                 # (as Href expects unicode parameters)
                 environ['SCRIPT_NAME'] = Href(script_name)(env_name)
                 environ['PATH_INFO'] = '/' + '/'.join(path_info)
@@ -532,9 +533,11 @@ def dispatch_request(environ, start_response):
                 errmsg = 'Invalid URL encoding (was %r)' % script_name
 
             if errmsg:
+                if isinstance(errmsg, unicode):
+                    errmsg = errmsg.encode('utf-8')
                 start_response('404 Not Found',
                                [('Content-Type', 'text/plain'),
-                                ('Content-Length', str(len(errmsg)))])
+                                ('Content-Length', unicode(len(errmsg)))])
                 return [errmsg]
 
     if not env_path:

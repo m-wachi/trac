@@ -499,14 +499,18 @@ class Request(object):
                 self._outcharset = value[ctpos + 8:].strip()
         elif lower_name == 'content-length':
             self._content_length = int(value)
-        self._outheaders.append((name, unicode(value).encode('utf-8')))
+        self._outheaders.append((name, unicode(value)))
 
     def end_headers(self):
         """Must be called after all headers have been sent and before the
         actual content is written.
         """
         self._send_cookie_headers()
-        self._write = self._start_response(self._status, self._outheaders)
+        outheaders = self._outheaders
+        if six.PY2:
+            outheaders = [(name, value.encode('utf-8'))
+                          for name, value in outheaders]
+        self._write = self._start_response(self._status, outheaders)
 
     def check_modified(self, datetime, extra=''):
         """Check the request "If-None-Match" header against an entity tag.
@@ -843,7 +847,7 @@ class Request(object):
                            .replace(',', '%3C')
             self.outcookie[name]['path'] = path
 
-        cookies = to_unicode(self.outcookie.output(header='')).encode('utf-8')
+        cookies = to_unicode(self.outcookie.output(header=''))
         for cookie in cookies.splitlines():
             self._outheaders.append(('Set-Cookie', cookie.strip()))
 
