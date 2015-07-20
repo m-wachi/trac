@@ -445,11 +445,11 @@ def detect_unicode(data):
 
     Operate obviously only on `str` objects.
     """
-    if data.startswith('\xff\xfe'):
+    if data.startswith(b'\xff\xfe'):
         return 'utf-16-le'
-    elif data.startswith('\xfe\xff'):
+    elif data.startswith(b'\xfe\xff'):
         return 'utf-16-be'
-    elif data.startswith('\xef\xbb\xbf'):
+    elif data.startswith(b'\xef\xbb\xbf'):
         return 'utf-8'
     else:
         return None
@@ -462,10 +462,12 @@ def content_to_unicode(env, content, mimetype):
 
     >>> from trac.test import EnvironmentStub
     >>> env = EnvironmentStub()
-    >>> content_to_unicode(env, u"\ufeffNo BOM! h\u00e9 !", '')
-    u'No BOM! h\\xe9 !'
-    >>> content_to_unicode(env, "\xef\xbb\xbfNo BOM! h\xc3\xa9 !", '')
-    u'No BOM! h\\xe9 !'
+    >>> text = u"\ufeffNo BOM! h\u00e9 !"
+    >>> expected = u"No BOM! h\u00e9 !"
+    >>> content_to_unicode(env, text, '') == expected
+    True
+    >>> content_to_unicode(env, text.encode('utf-8'), '') == expected
+    True
 
     """
     mimeview = Mimeview(env)
@@ -725,11 +727,15 @@ class Mimeview(Component):
             if output:
                 content, content_type = output
                 if iterable:
-                    if isinstance(content, basestring):
+                    if isinstance(content, (bytes, unicode)):
                         content = (content,)
                 else:
-                    if not isinstance(content, basestring):
-                        content = ''.join(content)
+                    if not isinstance(content, (bytes, unicode)):
+                        def to_bytes(value):
+                            if isinstance(value, unicode):
+                                value = value.encode('utf-8')
+                            return value
+                        content = b''.join(to_bytes(v) for v in content)
                 return content, content_type, conversion.extension
         raise TracError(
             _("No available MIME conversions from %(old)s to %(new)s",
