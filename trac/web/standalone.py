@@ -48,7 +48,7 @@ class AuthenticationMiddleware(object):
 
     def __call__(self, environ, start_response):
         path_info = environ.get('PATH_INFO', '')
-        path_parts = filter(None, path_info.split('/'))
+        path_parts = [part for part in path_info.split('/') if part]
         if len(path_parts) > self.part and path_parts[self.part] == 'login':
             env_name = self.single_env_name or path_parts[0]
             if env_name:
