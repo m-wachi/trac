@@ -306,7 +306,8 @@ def suite(data=None, setup=None, file=__file__, teardown=None, context=None):
         for f in ('wiki-tests.txt', 'wikicreole-tests.txt'):
             testfile = os.path.join(os.path.split(file)[0], f)
             if os.path.exists(testfile):
-                data = open(testfile, 'r').read().decode('utf-8')
+                with open(testfile, 'rb') as fileobj:
+                    data = fileobj.read().decode('utf-8')
                 add_test_cases(data, testfile)
             else:
                 print('no ' + testfile)
