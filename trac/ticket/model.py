@@ -736,7 +736,9 @@ class AbstractEnum(object):
             self.name = self._old_name = None
 
     def __repr__(self):
-        return '<%s %r %r>' % (self.__class__.__name__, self.name, self.value)
+        value = repr(self.value)
+        return '<%s %r %s>' % (self.__class__.__name__, self.name,
+                               value[value.startswith('u'):])
 
     def delete(self):
         """Delete the enum value.
@@ -1012,7 +1014,9 @@ class Milestone(object):
             self.cache.factory((None, None, None, ''), self)
 
     def __repr__(self):
-        return '<%s %r>' % (self.__class__.__name__, self.name)
+        name = repr(self.name)
+        return '<%s %s>' % (self.__class__.__name__,
+                            name[name.startswith('u'):])
 
     @property
     def cache(self):
