@@ -27,7 +27,7 @@ from trac.core import TracError
 from trac.test import EnvironmentStub, Mock, MockPerm, locale_en
 from trac.util import create_file
 from trac.util.datefmt import utc
-from trac.util.text import shorten_line
+from trac.util.text import shorten_line, to_utf8
 from trac.web.api import HTTPBadRequest, HTTPInternalError, Request, \
                          RequestDone, parse_arg_list
 from tracopt.perm.authz_policy import AuthzPolicy
@@ -253,8 +253,8 @@ class RequestTestCase(unittest.TestCase):
         buf = io.BytesIO()
         req = Request(environ, start_response)
         req.send_header('Content-Type', 'text/plain;charset=utf-8')
-        req.write(('Foo', 'bar', 'baz'))
-        self.assertEqual('Foobarbaz', buf.getvalue())
+        req.write((b'Foo', b'bar', b'baz'))
+        self.assertEqual(b'Foobarbaz', buf.getvalue())
 
     def test_write_unicode(self):
         buf = io.BytesIO()
@@ -282,10 +282,10 @@ class RequestTestCase(unittest.TestCase):
         environ = self._make_environ(method='GET')
 
         def iterable():
-            yield 'line1,'
-            yield ''
-            yield 'line2,'
-            yield 'line3\n'
+            yield b'line1,'
+            yield b''
+            yield b'line2,'
+            yield b'line3\n'
 
         req = Request(environ, start_response)
         self.assertRaises(RequestDone, req.send, iterable())
@@ -294,10 +294,10 @@ class RequestTestCase(unittest.TestCase):
                           ('Expires', 'Fri, 01 Jan 1999 00:00:00 GMT'),
                           ('Content-Type', 'text/html;charset=utf-8')],
                          baton['headers'])
-        self.assertEqual('line1,line2,line3\n', baton['content'].getvalue())
+        self.assertEqual(b'line1,line2,line3\n', baton['content'].getvalue())
 
     def test_invalid_cookies(self):
-        environ = self._make_environ(HTTP_COOKIE='bad:key=value;')
+        environ = self._make_environ(HTTP_COOKIE='bad@key=value;')
         req = Request(environ, None)
         self.assertEqual('', str(req.incookie))
 
@@ -310,12 +310,12 @@ class RequestTestCase(unittest.TestCase):
     def test_read(self):
         environ = self._make_environ(**{'wsgi.input': io.BytesIO(b'test input')})
         req = Request(environ, None)
-        self.assertEqual('test input', req.read())
+        self.assertEqual(b'test input', req.read())
 
     def test_read_size(self):
         environ = self._make_environ(**{'wsgi.input': io.BytesIO(b'test input')})
         req = Request(environ, None)
-        self.assertEqual('test', req.read(size=4))
+        self.assertEqual(b'test', req.read(size=4))
 
     def test_qs_on_post(self):
         """Make sure req.args parsing is consistent even after the backwards
@@ -352,7 +352,7 @@ class RequestSendFileTestCase(unittest.TestCase):
         self.response = io.BytesIO()
         self.dir = tempfile.mkdtemp(prefix='trac-')
         self.filename = os.path.join(self.dir, 'test.txt')
-        self.data = 'contents\n'
+        self.data = b'contents\n'
         create_file(self.filename, self.data, 'wb')
         self.req = None
 
@@ -382,10 +382,11 @@ class RequestSendFileTestCase(unittest.TestCase):
                           'text/plain')
         self.assertEqual('200 Ok', self.status)
         self.assertEqual('text/plain', self.headers['Content-Type'])
-        self.assertEqual(str(len(self.data)), self.headers['Content-Length'])
+        self.assertEqual(unicode(len(self.data)),
+                         self.headers['Content-Length'])
         self.assertNotIn('X-Sendfile', self.headers)
-        self.assertEqual(self.data, ''.join(req._response))
-        self.assertEqual('', self.response.getvalue())
+        self.assertEqual(self.data, b''.join(req._response))
+        self.assertEqual(b'', self.response.getvalue())
 
     def test_send_file_with_xsendfile(self):
         req = self._create_req(use_xsendfile=True)
@@ -393,9 +394,9 @@ class RequestSendFileTestCase(unittest.TestCase):
                           'text/plain')
         self.assertEqual('200 Ok', self.status)
         self.assertEqual('text/plain', self.headers['Content-Type'])
-        self.assertEqual(self.filename, self.headers['X-Sendfile'])
+        self.assertEqual(unicode(self.filename), self.headers['X-Sendfile'])
         self.assertEqual(None, req._response)
-        self.assertEqual('', self.response.getvalue())
+        self.assertEqual(b'', self.response.getvalue())
 
     def test_send_file_with_xsendfile_header(self):
         req = self._create_req(use_xsendfile=True,
@@ -407,7 +408,7 @@ class RequestSendFileTestCase(unittest.TestCase):
         self.assertEqual(self.filename, self.headers['X-Accel-Redirect'])
         self.assertNotIn('X-Sendfile', self.headers)
         self.assertEqual(None, req._response)
-        self.assertEqual('', self.response.getvalue())
+        self.assertEqual(b'', self.response.getvalue())
 
     def test_send_file_with_xsendfile_and_empty_header(self):
         req = self._create_req(use_xsendfile=True, xsendfile_header='')
@@ -415,10 +416,11 @@ class RequestSendFileTestCase(unittest.TestCase):
                           'text/plain')
         self.assertEqual('200 Ok', self.status)
         self.assertEqual('text/plain', self.headers['Content-Type'])
-        self.assertEqual(str(len(self.data)), self.headers['Content-Length'])
+        self.assertEqual(unicode(len(self.data)),
+                         self.headers['Content-Length'])
         self.assertNotIn('X-Sendfile', self.headers)
-        self.assertEqual(self.data, ''.join(req._response))
-        self.assertEqual('', self.response.getvalue())
+        self.assertEqual(self.data, b''.join(req._response))
+        self.assertEqual(b'', self.response.getvalue())
 
 
 class SendErrorTestCase(unittest.TestCase):

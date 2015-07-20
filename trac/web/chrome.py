@@ -33,6 +33,7 @@ import re
 import six
 from six import text_type as unicode, string_types as basestring
 from six.moves import xrange
+import struct
 
 from genshi import Markup
 from genshi.builder import tag, Element
@@ -381,9 +382,9 @@ def _save_messages(req, url, permanent):
 
 
 # Mappings for removal of control characters
-_translate_nop = "".join(chr(i) for i in xrange(256))
-_invalid_control_chars = "".join(chr(i) for i in xrange(32)
-                                        if i not in (0x9, 0xa, 0xd))
+_translate_nop = struct.pack('256B', *xrange(256))
+_invalid_control_chars = struct.pack('29B', *(i for i in xrange(32)
+                                                if i not in (0x9, 0xa, 0xd)))
 
 
 class Chrome(Component):
