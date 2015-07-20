@@ -18,7 +18,6 @@
 
 import six
 from collections import defaultdict
-from operator import itemgetter
 from six import string_types as basestring
 
 from trac.config import (BoolOption, ConfigSection, ExtensionOption,
@@ -386,7 +385,8 @@ class NotificationSystem(Component):
         for subscriber in self.subscribers:
             if event.category == 'batchmodify':
                 for ticket_event in event.get_ticket_change_events(self.env):
-                    subscriptions.extend(x for x in subscriber.matches(ticket_event) if x)
+                    subscriptions.extend(x for x in subscriber.matches(ticket_event)
+                                  if x)
             else:
                 subscriptions.extend(x for x in subscriber.matches(event) if x)
 
@@ -395,7 +395,9 @@ class NotificationSystem(Component):
         # If it is "always" keep it. If it is "never" drop it.
 
         # sort by (transport, sid, authenticated, priority)
-        ordered = sorted(subscriptions, key=itemgetter(1,2,3,6))
+        ordered = sorted(subscriptions,
+                         key=lambda v: tuple('' if v[idx] is None else v[idx]
+                                             for idx in (1, 2, 3, 6)))
         previous_combination = None
         for rule, transport, sid, auth, addr, fmt, prio, adverb in ordered:
             if (transport, sid, auth) == previous_combination:

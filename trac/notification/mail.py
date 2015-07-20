@@ -40,7 +40,8 @@ from trac.notification.api import (
     NotificationSystem)
 from trac.util.compat import close_fds
 from trac.util.datefmt import time_now, to_utimestamp
-from trac.util.text import CRLF, exception_to_unicode, fix_eol, to_unicode
+from trac.util.text import CRLF, exception_to_unicode, fix_eol, to_unicode, \
+                           to_utf8
 from trac.util.translation import _, tag_
 
 
@@ -120,8 +121,7 @@ def set_header(message, key, value, charset):
         value = to_unicode(value)
     header = create_header(key, value, charset)
     if email:
-        header = str(header).replace('\\', r'\\') \
-                            .replace('"', r'\"')
+        header = header.encode().replace('\\', r'\\').replace('"', r'\"')
         header = '"%s" <%s>' % (header, email)
     if key in message:
         message.replace_header(key, header)
@@ -138,22 +138,25 @@ def create_mime_multipart(subtype):
 
 def create_mime_text(body, format, charset):
     """Create an appropriate email `MIMEText`."""
-    if isinstance(body, unicode):
-        body = body.encode('utf-8')
-    msg = MIMEText(body, format)
+    if six.PY2:
+        body = to_utf8(body)
+    else:
+        body = to_unicode(body)
+    msg = MIMEText('', format)
     # Message class computes the wrong type from MIMEText constructor,
     # which does not take a Charset object as initializer. Reset the
     # encoding type to force a new, valid evaluation
     del msg['Content-Transfer-Encoding']
+    msg.set_payload(body)
     msg.set_charset(charset)
     return msg
 
 
 def create_message_id(env, targetid, from_email, time, more=''):
     """Generate a predictable, but sufficiently unique message ID."""
-    s = '%s.%s.%d.%s' % (env.project_url.encode('utf-8'),
-                         targetid, to_utimestamp(time),
-                         more.encode('ascii', 'ignore'))
+    s = b'.'.join(to_utf8(value)
+                  for value in (env.project_url, targetid, to_utimestamp(time),
+                                more.encode('ascii', 'ignore')))
     dig = md5(s).hexdigest()
     host = from_email[from_email.find('@') + 1:]
     return '<%03d.%s@%s>' % (len(s), dig, host)
@@ -439,6 +442,8 @@ class SmtpEmailSender(Component):
     def send(self, from_addr, recipients, message):
         # Ensure the message complies with RFC2822: use CRLF line endings
         message = fix_eol(message, CRLF)
+        if isinstance(message, unicode):
+            message = message.encode('utf-8')
 
         self.log.info("Sending notification through SMTP at %s:%d to %s",
                       self.smtp_server, self.smtp_port, recipients)
@@ -495,6 +500,8 @@ class SendmailEmailSender(Component):
     def send(self, from_addr, recipients, message):
         # Use native line endings in message
         message = fix_eol(message, os.linesep)
+        if isinstance(message, unicode):
+            message = message.encode('utf-8')
 
         self.log.info("Sending notification through sendmail at %s to %s",
                       self.sendmail_path, recipients)
