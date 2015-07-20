@@ -18,8 +18,8 @@ import unittest
 from pkg_resources import parse_version
 from six import text_type as unicode
 
-from genshi.core import Stream, TEXT
-from genshi.input import HTMLParser
+from genshi.core import Attrs, START, Stream, TEXT
+from genshi.input import HTMLParser, XML
 
 try:
     import pygments
@@ -52,18 +52,29 @@ class PygmentsRendererTestCase(unittest.TestCase):
                         abs_href=Href('/'), href=Href('/'),
                         session={}, perm=None, authname=None, tz=None)
         self.context = web_context(self.req)
-        pygments_html = open(os.path.join(os.path.split(__file__)[0],
-                                       'pygments.html'))
-        self.pygments_html = Stream(list(HTMLParser(pygments_html, encoding='utf-8')))
+        html_file = os.path.join(os.path.dirname(__file__), 'pygments.html')
+        with open(html_file, 'rb') as f:
+            self.pygments_html = Stream(list(HTMLParser(f, encoding='utf-8')))
 
     def _expected(self, expected_id):
         return self.pygments_html.select(
             '//div[@id="%s"]/*|//div[@id="%s"]/text())' %
             (expected_id, expected_id))
 
+    def _sort_xhtml_attrs(self, source):
+        def fn(stream):
+            for kind, data, pos in stream:
+                if kind is START:
+                    data = (data[0], Attrs(sorted(data[1])))
+                yield kind, data, pos
+        if not isinstance(source, Stream):
+            source = XML(source)
+        return (source | fn).render(method='xhtml', strip_whitespace=False,
+                                    encoding=None)
+
     def _test(self, expected_id, result):
         expected = unicode(self._expected(expected_id))
-        result = unicode(result)
+        result = self._sort_xhtml_attrs(result)
         #print("\nE: " + repr(expected))
         #print("\nR: " + repr(result))
         expected, result = expected.splitlines(), result.splitlines()
