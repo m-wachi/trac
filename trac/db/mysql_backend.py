@@ -168,11 +168,11 @@ class MySQLConnector(Component):
         with a max of 767 bytes per column.
         """
         cols = []
-        limit_col = 767 / utf8_size
-        limit = min(1000 / (utf8_size * len(columns)), limit_col)
+        limit_col = 767 // utf8_size
+        limit = min(1000 // (utf8_size * len(columns)), limit_col)
         for c in columns:
             name = '`%s`' % c
-            table_col = filter((lambda x: x.name == c), table.columns)
+            table_col = [x for x in table.columns if x.name == c]
             if len(table_col) == 1 and table_col[0].type.lower() == 'text':
                 if table_col[0].key_size is not None:
                     name += '(%d)' % min(table_col[0].key_size, limit_col)
