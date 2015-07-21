@@ -15,6 +15,7 @@
 # Author: Alec Thomas <alec@swapoff.org>
 
 import os
+import six
 from ConfigParser import ParsingError
 from fnmatch import fnmatchcase
 from itertools import groupby
@@ -196,7 +197,7 @@ class AuthzPolicy(Component):
                 else:
                     self.groups_by_user.setdefault(item, set()).add(group)
 
-        for group, users in groups.iteritems():
+        for group, users in six.iteritems(groups):
             add_items('@' + group, users)
 
         self.authz_mtime = os.path.getmtime(self.authz_file)

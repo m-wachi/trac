@@ -17,6 +17,7 @@ working with a Trac environment to make test cases more succinct.
 
 import io
 import re
+import six
 
 from genshi.builder import tag
 from trac.tests.functional import internal_error
@@ -90,7 +91,7 @@ class FunctionalTester(object):
             tc.formvalue('propertyform',
                          'action_create_and_assign_reassign_owner',
                          info.pop('owner'))
-        for field, value in info.items():
+        for field, value in six.iteritems(info):
             tc.formvalue('propertyform', 'field_%s' % field, value)
         tc.submit('submit')
         tc.notfind(internal_error)
@@ -198,7 +199,7 @@ class FunctionalTester(object):
         report_url = self.url + "/report/%s" % id
         if args:
             arglist = []
-            for param, value in args.items():
+            for param, value in six.iteritems(args):
                 arglist.append('%s=%s' % (param.upper(), unicode_quote(value)))
             report_url += '?' + '&'.join(arglist)
         tc.go(report_url)

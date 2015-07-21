@@ -143,7 +143,7 @@
               <th class="sel">Enabled</th>
             </tr>
           </thead>
-          <tbody py:for="module_name, module in sorted(plugin.modules.iteritems())">
+          <tbody py:for="module_name, module in sorted(six.iteritems(plugin.modules))">
             <tr>
               <td py:with="show_doc = show == plugin.name or show == module_name" id="trac-mod-${module_name}"
                   class="trac-module${' collapsed' if not show_doc and module.description else None}">
@@ -160,7 +160,7 @@
               </td>
               <td class="sel trac-module"></td>
             </tr>
-            <tr py:for="component_name, component in sorted(module.components.iteritems())">
+            <tr py:for="component_name, component in sorted(six.iteritems(module.components))">
               <td py:with="show_doc = show == plugin.name or show == component.full_name" id="trac-comp-${component.full_name}"
                   class="trac-component${' collapsed' if not show_doc else None}">
                 <p class="trac-heading${' foldable' if component.description else None}">

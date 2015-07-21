@@ -20,6 +20,7 @@ import os.path
 import pkg_resources
 from pkg_resources import working_set, DistributionNotFound, VersionConflict, \
                           UnknownExtra
+import six
 from six import string_types as basestring
 import sys
 
@@ -59,7 +60,7 @@ def load_eggs(entry_point_name):
                 env.log.error('Skipping "%s": %s', item,
                               exception_to_unicode(e, traceback=True))
 
-        for dist, e in errors.iteritems():
+        for dist, e in six.iteritems(errors):
             _log_error(dist, e)
 
         for entry in sorted(working_set.iter_entry_points(entry_point_name),
@@ -211,10 +212,10 @@ def get_plugin_info(env, include_core=False):
             'required': getattr(c, 'required', False),
         }
     if not include_core:
-        for name in plugins.keys():
+        for name in list(plugins):
             if name.lower() == 'trac':
                 plugins.pop(name)
-    return sorted(plugins.itervalues(),
+    return sorted(six.itervalues(plugins),
                   key=lambda p: (p['name'].lower() != 'trac',
                                  p['name'].lower()))
 

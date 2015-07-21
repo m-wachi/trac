@@ -23,6 +23,7 @@ from itertools import izip
 import io
 import os
 import re
+import six
 from six import text_type as unicode
 from tokenize import generate_tokens, COMMENT, NAME, OP, STRING
 
@@ -142,7 +143,7 @@ try:
                     else:
                         messages.append(None)
 
-                    for name, message in messages_kwargs.iteritems():
+                    for name, message in six.iteritems(messages_kwargs):
                         if name not in func_kwargs_map:
                             continue
                         index = func_kwargs_map[name]
@@ -421,7 +422,7 @@ try:
         data = {'domain': domain, 'locale': locale}
 
         messages = {}
-        for msgid, msgstr in catalog.iteritems():
+        for msgid, msgstr in six.iteritems(catalog):
             if isinstance(msgid, (list, tuple)):
                 messages.setdefault(msgid[0], {})
                 messages[msgid[0]][msgid[1]] = msgstr

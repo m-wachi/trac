@@ -20,6 +20,7 @@ from functools import partial
 import io
 import pkg_resources
 import re
+import six
 from six import string_types as basestring, text_type as unicode
 from six.moves import xrange
 
@@ -268,7 +269,7 @@ class TicketModule(Component):
                 if 'ticket_details' in filters:
                     if fields:
                         labels = [tag.i(field_labels.get(k, k.capitalize()))
-                                  for k in fields.keys()]
+                                  for k in fields]
                         info = tagn_("%(labels)s changed",
                                      "%(labels)s changed", len(labels),
                                      labels=separated(labels, ', ')) + tag.br()
@@ -824,7 +825,7 @@ class TicketModule(Component):
 
     def _populate(self, req, ticket, plain_fields=False):
         if not plain_fields:
-            fields = dict((k[6:], v) for k, v in req.args.iteritems()
+            fields = dict((k[6:], v) for k, v in six.iteritems(req.args)
                           if k.startswith('field_')
                              and 'revert_' + k[6:] not in req.args)
             # Handle revert of checkboxes (in particular, revert to 1)
@@ -840,7 +841,7 @@ class TicketModule(Component):
         for each in Ticket.protected_fields:
             fields.pop(each, None)
             fields.pop('checkbox_' + each, None)    # See Ticket.populate()
-        for field, value in fields.iteritems():
+        for field, value in six.iteritems(fields):
             if field in ticket.time_fields:
                 try:
                     fields[field] = user_time(req, parse_date, value) \
@@ -948,7 +949,7 @@ class TicketModule(Component):
         def replay_changes(values, old_values, from_version, to_version):
             for version in xrange(from_version, to_version+1):
                 if version in changes:
-                    for k, v in changes[version]['fields'].iteritems():
+                    for k, v in six.iteritems(changes[version]['fields']):
                         values[k] = v['new']
                         if old_values is not None and k not in old_values:
                             old_values[k] = v['old']
@@ -980,7 +981,7 @@ class TicketModule(Component):
 
         # -- prop changes
         props = []
-        for k, v in new_ticket.iteritems():
+        for k, v in six.iteritems(new_ticket):
             if k not in text_fields:
                 old, new = old_ticket[k], new_ticket[k]
                 if old != new:
@@ -1231,7 +1232,7 @@ class TicketModule(Component):
             # wikify comment
             if 'comment' in change:
                 change_summary['added'] = ['comment']
-            for field, values in change['fields'].iteritems():
+            for field, values in six.iteritems(change['fields']):
                 if field == 'description':
                     change_summary.setdefault('changed', []).append(field)
                 else:
@@ -1485,7 +1486,7 @@ class TicketModule(Component):
             field_changes[field] = {'old': old, 'new': new, 'by': author,
                                     'label': field_labels.get(field, field)}
         # Start with user changes
-        for field, value in ticket._old.iteritems():
+        for field, value in six.iteritems(ticket._old):
             store_change(field, value or '', ticket[field], 'user')
 
         # Apply controller changes corresponding to the selected action
@@ -1495,7 +1496,7 @@ class TicketModule(Component):
             cname = controller.__class__.__name__
             action_changes = controller.get_ticket_changes(req, ticket,
                                                            selected_action)
-            for key in action_changes.keys():
+            for key in action_changes:
                 old = ticket[key]
                 new = action_changes[key]
                 # Check for conflicting changes between controllers
@@ -1511,7 +1512,7 @@ class TicketModule(Component):
                 store_change(key, old, new, cname)
 
         # Detect non-changes
-        for key, item in field_changes.items():
+        for key, item in list(six.iteritems(field_changes)):
             if item['old'] == item['new']:
                 del field_changes[key]
         return field_changes, problems
@@ -1709,7 +1710,7 @@ class TicketModule(Component):
                 if ticket.resource.version is not None and \
                         cnum > ticket.resource.version:
                     # Retrieve initial ticket values from later changes
-                    for k, v in change['fields'].iteritems():
+                    for k, v in six.iteritems(change['fields']):
                         if k not in values:
                             values[k] = v['old']
                     skip = True
@@ -1723,7 +1724,7 @@ class TicketModule(Component):
                                        'comment:%s' % replyto)
                     if ticket.resource.version:
                         # Override ticket value by current changes
-                        for k, v in change['fields'].iteritems():
+                        for k, v in six.iteritems(change['fields']):
                             values[k] = v['new']
                     if 'description' in change['fields']:
                         data['description_change'] = change
@@ -1800,7 +1801,7 @@ class TicketModule(Component):
                 yield group
 
     def _render_property_changes(self, req, ticket, fields, resource_new=None):
-        for field, changes in fields.iteritems():
+        for field, changes in six.iteritems(fields):
             new, old = changes['new'], changes['old']
             rendered = self._render_property_diff(req, ticket, field, old, new,
                                                   resource_new)

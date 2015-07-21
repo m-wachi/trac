@@ -13,6 +13,7 @@
 
 from HTMLParser import HTMLParser
 import re
+import six
 
 from genshi import Markup, HTML, escape, unescape
 from genshi.core import stripentities, striptags, START, END
@@ -223,7 +224,7 @@ class Deuglifier(object):
         return re.sub(self._compiled_rules, self.replace, indata)
 
     def replace(self, fullmatch):
-        for mtype, match in fullmatch.groupdict().items():
+        for mtype, match in six.iteritems(fullmatch.groupdict()):
             if match:
                 if mtype == 'font':
                     return '<span>'

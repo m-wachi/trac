@@ -19,6 +19,7 @@ from collections import deque
 from contextlib import contextmanager
 from functools import partial
 import re
+import six
 from six import text_type as unicode
 from six.moves import xrange
 from subprocess import Popen, PIPE
@@ -291,12 +292,12 @@ class Storage(object):
 
         def iter_branches(self):
             head = self.refs_dict.get('HEAD')
-            for refname, rev in self.refs_dict.iteritems():
+            for refname, rev in six.iteritems(self.refs_dict):
                 if refname.startswith('refs/heads/'):
                     yield refname[11:], rev, refname == head
 
         def iter_tags(self):
-            for refname, rev in self.refs_dict.iteritems():
+            for refname, rev in six.iteritems(self.refs_dict):
                 if refname.startswith('refs/tags/'):
                     yield refname[10:], rev
 
@@ -476,8 +477,8 @@ class Storage(object):
             return revs_seen.setdefault(rev, rev)
 
         refs = dict((refname, _rev_reuse(rev))
-                    for refname, rev in refs.iteritems())
-        head_revs = set(rev for refname, rev in refs.iteritems()
+                    for refname, rev in six.iteritems(refs))
+        head_revs = set(rev for refname, rev in six.iteritems(refs)
                             if refname.startswith('refs/heads/'))
         rev_list = [map(_rev_reuse, line.split())
                     for line in self.repo.rev_list('--parents', '--topo-order',
@@ -539,7 +540,7 @@ class Storage(object):
         rheads_seen = None
 
         # convert sdb either to dict or array depending on size
-        tmp = [()] * (max(new_sdb.keys()) + 1) if len(new_sdb) > 5000 else {}
+        tmp = [()] * (max(new_sdb) + 1) if len(new_sdb) > 5000 else {}
         try:
             while True:
                 k, v = new_sdb.popitem()
@@ -567,7 +568,7 @@ class Storage(object):
                 tags[refname[:-3]] = rev
             else:
                 refs[refname] = rev
-        refs.update(tags.iteritems())
+        refs.update(six.iteritems(tags))
 
         if refs:
             refname = (self.repo.symbolic_ref('-q', 'HEAD') or '').strip()
@@ -632,7 +633,7 @@ class Storage(object):
         if lin_rev < 1 or lin_rev > len(db):
             return None
 
-        for k, v in db.iteritems():
+        for k, v in six.iteritems(db):
             if v[2] == lin_rev:
                 return k
 
@@ -891,7 +892,7 @@ class Storage(object):
             return []
 
     def all_revs(self):
-        return self.get_commits().iterkeys()
+        return six.iterkeys(self.get_commits())
 
     def sync(self):
         with self.__rev_cache_lock:

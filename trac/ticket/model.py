@@ -18,6 +18,7 @@
 #         Christopher Lenz <cmlenz@gmx.de>
 
 import re
+import six
 from six import text_type as unicode
 
 from trac import core
@@ -233,11 +234,11 @@ class Ticket(object):
     def populate(self, values):
         """Populate the ticket with 'suitable' values from a dictionary"""
         field_names = [f['name'] for f in self.fields]
-        for name in [name for name in values.keys() if name in field_names]:
+        for name in [name for name in values if name in field_names]:
             self[name] = values[name]
 
         # We have to do an extra trick to catch unchecked checkboxes
-        for name in [name for name in values.keys() if name[9:] in field_names
+        for name in [name for name in values if name[9:] in field_names
                      and name.startswith('checkbox_')]:
             if name[9:] not in values:
                 self[name[9:]] = '0'
@@ -320,7 +321,7 @@ class Ticket(object):
             self['cc'] = _fixup_cc_list(self.values['cc'])
 
         props_unchanged = all(self.values.get(k) == v
-                              for k, v in self._old.iteritems())
+                              for k, v in six.iteritems(self._old))
         if (not comment or not comment.strip()) and props_unchanged:
             return False  # Not modified
 
@@ -358,7 +359,7 @@ class Ticket(object):
                     cnum = '%s.%s' % (replyto, cnum)
 
             # store fields
-            for name in self._old.keys():
+            for name in self._old:
                 if name in self.custom_fields:
                     for row in db("""SELECT * FROM ticket_custom
                                      WHERE ticket=%s and name=%s
@@ -397,7 +398,7 @@ class Ticket(object):
 
     def _to_db_types(self, values):
         values = values.copy()
-        for field, value in values.iteritems():
+        for field, value in six.iteritems(values):
             if field in self.time_fields:
                 is_custom_field = field in self.custom_fields
                 values[field] = _datetime_to_db_str(value, is_custom_field)
@@ -965,7 +966,7 @@ class MilestoneCache(core.Component):
 
     def fetchall(self):
         """Iterator on all milestones."""
-        for data in self.milestones.itervalues():
+        for data in six.itervalues(self.milestones):
             yield self.factory(data)
 
     def factory(self, values, milestone=None):
@@ -1096,7 +1097,7 @@ class Milestone(object):
         # Fields need reset if renamed or completed/due changed
         TicketSystem(self.env).reset_ticket_fields()
 
-        old_values = dict((k, v) for k, v in old.iteritems()
+        old_values = dict((k, v) for k, v in six.iteritems(old)
                           if getattr(self, k) != v)
         for listener in TicketSystem(self.env).milestone_change_listeners:
             listener.milestone_changed(self, old_values)

@@ -17,6 +17,7 @@
 #         Matthew Good <trac@matt-good.net>
 
 import os.path
+import six
 
 from trac.config import Option, PathOption
 from trac.core import *
@@ -99,7 +100,7 @@ def parse(authz, modules):
             yield subject
 
     authz = {}
-    for (module, path), items in sections.iteritems():
+    for (module, path), items in six.iteritems(sections):
         section = authz.setdefault(module, {}).setdefault(path, {})
         for subject, perms in items:
             for user in resolve(subject, set()):
@@ -182,8 +183,9 @@ class AuthzSourcePolicy(Component):
                 # Allow access to parent directories of allowed resources
                 if any(section.get(user) is True
                        for module in modules
-                       for spath, section in authz.get(module, {}).iteritems()
-                       if spath.startswith(path)
+                       for spath, section
+                           in six.iteritems(authz.get(module, {}))
+                           if spath.startswith(path)
                        for user in usernames):
                     return True
 
@@ -227,9 +229,10 @@ class AuthzSourcePolicy(Component):
             self.log.info('Parsing authz file: %s', self.authz_file)
             try:
                 self._authz = parse(read_file(self.authz_file), modules)
-                self._users = set(user for paths in self._authz.itervalues()
-                                  for path in paths.itervalues()
-                                  for user, result in path.iteritems()
+                self._users = set(user
+                                  for paths in six.itervalues(self._authz)
+                                  for path in six.itervalues(paths)
+                                  for user, result in six.iteritems(path)
                                   if result)
             except Exception as e:
                 self._authz = None

@@ -61,6 +61,7 @@ that can be `read()`.
 
 import io
 import re
+import six
 from collections import namedtuple
 from six import string_types as basestring, text_type as unicode
 from six.moves import xrange
@@ -352,7 +353,7 @@ KNOWN_MIME_TYPES = {
     'text/x-verilog':          'v',
     'text/x-vhdl':             'vhd',
 }
-for t in KNOWN_MIME_TYPES.keys():
+for t in KNOWN_MIME_TYPES:
     types = KNOWN_MIME_TYPES[t].split()
     if t.startswith('text/x-'):
         types.append(t[len('text/x-'):])
@@ -370,7 +371,7 @@ for x in TEXT_X_TYPES.split():
 # Default mapping from keywords/extensions to known MIME types:
 
 MIME_MAP = {}
-for t, exts in KNOWN_MIME_TYPES.items():
+for t, exts in six.iteritems(KNOWN_MIME_TYPES):
     MIME_MAP[t] = t
     for e in exts:
         MIME_MAP[e] = t
@@ -394,7 +395,7 @@ def get_mimetype(filename, content=None, mime_map=MIME_MAP,
     `content` is either a `str` or an `unicode` string.
     """
     # 0) mimetype from filename pattern (most specific)
-    for mimetype, regexp in mime_map_patterns.iteritems():
+    for mimetype, regexp in six.iteritems(mime_map_patterns):
         if regexp.match(filename):
             return mimetype
     suffix = filename.split('.')[-1]

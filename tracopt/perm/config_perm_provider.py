@@ -11,6 +11,8 @@
 # individuals. For the exact contribution history, see the revision
 # history and logs, available at http://trac.edgewall.org/log/.
 
+import six
+
 from trac.core import *
 from trac.config import ConfigSection
 from trac.perm import IPermissionRequestor
@@ -61,4 +63,4 @@ class ExtraPermissionsProvider(Component):
             meta = meta.strip().upper()
             if meta and not meta.startswith('_'):
                 permissions.setdefault(meta, []).extend(perms)
-        return [(k, v) if v else k for k, v in permissions.iteritems()]
+        return [(k, v) if v else k for k, v in six.iteritems(permissions)]

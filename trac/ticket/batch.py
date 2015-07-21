@@ -135,7 +135,7 @@ class BatchModifyModule(Component):
             actions = ts.get_available_actions(req, ticket)
             for action in actions:
                 tickets_by_action.setdefault(action, []).append(ticket)
-        sorted_actions = sorted(set(tickets_by_action.keys()))
+        sorted_actions = sorted(set(tickets_by_action))
         for action in sorted_actions:
             first_label = None
             hints = []

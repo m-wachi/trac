@@ -20,6 +20,7 @@ import io
 import os
 import re
 import shutil
+import six
 import sys
 import tempfile
 import unittest
@@ -1554,9 +1555,9 @@ class TracAdminComponentTestCase(unittest.TestCase):
             'Option.registry': Option.registry,
         }
         ComponentMeta._components = list(ComponentMeta._components)
-        ComponentMeta._registry = dict((interface, list(classes))
-                                       for interface, classes
-                                       in ComponentMeta._registry.iteritems())
+        ComponentMeta._registry = dict(
+            (interface, list(classes))
+            for interface, classes in six.iteritems(ComponentMeta._registry))
         ConfigSection.registry = {}
         Option.registry = {}
 
@@ -1630,7 +1631,7 @@ name = project2
         self.assertEqual('project1', cfile.get('project', 'name'))
         self.assertEqual('sqlite:db/sqlite.db', cfile.get('trac', 'database'))
         for (section, name), option in \
-                Option.get_registry(env.compmgr).iteritems():
+                six.iteritems(Option.get_registry(env.compmgr)):
             if (section, name) not in \
                     (('trac', 'database'), ('project', 'name')):
                 self.assertEqual(option.default, cfile.get(section, name))

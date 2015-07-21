@@ -92,7 +92,7 @@ Arguments:
 
     <!--! Property changes -->
     <table py:if="change.fields" class="changes">
-      <tr py:for="field_name, field in sorted(change.fields.iteritems(), key=lambda item: item[1].label.lower())"
+      <tr py:for="field_name, field in sorted(six.iteritems(change.fields), key=lambda item: item[1].label.lower())"
           class="trac-field-${field_name}${' trac-conflict' if preview and field_name in conflicts else None}">
         <th class="trac-field-${field_name}" i18n:msg="field">${field.label}:</th>
         <td py:choose="">

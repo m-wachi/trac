@@ -11,6 +11,8 @@
 # individuals. For the exact contribution history, see the revision
 # history and logs, available at http://trac.edgewall.org/.
 
+import six
+
 from trac.ticket.default_workflow import get_workflow_config
 from trac.upgrades import backup_config_file
 
@@ -34,15 +36,15 @@ def do_upgrade(env, version, cursor):
     save = False
     all_actions = get_workflow_config(env.config)
     all_states = list(set(
-        [state for action in all_actions.itervalues()
+        [state for action in six.itervalues(all_actions)
                for state in action['oldstates']] +
-        [action['newstate'] for action in all_actions.itervalues()]))
+        [action['newstate'] for action in six.itervalues(all_actions)]))
 
-    for action, attributes in new_actions.items():
+    for action, attributes in six.iteritems(new_actions):
         if action == 'create_and_assign' and 'assigned' not in all_states:
             continue
         if action not in env.config['ticket-workflow']:
-            for attr, value in attributes.items():
+            for attr, value in six.iteritems(attributes):
                 key = action + ('.' + attr if attr else '')
                 env.config.set('ticket-workflow', key, value)
             save = True

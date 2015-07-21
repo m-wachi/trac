@@ -15,6 +15,7 @@
 import copy
 import os.path
 import re
+import six
 from ConfigParser import ConfigParser, ParsingError
 from copy import deepcopy
 from six import string_types as basestring, text_type as unicode
@@ -258,7 +259,7 @@ class Configuration(object):
         """
         defaults = {}
         for (section, key), option in \
-                Option.get_registry(compmgr).iteritems():
+                six.iteritems(Option.get_registry(compmgr)):
             defaults.setdefault(section, {})[key] = \
                 option.dumps(option.default)
         return defaults
@@ -303,7 +304,7 @@ class Configuration(object):
         """Write the configuration options to the primary file."""
 
         all_options = {}
-        for (section, name), option in Option.get_registry().iteritems():
+        for (section, name), option in six.iteritems(Option.get_registry()):
             all_options.setdefault(section, {})[name] = option
 
         def normalize(section, name, value):
@@ -399,11 +400,11 @@ class Configuration(object):
                 clsname = (cls.__module__ + '.' + cls.__name__).lower() \
                                                                .split('.')
                 if clsname[:len(component)] == component:
-                    for option in cls.__dict__.itervalues():
+                    for option in six.itervalues(cls.__dict__):
                         if isinstance(option, Option):
                             set_option_default(option)
         else:
-            for option in Option.get_registry(compmgr).itervalues():
+            for option in six.itervalues(Option.get_registry(compmgr)):
                 set_option_default(option)
 
     def _get_parents(self):
@@ -469,7 +470,7 @@ class Section(object):
                     options.add(loption)
                     yield option
         if defaults:
-            for section, option in Option.get_registry(compmgr).iterkeys():
+            for section, option in Option.get_registry(compmgr):
                 if section == self.name and option.lower() not in options:
                     yield option
 
@@ -616,11 +617,11 @@ def _get_registry(cls, compmgr=None):
     from trac.core import ComponentMeta
     components = {}
     for comp in ComponentMeta._components:
-        for attr in comp.__dict__.itervalues():
+        for attr in six.itervalues(comp.__dict__):
             if isinstance(attr, cls):
                 components[attr] = comp
 
-    return dict(each for each in cls.registry.iteritems()
+    return dict(each for each in six.iteritems(cls.registry)
                 if each[1] not in components
                    or compmgr.is_enabled(components[each[1]]))
 
@@ -978,7 +979,7 @@ def get_configinfo(env):
     """
     all_options = {}
     for (section, name), option in \
-            Option.get_registry(env.compmgr).iteritems():
+            six.iteritems(Option.get_registry(env.compmgr)):
         all_options.setdefault(section, {})[name] = option
     sections = []
     for section in env.config.sections(env.compmgr):

@@ -18,6 +18,7 @@
 
 import os
 import re
+import six
 import smtplib
 from email.charset import BASE64, QP, SHORTEST, Charset
 from email.header import Header
@@ -282,7 +283,7 @@ class EmailDistributor(Component):
             return
         self.log.debug("EmailDistributor has found the following formats "
                        "capable of handling '%s' of '%s': %s", transport,
-                       event.realm, ', '.join(formats.keys()))
+                       event.realm, ', '.join(formats))
 
         notify_sys = NotificationSystem(self.env)
         always_cc = set(notify_sys.smtp_always_cc_list)
@@ -315,7 +316,7 @@ class EmailDistributor(Component):
 
         outputs = {}
         failed = []
-        for fmt, formatter in formats.iteritems():
+        for fmt, formatter in six.iteritems(formats):
             if fmt not in addresses and fmt != 'text/plain':
                 continue
             try:
@@ -334,7 +335,7 @@ class EmailDistributor(Component):
                 addresses.setdefault('text/plain', set()) \
                          .update(addresses.pop(fmt, ()))
 
-        for fmt, addrs in addresses.iteritems():
+        for fmt, addrs in six.iteritems(addresses):
             self.log.debug("EmailDistributor is sending event as '%s' to: %s",
                            fmt, ', '.join(addrs))
             message = self._create_message(fmt, outputs)
@@ -399,7 +400,7 @@ class EmailDistributor(Component):
             headers['Bcc'] = ', '.join(bcc_addrs)
         headers['Reply-To'] = smtp_reply_to
 
-        for k, v in headers.iteritems():
+        for k, v in six.iteritems(headers):
             set_header(message, k, v, self._charset)
         for decorator in self.decorators:
             decorator.decorate_message(event, message, self._charset)

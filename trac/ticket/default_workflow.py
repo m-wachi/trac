@@ -17,6 +17,7 @@
 # Author: Eli Carter
 
 import io
+import six
 from ConfigParser import ParsingError, RawConfigParser
 from collections import defaultdict
 from functools import partial
@@ -75,7 +76,7 @@ def parse_workflow_config(rawactions):
             actions[name]['newstate'] = newstate
         else:
             attribute = parts[1]
-            if attribute not in known_attrs.keys() or \
+            if attribute not in known_attrs or \
                     isinstance(known_attrs[attribute], basestring):
                 actions[name][attribute] = value
             elif isinstance(known_attrs[attribute], int):
@@ -83,13 +84,13 @@ def parse_workflow_config(rawactions):
             elif isinstance(known_attrs[attribute], list):
                 actions[name][attribute] = to_list(value)
 
-    for action, attributes in actions.items():
+    for action, attributes in six.iteritems(actions):
         if 'label' not in attributes:
             if 'name' in attributes:  # backwards-compatibility, #11828
                 attributes['label'] = attributes['name']
             else:
                 attributes['label'] = action.replace("_", " ").strip()
-        for key, val in required_attrs.items():
+        for key, val in six.iteritems(required_attrs):
             attributes.setdefault(key, val)
 
     return actions
@@ -190,7 +191,7 @@ Read TracWorkflow for more information (don't forget to 'wiki upgrade' as well)
 
         ticket_perm = req.perm(ticket.resource)
         allowed_actions = []
-        for action_name, action_info in self.actions.items():
+        for action_name, action_info in six.iteritems(self.actions):
             oldstates = action_info['oldstates']
             if exists and oldstates == ['*'] or status in oldstates:
                 # This action is valid in this state.  Check permissions.
@@ -219,7 +220,7 @@ Read TracWorkflow for more information (don't forget to 'wiki upgrade' as well)
 
         """
         all_status = set()
-        for attributes in self.actions.values():
+        for attributes in six.itervalues(self.actions):
             all_status.update(attributes['oldstates'])
             all_status.add(attributes['newstate'])
         all_status.discard('*')
@@ -482,10 +483,10 @@ Read TracWorkflow for more information (don't forget to 'wiki upgrade' as well)
             'operations': ['reset_workflow'],
             'permissions': ['TICKET_ADMIN']
         }
-        for key, val in reset.items():
+        for key, val in six.iteritems(reset):
             actions['_reset'].setdefault(key, val)
 
-        for name, info in actions.iteritems():
+        for name, info in six.iteritems(actions):
             for val in ('<none>', '< none >'):
                 sub_val(actions[name]['oldstates'], val, None)
             if not info['newstate']:
@@ -498,7 +499,7 @@ Read TracWorkflow for more information (don't forget to 'wiki upgrade' as well)
         (for use in the controller's get_all_status())
         """
         actions = [(info['default'], action) for action, info
-                   in self.actions.items()
+                   in six.iteritems(self.actions)
                    if operation in info['operations']]
         return actions
 
@@ -512,7 +513,7 @@ Read TracWorkflow for more information (don't forget to 'wiki upgrade' as well)
         # Be sure to look at the original status.
         status = ticket._old.get('status', ticket['status'])
         actions = [(info['default'], action)
-                   for action, info in self.actions.items()
+                   for action, info in six.iteritems(self.actions)
                    if operation in info['operations'] and
                       ('*' in info['oldstates'] or
                        status in info['oldstates']) and
@@ -634,13 +635,13 @@ class WorkflowMacro(WikiMacroBase):
             raw_actions = list(parser.items('ticket-workflow'))
         actions = parse_workflow_config(raw_actions)
         states = list(set(
-            [state for action in actions.itervalues()
+            [state for action in six.itervalues(actions)
                    for state in action['oldstates']] +
-            [action['newstate'] for action in actions.itervalues()]))
-        action_labels = [attrs['label'] for attrs in actions.values()]
-        action_names = actions.keys()
+            [action['newstate'] for action in six.itervalues(actions)]))
+        action_labels = [attrs['label'] for attrs in six.itervalues(actions)]
+        action_names = list(actions)
         edges = []
-        for name, action in actions.items():
+        for name, action in six.iteritems(actions):
             new_index = states.index(action['newstate'])
             name_index = action_names.index(name)
             for old_state in action['oldstates']:

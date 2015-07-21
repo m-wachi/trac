@@ -12,6 +12,7 @@
 # history and logs, available at http://trac.edgewall.org/log/.
 
 import os.path
+import six
 import tempfile
 import unittest
 
@@ -37,7 +38,7 @@ def _make_environ(scheme='http', server_name='example.org',
 
 def _make_req(environ, start_response, **kwargs):
     req = Request(environ, start_response)
-    for name, value in kwargs.iteritems():
+    for name, value in six.iteritems(kwargs):
         setattr(req, name, value)
     return req
 

@@ -20,6 +20,7 @@ import inspect
 import io
 import os
 import re
+import six
 
 from genshi.builder import tag
 from genshi.core import Markup
@@ -692,7 +693,7 @@ class ImageMacro(WikiMacroBase):
                 attr[key] = desc
         if style:
             attr['style'] = '; '.join('%s:%s' % (k, escape(v))
-                                      for k, v in style.iteritems())
+                                      for k, v in six.iteritems(style))
         result = tag.img(src=raw_url, **attr)
         if link is not None:
             result = tag.a(result, href=link or url,
@@ -784,12 +785,12 @@ class TracIniMacro(WikiMacroBase):
 
         registry = ConfigSection.get_registry(self.compmgr)
         sections = dict((name, section.doc)
-                        for name, section in registry.iteritems()
+                        for name, section in six.iteritems(registry)
                         if name.startswith(section_filter))
 
         registry = Option.get_registry(self.compmgr)
         options = {}
-        for (section, key), option in registry.iteritems():
+        for (section, key), option in six.iteritems(registry):
             if section.startswith(section_filter):
                 options.setdefault(section, {})[key] = option
                 sections.setdefault(section, '')
@@ -812,10 +813,10 @@ class TracIniMacro(WikiMacroBase):
                         default_cell(option),
                         class_='odd' if idx % 2 else 'even')
                  for idx, option in
-                    enumerate(sorted(options.get(section, {}).itervalues(),
+                    enumerate(sorted(six.itervalues(options.get(section, {})),
                                      key=lambda o: o.name))
                  if option.name.startswith(key_filter))))
-            for section, section_doc in sorted(sections.iteritems()))
+            for section, section_doc in sorted(six.iteritems(sections)))
 
 
 class KnownMimeTypesMacro(WikiMacroBase):
@@ -835,7 +836,7 @@ class KnownMimeTypesMacro(WikiMacroBase):
             mime_type_filter = args.pop(0).strip().rstrip('*')
 
         mime_types = {}
-        for key, mime_type in mime_map.iteritems():
+        for key, mime_type in six.iteritems(mime_map):
             if (not mime_type_filter or
                 mime_type.startswith(mime_type_filter)) and key != mime_type:
                 mime_types.setdefault(mime_type, []).append(key)
@@ -852,7 +853,7 @@ class KnownMimeTypesMacro(WikiMacroBase):
                                   style="text-align: left"),
                            tag.td(tag.code(
                                ' '.join(sorted(mime_types[mime_type])))))
-                    for mime_type in sorted(mime_types.keys()))))
+                    for mime_type in sorted(mime_types))))
 
 
 class TracGuideTocMacro(WikiMacroBase):

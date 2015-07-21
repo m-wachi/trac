@@ -19,6 +19,7 @@ from datetime import datetime, timedelta
 from six import text_type as unicode
 import io
 import re
+import six
 
 from genshi.builder import tag
 
@@ -221,7 +222,7 @@ class DefaultTicketGroupStatsProvider(Component):
                                                       'order': order})
                 group[qualifier] = value
                 order = max(order, int(group['order'])) + 1
-            return [group for group in sorted(groups.values(),
+            return [group for group in sorted(six.itervalues(groups),
                                               key=lambda g: int(g['order']))]
         else:
             return self.default_milestone_groups
@@ -274,7 +275,7 @@ class DefaultTicketGroupStatsProvider(Component):
         for group in groups:
             group_cnt = 0
             query_args = {}
-            for s, cnt in status_cnt.iteritems():
+            for s, cnt in six.iteritems(status_cnt):
                 if s in group['statuses']:
                     group_cnt += cnt
                     query_args.setdefault('status', []).append(s)
@@ -514,7 +515,8 @@ class RoadmapModule(Component):
             return '\\n'.join(re.split(r'[\r\n]+', s))
 
         def write_prop(name, value, params={}):
-            text = ';'.join([name] + [k + '=' + v for k, v in params.items()]) \
+            text = ';'.join([name] + [k + '=' + v for k, v
+                                                  in six.iteritems(params)]) \
                  + ':' + escape_value(value)
             firstline = 1
             while text:
@@ -647,7 +649,7 @@ class MilestoneModule(Component):
         if 'milestone' in filters:
             milestone_realm = Resource(self.realm)
             for name, due, completed, description \
-                    in MilestoneCache(self.env).milestones.itervalues():
+                    in six.itervalues(MilestoneCache(self.env).milestones):
                 if completed and start <= completed <= stop:
                     # TODO: creation and (later) modifications should also be
                     #       reported
@@ -1094,7 +1096,7 @@ class MilestoneModule(Component):
         term_regexps = search_to_regexps(terms)
         milestone_realm = Resource(self.realm)
         for name, due, completed, description \
-                in MilestoneCache(self.env).milestones.itervalues():
+                in six.itervalues(MilestoneCache(self.env).milestones):
             if all(r.search(description) or r.search(name)
                    for r in term_regexps):
                 milestone = milestone_realm(id=name)

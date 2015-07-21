@@ -32,6 +32,7 @@ import re
 from six import string_types as basestring, text_type as unicode
 from six.moves import xrange
 import shutil
+import six
 import sys
 import string
 import struct
@@ -684,8 +685,8 @@ def import_namespace(globals_dict, module_name):
     """
     __import__(module_name)
     module = sys.modules[module_name]
-    globals_dict.update(item for item in module.__dict__.iteritems()
-                        if item[0] not in _dont_import)
+    globals_dict.update(item for item in six.iteritems(module.__dict__)
+                             if item[0] not in _dont_import)
     globals_dict.pop('import_namespace', None)
 
 

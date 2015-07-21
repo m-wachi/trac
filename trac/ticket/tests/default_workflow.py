@@ -14,6 +14,7 @@
 from __future__ import print_function
 
 import os
+import six
 import tempfile
 import unittest
 
@@ -69,12 +70,12 @@ class ConfigurableTicketWorkflowTestCase(unittest.TestCase):
         all_actions = self.ctlr.get_all_actions()
 
         resolve_action = None
-        for name, attrs in all_actions.items():
+        for name, attrs in six.iteritems(all_actions):
             if name == 'resolve':
                 resolve_action = attrs
 
         self.assertIsNotNone(resolve_action)
-        self.assertIn('set_milestone', resolve_action.keys())
+        self.assertIn('set_milestone', list(resolve_action))
         self.assertEqual('reject', resolve_action['set_milestone'])
 
     def test_owner_from_component(self):

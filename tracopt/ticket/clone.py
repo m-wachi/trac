@@ -11,6 +11,8 @@
 # individuals. For the exact contribution history, see the revision
 # history and logs, available at http://trac.edgewall.org/log/.
 
+import six
+
 from genshi.builder import tag
 from genshi.filters import Transformer
 
@@ -60,7 +62,7 @@ class TicketCloneButton(Component):
                           value=captioned_button(req, '+#', _("Clone")),
                           title=_("Create a copy of this ticket")),
                 [tag.input(type="hidden", name='field_' + n, value=v)
-                 for n, v in fields.iteritems()],
+                 for n, v in six.iteritems(fields)],
                 tag.input(type="hidden", name='preview', value=''),
                 class_="inlinebuttons"),
             method="post", action=req.href.newticket())

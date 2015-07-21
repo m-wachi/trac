@@ -30,6 +30,7 @@ import os.path
 import pkg_resources
 import pprint
 import re
+import six
 from six import text_type as unicode, string_types as basestring
 from six.moves import xrange
 
@@ -334,7 +335,7 @@ def chrome_info_script(req, use_late=None):
                    (to_js_string(link['href']), to_js_string(link['type']))
                    for link in links or ())
     content.extend('var %s=%s;' % (name, presentation.to_json(value))
-                   for name, value in (script_data or {}).iteritems())
+                   for name, value in six.iteritems(script_data or {}))
 
     fragment = tag()
     if content:
@@ -850,12 +851,12 @@ class Chrome(Component):
                                    '"%(name)s"', name=name))
 
         nav = {}
-        for category, navitems in allitems.items():
+        for category, navitems in six.iteritems(allitems):
             sect = self.config[category]
             order = dict((name, sect.getfloat(name + '.order', float('inf')))
                          for name in navitems)
             nav[category] = []
-            for name, label in navitems.items():
+            for name, label in six.iteritems(navitems):
                 nav[category].append({
                     'name': name,
                     'label': label,
@@ -1002,6 +1003,7 @@ class Chrome(Component):
             return get_resource_url(self.env, resource, abs_href, **kwargs)
 
         d.update({
+            'six': six,
             'unicode': unicode,
             'basestring': basestring,
             'context': web_context(req) if req else None,

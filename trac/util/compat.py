@@ -19,6 +19,7 @@ previous versions of Python from 2.6 onward.
 
 import math
 import os
+import six
 import time
 from six.moves import xrange
 
@@ -179,7 +180,7 @@ except ImportError:
         def clear(self):
             """od.clear() -> None.  Remove all items from od."""
             try:
-                for node in self.__map.itervalues():
+                for node in six.itervalues(self.__map):
                     del node[:]
                 root = self.__root
                 root[:] = [root, root, None]

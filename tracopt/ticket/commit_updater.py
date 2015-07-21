@@ -36,6 +36,7 @@
 # ----------------------------------------------------------------------------
 
 import re
+import six
 
 from genshi.builder import tag
 
@@ -170,7 +171,7 @@ class CommitTicketUpdater(Component):
         old_tickets = {}
         if old_changeset is not None:
             old_tickets = self._parse_message(old_changeset.message)
-        tickets = dict(each for each in tickets.iteritems()
+        tickets = dict(each for each in six.iteritems(tickets)
                        if each[0] not in old_tickets)
         comment = self.make_ticket_comment(repos, changeset)
         self._update_tickets(tickets, changeset, comment, datetime_now(utc))
@@ -218,7 +219,7 @@ In [changeset:"%s" %s]:
         """Update the tickets with the given comment."""
         authname = self._authname(changeset)
         perm = PermissionCache(self.env, authname)
-        for tkt_id, cmds in tickets.iteritems():
+        for tkt_id, cmds in six.iteritems(tickets):
             try:
                 self.log.debug("Updating ticket #%d", tkt_id)
                 save = False

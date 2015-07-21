@@ -15,6 +15,7 @@
 
 import pkg_resources
 import re
+import six
 from six import string_types as basestring
 from six.moves import xrange
 
@@ -155,8 +156,7 @@ try:
                 if env_path:
                     with self._plugin_domains_lock:
                         domains = self._plugin_domains.get(env_path, {})
-                        domains = domains.items()
-                    for domain, dirname in domains:
+                    for domain, dirname in six.iteritems(domains):
                         self._add(t, Translations.load(dirname, locale,
                                                        domain))
             self._current.translations = t

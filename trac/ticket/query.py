@@ -23,6 +23,7 @@ from six.moves import xrange
 import csv
 import io
 import re
+import six
 
 from genshi.builder import tag
 
@@ -137,7 +138,7 @@ class Query(object):
 
         constraint_cols = {}
         for clause in self.constraints:
-            for k, v in clause.items():
+            for k, v in six.iteritems(clause):
                 if k == 'id' or k in field_names:
                     constraint_cols.setdefault(k, []).append(v)
                 else:
@@ -240,7 +241,7 @@ class Query(object):
 
         # Semi-intelligently remove columns that are restricted to a single
         # value by a query constraint.
-        for col in [k for k in self.constraint_cols.keys()
+        for col in [k for k in self.constraint_cols
                     if k != 'id' and k in cols]:
             constraints = self.constraint_cols[col]
             for constraint in constraints:
@@ -382,7 +383,7 @@ class Query(object):
 
         constraints = []
         for clause in self.constraints:
-            constraints.extend(clause.iteritems())
+            constraints.extend(six.iteritems(clause))
             constraints.append(("or", empty))
         del constraints[-1:]
 
@@ -558,7 +559,7 @@ class Query(object):
 
             def get_clause_sql(constraints):
                 clauses = []
-                for k, v in constraints.iteritems():
+                for k, v in six.iteritems(constraints):
                     if authname is not None:
                         v = [val.replace('$USER', authname) for val in v]
                     # Determine the match mode of the constraint (contains,
@@ -705,7 +706,7 @@ class Query(object):
         clauses = []
         for clause in self.constraints:
             constraints = {}
-            for k, v in clause.items():
+            for k, v in six.iteritems(clause):
                 constraint = {'values': [], 'mode': ''}
                 for val in v:
                     neg = val.startswith('!')
@@ -928,7 +929,7 @@ class QueryModule(Component):
             # Substitute $USER, or ensure no field constraints that depend
             # on $USER are used if we have no username.
             for clause in constraints:
-                for field, vals in clause.items():
+                for field, vals in list(six.iteritems(clause)):
                     for (i, val) in enumerate(vals):
                         if user:
                             vals[i] = val.replace('$USER', user)
@@ -994,7 +995,7 @@ class QueryModule(Component):
         synonyms = TicketSystem(self.env).get_field_synonyms()
         fields = dict((f['name'], f) for f in fields)
         fields['id'] = {'type': 'id'}
-        fields.update((k, fields[v]) for k, v in synonyms.iteritems())
+        fields.update((k, fields[v]) for k, v in six.iteritems(synonyms))
 
         clauses = []
         if req is not None:
@@ -1015,7 +1016,7 @@ class QueryModule(Component):
             # requested for clients without JavaScript
             add_num = None
             constraints = {}
-            for k, vals in req.args.iteritems():
+            for k, vals in six.iteritems(req.args):
                 match = self.add_re.match(k)
                 if match:
                     add_num = match.group(1)
@@ -1057,7 +1058,8 @@ class QueryModule(Component):
                     modes = Query.get_modes().get(fields[field]['type'])
                     mode = modes[0]['value'] if modes else ''
                     clause.setdefault(field, []).append(mode)
-            clauses.extend(each[1] for each in sorted(constraints.iteritems()))
+            clauses.extend(each[1] for each
+                                   in sorted(six.iteritems(constraints)))
 
         # Get constraints from query string
         clauses.append({})
@@ -1146,7 +1148,7 @@ class QueryModule(Component):
                                                   'optgroups', 'optional',
                                                   'format')
                                       if key in field))
-                          for name, field in data['fields'].iteritems())
+                          for name, field in six.iteritems(data['fields']))
         add_script_data(req, properties=properties, modes=data['modes'])
 
         add_stylesheet(req, 'common/css/report.css')
@@ -1353,7 +1355,7 @@ class TicketQueryMacro(WikiMacroBase):
                 kwargs['col'] = 'status|summary'
 
         query_string = '&or&'.join('&'.join('%s=%s' % item
-                                            for item in clause.iteritems())
+                                            for item in six.iteritems(clause))
                                    for clause in clauses)
         return query_string, kwargs, format
 
@@ -1363,7 +1365,8 @@ class TicketQueryMacro(WikiMacroBase):
         if query_string:
             query_string += '&'
 
-        query_string += '&'.join('%s=%s' % item for item in kwargs.iteritems())
+        query_string += '&'.join('%s=%s' % item
+                                 for item in six.iteritems(kwargs))
         query = Query.from_string(self.env, query_string)
 
         if format in ('count', 'rawcount'):

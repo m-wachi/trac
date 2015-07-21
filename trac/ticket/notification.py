@@ -17,6 +17,7 @@
 #
 
 import re
+import six
 from contextlib import contextmanager
 from six import text_type as unicode
 from six.moves import xrange
@@ -553,7 +554,7 @@ class TicketNotifyEmail(NotifyEmail):
                                     '\n', self.ambiwidth)
                 })
                 link += '#comment:%s' % str(change.get('cnum', ''))
-                for field, values in change['fields'].iteritems():
+                for field, values in six.iteritems(change['fields']):
                     old = values['old']
                     new = values['new']
                     newv = ''
@@ -952,7 +953,7 @@ class BatchTicketNotifyEmail(NotifyEmail):
         self.owner = ''
         self.modtime = modtime
         changes_descr = '\n'.join('%s to %s' % (prop, val)
-                                  for prop, val in new_values.iteritems())
+                                  for prop, val in six.iteritems(new_values))
         tickets_descr = ', '.join('#%s' % t for t in tickets)
         subject = self.format_subj(tickets_descr)
         link = self.env.abs_href.query(id=','.join(str(t) for t in tickets))

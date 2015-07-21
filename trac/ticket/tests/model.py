@@ -14,6 +14,7 @@
 from datetime import datetime, timedelta
 from six.moves import xrange
 import io
+import six
 import tempfile
 import unittest
 
@@ -97,7 +98,7 @@ class TicketTestCase(unittest.TestCase):
     def _insert_ticket(self, summary, **kw):
         """Helper for inserting a ticket into the database"""
         ticket = Ticket(self.env)
-        for k, v in kw.items():
+        for k, v in six.iteritems(kw):
             ticket[k] = v
         return ticket.insert()
 
@@ -490,7 +491,7 @@ class TicketTestCase(unittest.TestCase):
         self.assertEqual('changed', listener.action)
         self.assertEqual(comment, listener.comment)
         self.assertEqual('author', listener.author)
-        for key, value in data.iteritems():
+        for key, value in six.iteritems(data):
             self.assertEqual(value, listener.old_values[key])
 
     def test_change_listener_deleted(self):
@@ -506,13 +507,13 @@ class TicketCommentTestCase(unittest.TestCase):
 
     def _insert_ticket(self, summary, when, **kwargs):
         ticket = Ticket(self.env)
-        for k, v in kwargs.iteritems():
+        for k, v in six.iteritems(kwargs):
             ticket[k] = v
         self.id = ticket.insert(when)
 
     def _modify_ticket(self, author, comment, when, cnum, **kwargs):
         ticket = Ticket(self.env, self.id)
-        for k, v in kwargs.iteritems():
+        for k, v in six.iteritems(kwargs):
             ticket[k] = v
         ticket.save_changes(author, comment, when, cnum=cnum)
 
@@ -951,20 +952,20 @@ class MilestoneTestCase(unittest.TestCase):
 
     def _create_milestone(self, **values):
         milestone = Milestone(self.env)
-        for k, v in values.iteritems():
+        for k, v in six.iteritems(values):
             setattr(milestone, k, v)
         return milestone
 
     def _insert_ticket(self, when=None, **kwargs):
         ticket = Ticket(self.env)
-        for name, value in kwargs.iteritems():
+        for name, value in six.iteritems(kwargs):
             ticket[name] = value
         ticket.insert(when or self.created_at)
         return ticket
 
     def _update_ticket(self, ticket, author=None, comment=None, when=None,
                        **kwargs):
-        for name, value in kwargs.iteritems():
+        for name, value in six.iteritems(kwargs):
             ticket[name] = value
         ticket.save_changes(author, comment, when or self.updated_at)
 

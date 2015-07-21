@@ -16,6 +16,7 @@
 
 import os
 import re
+import six
 from six import string_types as basestring, text_type as unicode
 
 from genshi import Markup
@@ -66,7 +67,7 @@ def assemble_pg_dsn(path, user=None, password=None, host=None, port=None):
     dsn = {'dbname': path, 'user': user, 'password': password, 'host': host,
            'port': port}
     return ' '.join("%s=%s" % (name, quote(value))
-                    for name, value in dsn.iteritems() if value)
+                    for name, value in six.iteritems(dsn) if value)
 
 
 def _quote(identifier):
@@ -168,7 +169,7 @@ class PostgreSQLConnector(Component):
         to `(from, to)` SQL type tuples.
         """
         alterations = []
-        for name, (from_, to) in sorted(columns.iteritems()):
+        for name, (from_, to) in sorted(six.iteritems(columns)):
             to = _type_map.get(to, to)
             if to != _type_map.get(from_, from_):
                 alterations.append((name, to))

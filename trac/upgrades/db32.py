@@ -31,7 +31,7 @@ def do_upgrade(env, version, cursor):
     trac_ini_repo_names = []
     for name, _ in rm.get_repositories():
         trac_ini_repo_names.append(name)
-    for repos in rm.get_all_repositories().values():
+    for repos in six.itervalues(rm.get_all_repositories()):
         sync_per_request = (repos['name'] or '(default)') \
                            in repos_sync_per_request
         if sync_per_request:

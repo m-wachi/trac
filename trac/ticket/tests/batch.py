@@ -11,6 +11,7 @@
 # individuals. For the exact contribution history, see the revision
 # history and logs, available at http://trac.edgewall.org/log/.
 
+import six
 import unittest
 from datetime import timedelta
 from six.moves import xrange
@@ -71,7 +72,7 @@ class BatchModifyTestCase(unittest.TestCase):
     def _insert_ticket(self, summary, **kw):
         """Helper for inserting a ticket into the database"""
         ticket = Ticket(self.env)
-        for k, v in kw.items():
+        for k, v in six.iteritems(kw):
             ticket[k] = v
         return ticket.insert()
 

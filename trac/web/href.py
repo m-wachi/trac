@@ -17,6 +17,7 @@
 #         Christopher Lenz <cmlenz@gmx.de>
 
 import re
+import six
 from six import text_type as unicode
 from six.moves import xrange
 
@@ -165,7 +166,7 @@ class Href(object):
         if args:
             lastp = args[-1]
             if isinstance(lastp, dict):
-                for k, v in lastp.items():
+                for k, v in six.iteritems(lastp):
                     add_param(k, v)
                 args = args[:-1]
             elif isinstance(lastp, (list, tuple)):
@@ -182,7 +183,7 @@ class Href(object):
             href = '/'
 
         # assemble the query string
-        for k, v in kw.items():
+        for k, v in six.iteritems(kw):
             add_param(k[:-1] if k.endswith('_') else k, v)
         if params:
             href += '?' + unicode_urlencode(params, self.query_safe)

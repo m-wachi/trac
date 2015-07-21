@@ -22,6 +22,7 @@ import __builtin__
 import locale
 import os
 import re
+import six
 import sys
 import textwrap
 from six import text_type as unicode
@@ -207,7 +208,7 @@ def unicode_urlencode(params, safe=''):
     equal sign.
     """
     if isinstance(params, dict):
-        params = params.iteritems()
+        params = six.iteritems(params)
     l = []
     for k, v in params:
         if v is empty:
