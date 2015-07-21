@@ -106,7 +106,9 @@ class WikiPage(object):
             name = self.name
         else:
             name = u'%s@%s' % (self.name, self.version)
-        return '<%s %r>' % (self.__class__.__name__, name)
+        name = repr(name)
+        return '<%s %s>' % (self.__class__.__name__,
+                            name[name.startswith('u'):])
 
     exists = property(lambda self: self.version > 0)
 
