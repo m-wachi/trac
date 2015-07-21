@@ -17,6 +17,7 @@
 #         Christian Boos <cboos@edgewall.org>
 
 import posixpath
+from six.moves import xrange
 
 from genshi.builder import tag
 

@@ -26,6 +26,7 @@ import time
 from datetime import tzinfo, timedelta, datetime, date
 from locale import getlocale, LC_TIME
 from six import text_type as unicode
+from six.moves import xrange
 
 try:
     import babel

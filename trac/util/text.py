@@ -25,6 +25,7 @@ import re
 import sys
 import textwrap
 from six import text_type as unicode
+from six.moves import xrange
 from urllib import quote, quote_plus, unquote
 from unicodedata import east_asian_width
 
@@ -136,7 +137,7 @@ def strip_line_ws(text, leading=True, trailing=True):
 
 _js_quote = {'\\': '\\\\', '"': '\\"', '\b': '\\b', '\f': '\\f',
              '\n': '\\n', '\r': '\\r', '\t': '\\t', "'": "\\'"}
-for i in range(0x20) + [ord(c) for c in u'&<>\u2028\u2029']:
+for i in list(xrange(0x20)) + [ord(c) for c in u'&<>\u2028\u2029']:
     _js_quote.setdefault(unichr(i), '\\u%04x' % i)
 _js_quote_re = re.compile(r'[\x00-\x1f\\"\b\f\n\r\t\'&<>' + u'\u2028\u2029]')
 _js_string_re = re.compile(r'[\x00-\x1f\\"\b\f\n\r\t&<>' + u'\u2028\u2029]')
@@ -720,7 +721,7 @@ def levenshtein_distance(lhs, rhs):
     if not lhs:
         return len(rhs)
 
-    prev = range(len(rhs) + 1)
+    prev = list(xrange(len(rhs) + 1))
     for lidx, lch in enumerate(lhs):
         curr = [lidx + 1]
         for ridx, rch in enumerate(rhs):

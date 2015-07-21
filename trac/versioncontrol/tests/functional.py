@@ -15,6 +15,7 @@
 import os
 import tempfile
 import unittest
+from six.moves import xrange
 
 from trac.admin.tests.functional import AuthorizationTestCaseSetup
 from trac.tests.contentgen import random_page, random_word, \

@@ -16,6 +16,7 @@
 import pkg_resources
 import re
 from six import string_types as basestring
+from six.moves import xrange
 
 from genshi.builder import tag
 

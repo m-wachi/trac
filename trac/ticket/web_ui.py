@@ -21,6 +21,7 @@ import io
 import pkg_resources
 import re
 from six import string_types as basestring, text_type as unicode
+from six.moves import xrange
 
 from genshi.core import Markup
 from genshi.builder import tag
@@ -945,7 +946,7 @@ class TicketModule(Component):
 
         # assume a linear sequence of change numbers, starting at 1, with gaps
         def replay_changes(values, old_values, from_version, to_version):
-            for version in range(from_version, to_version+1):
+            for version in xrange(from_version, to_version+1):
                 if version in changes:
                     for k, v in changes[version]['fields'].iteritems():
                         values[k] = v['new']

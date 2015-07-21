@@ -24,6 +24,7 @@ import sys
 import tempfile
 import unittest
 from six import string_types as basestring, text_type as unicode
+from six.moves import xrange
 
 # IAdminCommandProvider implementations
 import trac.admin.api

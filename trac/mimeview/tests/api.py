@@ -15,6 +15,7 @@ import doctest
 import io
 import unittest
 from six import text_type as unicode
+from six.moves import xrange
 
 from genshi import Stream, Namespace
 from genshi.core import Attrs, TEXT, START, END
