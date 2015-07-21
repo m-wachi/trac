@@ -54,9 +54,9 @@ class WikiRendererTestCase(unittest.TestCase):
             self.fail('RequestDone not raised')
         except RequestDone:
             output = buf.getvalue()
-            self.assertIn('<div class="code"><pre>', output)
-            self.assertIn('jQuery.loadStyleSheet("'
-                          '/chrome/common/css/diff.css"', output)
+            self.assertIn(b'<div class="code"><pre>', output)
+            self.assertIn(b'jQuery.loadStyleSheet("'
+                          b'/chrome/common/css/diff.css"', output)
 
 
 def suite():
