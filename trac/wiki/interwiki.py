@@ -62,7 +62,7 @@ class InterWikiMap(Component):
         return self.interwiki_map[ns.upper()]
 
     def keys(self):
-        return self.interwiki_map.keys()
+        return list(self.interwiki_map)
 
     # Expansion of positional arguments ($1, $2, ...) in URL and title
     def _expand(self, txt, args):

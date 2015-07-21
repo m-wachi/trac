@@ -104,7 +104,7 @@
   <body>
     <h2 id="subscriptions-section">Subscriptions</h2>
     <form action="" method="post">
-      <div py:for="distributor, rules in data['rules'].iteritems()" class="ruleset">
+      <div py:for="distributor, rules in six.iteritems(data['rules'])" class="ruleset">
         <h3>${distributor}</h3>
         <div class="field">
           <p>

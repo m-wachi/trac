@@ -12,6 +12,7 @@
 # history and logs, available at http://trac.edgewall.org/log/.
 
 import os
+import six
 import sys
 import threading
 import time
@@ -30,8 +31,10 @@ def _reloader_thread(modification_callback, loop_callback):
     """
     mtimes = {}
     while True:
-        for filename in filter(None, [getattr(module, '__file__', None)
-                                      for module in sys.modules.values()]):
+        for filename in [getattr(module, '__file__', None)
+                         for module in six.itervalues(sys.modules)]:
+            if not filename:
+                continue
             while not os.path.isfile(filename): # Probably in an egg or zip file
                 filename = os.path.dirname(filename)
                 if not filename:

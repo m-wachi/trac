@@ -11,6 +11,7 @@
 # individuals. For the exact contribution history, see the revision
 # history and logs, available at http://trac.edgewall.org/log/.
 
+import six
 import unittest
 from datetime import datetime
 from six.moves import xrange
@@ -92,7 +93,7 @@ This is the first comment after an edit. Refs #1, #2.
         self._make_tickets(5)
         rev = 0
 
-        for tkts, cmd in commands.items():
+        for tkts, cmd in six.iteritems(commands):
             rev += 1
             message = "This is the first comment. %s." % cmd
             chgset = Mock(repos=self.repos, rev=rev,

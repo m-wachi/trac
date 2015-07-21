@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 from six.moves import xrange
 import difflib
 import re
+import six
 import unittest
 
 from trac.mimeview.api import Mimeview
@@ -966,7 +967,7 @@ class QueryLinksTestCase(unittest.TestCase):
         attrs.setdefault('summary', 'Summary')
         attrs.setdefault('status', 'new')
         ticket = Ticket(self.env)
-        for name, value in attrs.iteritems():
+        for name, value in six.iteritems(attrs):
             ticket[name] = value
         ticket.insert()
         return ticket

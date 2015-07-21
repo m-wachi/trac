@@ -25,6 +25,7 @@ import io
 import mimetypes
 import os
 import re
+import six
 from six import add_metaclass, string_types as basestring, \
                 text_type as unicode
 import socket
@@ -156,8 +157,9 @@ class ITemplateStreamFilter(Interface):
         """
 
 
-HTTP_STATUS = dict([(code, reason.title()) for code, (reason, description)
-                    in BaseHTTPRequestHandler.responses.items()])
+HTTP_STATUS = dict((code, reason.title())
+                   for code, (reason, description)
+                   in six.iteritems(BaseHTTPRequestHandler.responses))
 
 
 @add_metaclass(ABCMeta)
@@ -791,7 +793,7 @@ class Request(object):
 
     def _parse_headers(self):
         headers = [(name[5:].replace('_', '-').lower(), value)
-                   for name, value in self.environ.items()
+                   for name, value in six.iteritems(self.environ)
                    if name.startswith('HTTP_')]
         if 'CONTENT_LENGTH' in self.environ:
             headers.append(('content-length', self.environ['CONTENT_LENGTH']))

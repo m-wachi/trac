@@ -25,7 +25,7 @@
     </script>
   </head>
 
-  <body py:with="sorted_repos = sorted(repositories.iteritems(), key=lambda item: item[0].lower())">
+  <body py:with="sorted_repos = sorted(six.iteritems(repositories), key=lambda item: item[0].lower())">
     <h2>Manage Repositories <span py:if="view == 'list'" class="trac-count">(${len(repositories)})</span></h2>
 
     <py:def function="type_field(editable, multiline=False, selected=None)">
@@ -124,7 +124,7 @@
           </fieldset>
         </form>
 
-        <form py:if="any('alias' not in info for info in repositories.itervalues())"
+        <form py:if="any('alias' not in info for info in six.itervalues(repositories))"
               class="addnew" id="trac-addalias" method="post" action="">
           <fieldset>
             <legend>Add Alias:</legend>

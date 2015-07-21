@@ -24,6 +24,7 @@ from six import text_type as unicode
 import os
 import posixpath
 import re
+import six
 
 from genshi.builder import tag
 
@@ -507,7 +508,7 @@ class ChangesetModule(Component):
             new_ctx = web_context(req, new_node.resource)
             changed_properties = []
             if old_props != new_props:
-                for k, v in sorted(old_props.items()):
+                for k, v in sorted(six.iteritems(old_props)):
                     new = old = diff = None
                     if not k in new_props:
                         old = v  # won't be displayed, no need to render it
@@ -522,7 +523,7 @@ class ChangesetModule(Component):
                     if new or old or diff:
                         changed_properties.append({'name': k, 'old': old,
                                                    'new': new, 'diff': diff})
-                for k, v in sorted(new_props.items()):
+                for k, v in sorted(six.iteritems(new_props)):
                     if not k in old_props:
                         new = browser.render_property(k, 'changeset',
                                                       new_ctx, new_props)
@@ -1113,7 +1114,7 @@ class ChangesetModule(Component):
                     'new_path': old_path, 'new_rev': new_rev}
         title = self.title_for_diff(data)
         href = None
-        if any(data.values()):
+        if any(six.itervalues(data)):
             if query:
                 query = '&' + query[1:]
             href = formatter.href.changeset(new_path=data['new_path'] or None,

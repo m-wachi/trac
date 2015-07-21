@@ -19,8 +19,9 @@
 #         Christian Boos <cboos@edgewall.org>
 
 import io
-import re
 import os
+import re
+import six
 from six import string_types as basestring, text_type as unicode
 from six.moves import xrange
 
@@ -1224,7 +1225,7 @@ class Formatter(object):
     # -- Wiki engine
 
     def handle_match(self, fullmatch):
-        for itype, match in fullmatch.groupdict().items():
+        for itype, match in six.iteritems(fullmatch.groupdict()):
             if match and not itype in self.wikiparser.helper_patterns:
                 # Check for preceding escape character '!'
                 if match[0] == '!':

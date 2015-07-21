@@ -16,6 +16,7 @@
 
 import copy
 import re
+import six
 
 from genshi.builder import tag
 
@@ -278,8 +279,8 @@ class TicketSystem(Component):
                     actions[action] = max(actions[action], weight)
                 else:
                     actions[action] = weight
-        all_weighted_actions = [(weight, action) for action, weight in
-                                actions.items()]
+        all_weighted_actions = [(weight, action) for action, weight
+                                                 in six.iteritems(actions)]
         return [x[1] for x in sorted(all_weighted_actions, reverse=True)]
 
     def get_all_status(self):

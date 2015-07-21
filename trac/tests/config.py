@@ -15,6 +15,7 @@
 import contextlib
 import os
 import shutil
+import six
 import tempfile
 import time
 import unittest
@@ -174,9 +175,9 @@ class BaseTestCase(unittest.TestCase):
             'Option.registry': Option.registry,
         }
         ComponentMeta._components = list(ComponentMeta._components)
-        ComponentMeta._registry = dict((interface, list(classes))
-                                       for interface, classes
-                                       in ComponentMeta._registry.iteritems())
+        ComponentMeta._registry = dict(
+            (interface, list(classes))
+            for interface, classes in six.iteritems(ComponentMeta._registry))
         ConfigSection.registry = {}
         Option.registry = {}
 

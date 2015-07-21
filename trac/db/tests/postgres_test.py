@@ -12,6 +12,7 @@
 # history and logs, available at http://trac.edgewall.org/log/.
 
 import re
+import six
 import unittest
 
 from trac.db import Table, Column, Index
@@ -110,7 +111,7 @@ class PostgresTableCreationSQLTest(unittest.TestCase):
         ]
         for orig in values:
             dsn = assemble_pg_dsn(**orig)
-            for k, v in orig.iteritems():
+            for k, v in six.iteritems(orig):
                 orig[k] = "'%s'" % v
                 continue
             orig['dbname'] = "'t'"

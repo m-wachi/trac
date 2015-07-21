@@ -21,6 +21,7 @@ from math import ceil
 from six import string_types as basestring
 from six.moves import xrange
 import re
+import six
 
 from trac.core import TracError
 
@@ -56,7 +57,8 @@ def classes(*args, **kwargs):
 
     >>> classes(bar=False)
     """
-    classes = list(filter(None, args)) + [k for k, v in kwargs.items() if v]
+    classes = list(filter(None, args))
+    classes.extend(k for k, v in six.iteritems(kwargs) if v)
     if not classes:
         return None
     return u' '.join(classes)

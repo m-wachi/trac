@@ -16,6 +16,7 @@
 
 import os
 import re
+import six
 import sys
 import types
 
@@ -217,7 +218,7 @@ class MySQLConnector(Component):
         to `(from, to)` SQL type tuples.
         """
         alterations = []
-        for name, (from_, to) in sorted(columns.iteritems()):
+        for name, (from_, to) in sorted(six.iteritems(columns)):
             to = _type_map.get(to, to)
             if to != _type_map.get(from_, from_):
                 alterations.append((name, to))
@@ -240,7 +241,7 @@ class MySQLConnector(Component):
             args.extend(['-P', str(db_prop['port'])])
         if 'user' in db_prop:
             args.extend(['-u', db_prop['user']])
-        for name, value in db_params.iteritems():
+        for name, value in six.iteritems(db_params):
             if name == 'compress' and as_int(value, 0):
                 args.append('--compress')
             elif name == 'named_pipe' and as_int(value, 0):
@@ -364,7 +365,7 @@ class MySQLConnection(ConnectionBase, ConnectionWrapper):
         if port is None:
             port = 3306
         opts = {}
-        for name, value in params.iteritems():
+        for name, value in six.iteritems(params):
             key = name.encode('utf-8')
             if name == 'read_default_group':
                 opts[key] = value

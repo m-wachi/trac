@@ -20,6 +20,7 @@ from __future__ import print_function
 
 import csv
 import os
+import six
 from itertools import groupby
 
 from trac.admin import AdminCommandError, IAdminCommandProvider, get_dir_list
@@ -455,7 +456,7 @@ class PermissionSystem(Component):
             return permissions
 
         parent_map = {}
-        for parent, children in self.get_actions_dict().iteritems():
+        for parent, children in six.iteritems(self.get_actions_dict()):
             for child in children:
                 parent_map.setdefault(child, set()).add(parent)
 

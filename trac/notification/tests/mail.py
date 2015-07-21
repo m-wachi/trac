@@ -11,6 +11,7 @@
 # individuals. For the exact contribution history, see the revision
 # history and logs, available at http://trac.edgewall.org/log/.
 
+import six
 import unittest
 from email import message_from_string
 from six import text_type as unicode
@@ -127,7 +128,7 @@ class EmailDistributorTestCase(unittest.TestCase):
 
     def _add_session(self, sid, **attrs):
         session = DetachedSession(self.env, sid)
-        for name, value in attrs.iteritems():
+        for name, value in six.iteritems(attrs):
             session[name] = value
         session.save()
 

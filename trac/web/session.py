@@ -19,6 +19,7 @@
 #         Christopher Lenz <cmlenz@gmx.de>
 
 import re
+import six
 from six import text_type as unicode
 
 from trac.admin.api import AdminCommandError, IAdminCommandProvider, \
@@ -96,7 +97,7 @@ class DetachedSession(dict):
                 self._old = {}
 
     def save(self):
-        items = self.items()
+        items = list(six.iteritems(self))
         if not self._old and not items:
             # The session doesn't have associated data, so there's no need to
             # persist it
@@ -146,7 +147,7 @@ class DetachedSession(dict):
                 db("""DELETE FROM session_attribute
                       WHERE sid=%s AND authenticated=%s
                       """, (self.sid, authenticated))
-                self._old = dict(self.items())
+                self._old = dict(six.iteritems(self))
                 # The session variables might already have been updated by a
                 # concurrent request.
                 try:

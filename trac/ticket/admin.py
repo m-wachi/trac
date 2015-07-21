@@ -11,6 +11,8 @@
 # individuals. For the exact contribution history, see the revision
 # history and logs, available at http://trac.edgewall.org/.
 
+import six
+
 from trac.admin.api import AdminCommandError, IAdminCommandProvider, \
                            IAdminPanelProvider, console_date_format, \
                            console_datetime_format, get_console_locale
@@ -708,10 +710,10 @@ class AbstractEnumAdminPanel(TicketAdminPanel):
 
                     # Change enum values
                     order = dict([(str(int(key[6:])),
-                                   str(int(req.args.get(key)))) for key
-                                  in req.args.keys()
+                                   str(int(req.args.get(key))))
+                                  for key in req.args
                                   if key.startswith('value_')])
-                    values = dict([(val, True) for val in order.values()])
+                    values = dict((val, True) for val in six.itervalues(order))
                     if len(order) != len(values):
                         raise TracError(_("Order numbers must be unique"))
                     with self.env.db_transaction:

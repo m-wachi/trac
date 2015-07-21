@@ -12,6 +12,7 @@
 # history and logs, available at http://trac.edgewall.org/.
 
 import os.path
+import six
 import sys
 
 from genshi.builder import tag
@@ -107,7 +108,7 @@ class VersionControlAdmin(Component):
     def _do_list(self):
         rm = RepositoryManager(self.env)
         values = []
-        for (reponame, info) in sorted(rm.get_all_repositories().iteritems()):
+        for reponame, info in sorted(six.iteritems(rm.get_all_repositories())):
             alias = ''
             if 'alias' in info:
                 alias = info['alias'] or '(default)'
@@ -331,7 +332,7 @@ class RepositoryAdminPanel(Component):
         # Prepare common rendering data
         repositories = dict((reponame, self._extend_info(reponame, info.copy(),
                                                          reponame in db_repos))
-                            for (reponame, info) in all_repos.iteritems())
+                            for reponame, info in six.iteritems(all_repos))
         types = sorted([''] + rm.get_supported_types())
         data.update({'types': types,
                      'default_type': rm.default_repository_type,

@@ -16,6 +16,7 @@
 # Author: Jonas Borgström <jonas@edgewall.com>
 
 import re
+import six
 from datetime import datetime, timedelta
 from fnmatch import fnmatchcase
 from six.moves import xrange
@@ -511,7 +512,7 @@ class BrowserModule(Component):
 
         rm = RepositoryManager(self.env)
         repositories = []
-        for reponame, repoinfo in all_repositories.iteritems():
+        for reponame, repoinfo in six.iteritems(all_repositories):
             if not reponame or as_bool(repoinfo.get('hidden')):
                 continue
             try:
@@ -598,7 +599,7 @@ class BrowserModule(Component):
             min_s = req.args.get('range_min_secs')
             parent_range = [timerange.from_seconds(int(s))
                             for s in [max_s, min_s] if s]
-            this_range = [c.date for c in changes.values() if c]
+            this_range = [c.date for c in six.itervalues(changes) if c]
             for dt in this_range + parent_range:
                 timerange.insert(dt)
             custom_colorizer = self.get_custom_colorizer()
@@ -918,7 +919,8 @@ class BrowserModule(Component):
         desc = as_bool(kwargs.get('desc', 0))
 
         rm = RepositoryManager(self.env)
-        all_repos = dict(rdata for rdata in rm.get_all_repositories().items()
+        all_repos = dict(rdata for rdata
+                         in six.iteritems(rm.get_all_repositories())
                          if fnmatchcase(rdata[0], glob))
 
         if format == 'table':

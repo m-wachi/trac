@@ -14,6 +14,7 @@
 import io
 import os.path
 import shutil
+import six
 import sys
 import tempfile
 import unittest
@@ -100,7 +101,7 @@ def _make_req(environ, start_response, args={}, arg_list=(), authname='admin',
     req.session = session
     req.tz = tz
     req.locale = locale
-    for name, value in kwargs.iteritems():
+    for name, value in six.iteritems(kwargs):
         setattr(req, name, value)
     return req
 

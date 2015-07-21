@@ -209,7 +209,7 @@ class RequestDispatcher(Component):
                 # Select the component that should handle the request
                 chosen_handler = None
                 try:
-                    for handler in self._request_handlers.values():
+                    for handler in six.itervalues(self._request_handlers):
                         if handler.match_request(req):
                             chosen_handler = handler
                             break
@@ -659,8 +659,8 @@ def send_internal_error(env, req, exc_info):
         if env:
             plugins = [p for p in get_plugin_info(env)
                        if any(c['enabled']
-                              for m in p['modules'].itervalues()
-                              for c in m['components'].itervalues())]
+                              for m in six.itervalues(p['modules'])
+                              for c in six.itervalues(m['components']))]
             match_plugins_to_frames(plugins, frames)
 
             # Identify the tracker where the bug should be reported
@@ -688,10 +688,10 @@ def send_internal_error(env, req, exc_info):
             enabled_plugins = "".join("|| '''`%s`''' || `%s` ||\n"
                                       % (p['name'], p['version'] or _('N/A'))
                                       for p in plugins)
-            files = Chrome(env).get_interface_customization_files().items()
+            files = Chrome(env).get_interface_customization_files()
             interface_files = "".join("|| **%s** || %s ||\n"
                                       % (k, ", ".join("`%s`" % f for f in v))
-                                      for k, v in sorted(files))
+                                      for k, v in sorted(six.iteritems(files)))
         else:
             sys_info = _("''System information not available''\n")
             enabled_plugins = _("''Plugin information not available''\n")
@@ -771,7 +771,7 @@ def send_project_index(environ, start_response, parent_dir=None,
     try:
         href = Href(req.base_path)
         projects = []
-        for env_name, env_path in get_environments(environ).items():
+        for env_name, env_path in six.iteritems(get_environments(environ)):
             try:
                 env = open_environment(env_path,
                                        use_cache=not environ['wsgi.run_once'])

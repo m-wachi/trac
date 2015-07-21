@@ -15,6 +15,7 @@ import doctest
 from datetime import datetime, timedelta
 
 import io
+import six
 import unittest
 
 import trac.tests.compat
@@ -164,7 +165,7 @@ class ExecuteReportTestCase(unittest.TestCase):
 
     def _insert_ticket(self, when=None, **kwargs):
         ticket = Ticket(self.env)
-        for name, value in kwargs.iteritems():
+        for name, value in six.iteritems(kwargs):
             ticket[name] = value
         ticket['status'] = 'new'
         ticket.insert(when=when)
@@ -174,7 +175,7 @@ class ExecuteReportTestCase(unittest.TestCase):
                      **kwargs):
         if when is None:
             when = ticket['changetime'] + timedelta(microseconds=1)
-        for name, value in kwargs.iteritems():
+        for name, value in six.iteritems(kwargs):
             ticket[name] = value
         return ticket.save_changes(author=author, comment=comment, when=when)
 

@@ -11,6 +11,8 @@
 # individuals. For the exact contribution history, see the revision
 # history and logs, available at http://trac.edgewall.org/log/.
 
+import six
+
 from trac.db.api import DatabaseManager
 from trac.db_default import schema
 
@@ -34,7 +36,7 @@ def do_upgrade(env, version, cursor):
 
             # Execute directly "ALTER TABLE" statements because
             # `alter_column_types()` does not work in the case
-            for tab, cols in text_columns.iteritems():
+            for tab, cols in six.iteritems(text_columns):
                 mods = ', '.join('MODIFY %s mediumtext' % db.quote(col)
                                  for col in cols)
                 cursor.execute('ALTER TABLE %s %s' % (db.quote(tab), mods))

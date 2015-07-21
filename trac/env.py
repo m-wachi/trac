@@ -20,6 +20,7 @@ import hashlib
 import os.path
 import setuptools
 import shutil
+import six
 import sys
 from six import string_types as basestring
 from urlparse import urlsplit
@@ -811,7 +812,7 @@ class EnvironmentSetup(Component):
         if not os.path.isfile(filename):
             return
         config = Configuration(filename)
-        for (section, name), option in Option.get_registry().iteritems():
+        for (section, name), option in six.iteritems(Option.get_registry()):
             config.set(section, name, option.dumps(option.default))
         try:
             config.save()

@@ -16,6 +16,7 @@
 # individuals. For the exact contribution history, see the revision
 # history and logs, available at http://trac.edgewall.org/log/.
 
+import six
 from collections import defaultdict
 from operator import itemgetter
 from six import string_types as basestring
@@ -183,11 +184,11 @@ def parse_subscriber_config(rawsubscriptions):
             byname[name][attribute] = value
 
     byclass = defaultdict(list)
-    for name, attributes in byname.items():
-        for key, value in required_attrs.items():
+    for name, attributes in six.iteritems(byname):
+        for key, value in six.iteritems(required_attrs):
             attributes.setdefault(key, value)
         byclass[attributes['class']].append(attributes)
-    for values in byclass.values():
+    for values in six.itervalues(byclass):
         values.sort(key=lambda value: (value['priority'], value['name']))
 
     return byclass

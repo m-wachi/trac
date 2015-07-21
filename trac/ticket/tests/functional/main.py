@@ -14,6 +14,7 @@
 
 import os
 import re
+import six
 import time
 import unittest
 from six.moves import xrange
@@ -409,7 +410,7 @@ class TestTicketQueryLinksQueryModuleDisabled(FunctionalTwillTestCaseSetup):
             r'title=".*">\s*%(milestone)s\s*</a>\s*</td>'\
             % {'milestone': props['milestone']}
         try:
-            for field, value in props.iteritems():
+            for field, value in six.iteritems(props):
                 if field != 'milestone':
                     links = r', '.join(r'<a[^>]+href="/query.*>%s</a>'
                                        % v.strip() for v in value.split(','))
@@ -419,7 +420,7 @@ class TestTicketQueryLinksQueryModuleDisabled(FunctionalTwillTestCaseSetup):
                     tc.find(milestone_cell)
             enable_query_module(False)
             self._tester.go_to_ticket(tid)
-            for field, value in props.iteritems():
+            for field, value in six.iteritems(props):
                 if field != 'milestone':
                     tc.find(r'<td headers="h_%s"( class="searchable")?>'
                             r'\s*%s\s*</td>' % (field, value))

@@ -24,6 +24,7 @@ from __future__ import print_function
 import pkg_resources
 import os
 import socket
+import six
 import sys
 from SocketServer import ThreadingMixIn
 
@@ -87,7 +88,7 @@ class TracEnvironMiddleware(object):
             self.environ['trac.env_paths'] = env_paths
 
     def __call__(self, environ, start_response):
-        for k, v in self.environ.iteritems():
+        for k, v in six.iteritems(self.environ):
             environ.setdefault(k, v)
         return self.application(environ, start_response)
 

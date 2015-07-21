@@ -43,7 +43,7 @@
             title="${_('Search %(project)s', project=project.name)}"/>
     </py:if>
     <script py:if="chrome.script_data" type="text/javascript">
-      <py:for each="key, value in chrome.script_data.iteritems()">
+      <py:for each="key, value in six.iteritems(chrome.script_data)">
       var ${key}=${to_json(value)};
       </py:for>
     </script>
@@ -83,7 +83,7 @@
       </py:for>
     </script>
     <script py:if="chrome.late_script_data" type="text/javascript">
-      <py:for each="key, value in chrome.late_script_data.iteritems()">
+      <py:for each="key, value in six.iteritems(chrome.late_script_data)">
       var ${key}=${to_json(value)};
       </py:for>
     </script>

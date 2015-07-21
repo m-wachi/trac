@@ -21,6 +21,7 @@ import io
 import quopri
 import tempfile
 import re
+import six
 import unittest
 from datetime import datetime, timedelta
 from six import text_type as unicode
@@ -87,7 +88,7 @@ class RecipientTestCase(unittest.TestCase):
 
     def _create_ticket(self, props):
         ticket = Ticket(self.env)
-        for k, v in props.iteritems():
+        for k, v in six.iteritems(props):
             ticket[k] = v
         ticket.insert()
         return ticket
@@ -294,7 +295,7 @@ class NotificationTestCase(unittest.TestCase):
         ticket = Ticket(self.env)
         ticket['reporter'] = 'joeuser'
         ticket['summary'] = 'Summary'
-        for prop, value in props.iteritems():
+        for prop, value in six.iteritems(props):
             ticket[prop] = value
         ticket.insert()
         return ticket
@@ -820,7 +821,7 @@ class NotificationTestCase(unittest.TestCase):
         # ticket properties which are not expected in the banner
         xlist = ['summary', 'description', 'comment', 'time', 'changetime']
         # check banner content (field exists, msg value matches ticket value)
-        for p in [prop for prop in ticket.values.keys() if prop not in xlist]:
+        for p in [prop for prop in ticket.values if prop not in xlist]:
             self.assertIn(p, props)
             # Email addresses might be obfuscated
             if '@' in ticket[p] and '@' in props[p]:
@@ -1311,7 +1312,7 @@ Security sensitive:  0                           |          Blocking:
         self.assertEqual('My Summary', ticket['summary'])
         self.assertEqual('Some description', ticket['description'])
         valid_fieldnames = set([f['name'] for f in ticket.fields])
-        current_fieldnames = set(ticket.values.keys())
+        current_fieldnames = set(ticket.values)
         self.assertEqual(set(), current_fieldnames - valid_fieldnames)
 
     def test_notification_get_message_id_unicode(self):
@@ -1530,7 +1531,7 @@ class AttachmentNotificationTestCase(unittest.TestCase):
         return attachment
 
     def test_ticket_notify_attachment_enabled_attachment_added(self):
-        self.attachment.insert('foo.txt', io.BytesIO(b''), 1)
+        self._insert_attachment('user@example.com')
 
         message = notifysuite.smtpd.get_message()
         headers, body = parse_smtp_message(message)
@@ -1540,8 +1541,8 @@ class AttachmentNotificationTestCase(unittest.TestCase):
         self.assertIn("The attachment description", body)
 
     def test_ticket_notify_attachment_enabled_attachment_removed(self):
-        self.attachment.insert('foo.txt', io.BytesIO(b''), 1)
-        self.attachment.delete()
+        attachment = self._insert_attachment('user@example.com')
+        attachment.delete()
 
         message = notifysuite.smtpd.get_message()
         headers, body = parse_smtp_message(message)

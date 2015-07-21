@@ -22,6 +22,7 @@ import doctest
 import inspect
 import os
 import shutil
+import six
 import sys
 import types
 import unittest
@@ -114,7 +115,7 @@ def Mock(bases=(), *initargs, **kw):
 
     cls = type('Mock', bases, attrs)
     mock = cls(*initargs)
-    for k, v in kw.items():
+    for k, v in six.iteritems(kw):
         setattr(mock, k, v)
     return mock
 

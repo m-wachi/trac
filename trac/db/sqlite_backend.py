@@ -243,7 +243,7 @@ class SQLiteConnector(Component):
         Type changes are specified as a `columns` dict mapping column names
         to `(from, to)` SQL type tuples.
         """
-        for name, (from_, to) in sorted(columns.iteritems()):
+        for name, (from_, to) in sorted(six.iteritems(columns)):
             if _type_map.get(to, to) != _type_map.get(from_, from_):
                 raise NotImplementedError("Conversion from %s to %s is not "
                                           "implemented" % (from_, to))
@@ -328,7 +328,7 @@ class SQLiteConnection(ConnectionBase, ConnectionWrapper):
         return IterableCursor(cursor, self.log)
 
     def rollback(self):
-        for cursor in self._active_cursors.keys():
+        for cursor in self._active_cursors:
             cursor.close()
         self.cnx.rollback()
 

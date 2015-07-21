@@ -12,6 +12,8 @@
 # individuals. For the exact contribution history, see the revision
 # history and logs, available at http://trac.edgewall.org/log/.
 
+import six
+
 from trac.util.datefmt import datetime_now, utc, to_utimestamp
 
 __all__ = ['Subscription', 'Watch']
@@ -123,7 +125,7 @@ class Subscription(object):
                     WHERE sid=%s AND authenticated=%s""",
                     (sid, authenticated)):
                 ids_map.setdefault((distributor, class_), []).append(id_)
-            for ids in ids_map.itervalues():
+            for ids in six.itervalues(ids_map):
                 ids.sort(reverse=True)
 
             now = to_utimestamp(datetime_now(utc))
@@ -148,7 +150,7 @@ class Subscription(object):
                          sub['format'], idx + 1, sub['adverb'], sub['class']))
 
             delete_ids = []
-            for ids in ids_map.itervalues():
+            for ids in six.itervalues(ids_map):
                 delete_ids.extend(ids)
             if delete_ids:
                 db("DELETE FROM notify_subscription WHERE id IN (%s)" %
@@ -172,7 +174,7 @@ class Subscription(object):
         with env.db_query as db:
             conditions = []
             args = []
-            for name, value in sorted(kwargs.iteritems()):
+            for name, value in sorted(six.iteritems(kwargs)):
                 if name.endswith('_'):
                     name = name[:-1]
                 conditions.append(db.quote(name) + '=%s')
@@ -299,7 +301,7 @@ class Watch(object):
         with env.db_query as db:
             conditions = []
             args = []
-            for name, value in sorted(kwargs.iteritems()):
+            for name, value in sorted(six.iteritems(kwargs)):
                 if name.endswith('_'):
                     name = name[:-1]
                 conditions.append(db.quote(name) + '=%s')

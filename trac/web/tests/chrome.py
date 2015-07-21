@@ -12,6 +12,7 @@
 # history and logs, available at http://trac.edgewall.org/log/.
 
 import os
+import six
 import tempfile
 import unittest
 from six import text_type as unicode
@@ -38,7 +39,7 @@ class Request(object):
     args = {}
     def __init__(self, **kwargs):
         self.chrome = {}
-        for k, v in kwargs.items():
+        for k, v in six.iteritems(kwargs):
             setattr(self, k, v)
 
 

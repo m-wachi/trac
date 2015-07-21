@@ -655,7 +655,7 @@ def _i18n_parse_date_pattern(locale):
     orders = []
     for format in formats:
         order = []
-        for key, chars in format_keys.iteritems():
+        for key, chars in six.iteritems(format_keys):
             for char in chars:
                 idx = format.find('%(' + char)
                 if idx != -1:
@@ -686,11 +686,11 @@ def _i18n_parse_date_pattern(locale):
             for width in ('wide', 'abbreviated'):
                 names = get_month_names(width, locale=locale)
                 month_names.update((name.lower(), num)
-                                   for num, name in names.iteritems())
+                                   for num, name in six.iteritems(names))
         if formats[0].find('%(a)s') != -1:
             names = get_period_names(locale=locale)
             period_names.update((name.lower(), period)
-                                for period, name in names.iteritems()
+                                for period, name in six.iteritems(names)
                                 if period in ('am', 'pm'))
 
     regexp = ['[0-9]+']
@@ -752,7 +752,7 @@ def _i18n_parse_date_0(text, order, regexp, period_names, month_names, tzinfo):
         matches.insert(order['s'], 0)
 
     values = {}
-    for key, idx in order.iteritems():
+    for key, idx in six.iteritems(order):
         if idx < len(matches):
             value = matches[idx]
             if key == 'y':
@@ -773,7 +773,7 @@ def _i18n_parse_date_0(text, order, regexp, period_names, month_names, tzinfo):
                 values[key], values['M'] = values['M'], value
             break
 
-    values = dict((key, int(value)) for key, value in values.iteritems())
+    values = dict((key, int(value)) for key, value in six.iteritems(values))
     values.setdefault('h', 0)
     values.setdefault('m', 0)
     values.setdefault('s', 0)
