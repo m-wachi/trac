@@ -20,6 +20,7 @@ import shutil
 import sys
 import tempfile
 import unittest
+from six.moves import xrange
 
 import trac
 import trac.tests.compat

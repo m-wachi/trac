@@ -18,6 +18,7 @@
 
 import io
 from itertools import izip
+from six.moves import xrange
 from zipfile import ZipFile, ZIP_DEFLATED
 
 from genshi.builder import tag

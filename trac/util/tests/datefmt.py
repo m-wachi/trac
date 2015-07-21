@@ -20,6 +20,7 @@ import os
 import time
 import unittest
 from six import string_types as basestring, text_type as unicode
+from six.moves import xrange
 
 import trac.tests.compat
 from trac.core import TracError

@@ -63,6 +63,7 @@ import io
 import re
 from collections import namedtuple
 from six import string_types as basestring, text_type as unicode
+from six.moves import xrange
 
 from genshi import Markup, Stream
 from genshi.core import TEXT, START, END, START_NS, END_NS
@@ -1120,7 +1121,7 @@ def _group_lines(stream):
         stream = list(stream)
     found_text = False
 
-    for i in range(len(stream)-1, -1, -1):
+    for i in xrange(len(stream)-1, -1, -1):
         if stream[i][0] is TEXT:
             e = stream[i]
             # One chance to strip a \n

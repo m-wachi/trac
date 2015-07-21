@@ -19,6 +19,7 @@ from datetime import datetime, timedelta
 from itertools import groupby
 from math import ceil
 from six import string_types as basestring, text_type as unicode
+from six.moves import xrange
 import csv
 import io
 import re
@@ -311,10 +312,9 @@ class Query(object):
             fields = [self.fields.by_name(column, None) for column in columns]
             results = []
 
-            column_indices = range(len(columns))
             for row in cursor:
                 result = {}
-                for i in column_indices:
+                for i in xrange(len(columns)):
                     name, field, val = columns[i], fields[i], row[i]
                     if name == 'reporter':
                         val = val or 'anonymous'

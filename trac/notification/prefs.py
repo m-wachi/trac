@@ -16,6 +16,7 @@
 import re
 from operator import itemgetter
 from pkg_resources import resource_filename
+from six.moves import xrange
 
 from genshi.builder import tag
 

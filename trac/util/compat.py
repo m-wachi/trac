@@ -20,6 +20,7 @@ previous versions of Python from 2.6 onward.
 import math
 import os
 import time
+from six.moves import xrange
 
 from trac.util.text import cleandoc
 

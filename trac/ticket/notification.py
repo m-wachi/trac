@@ -19,6 +19,7 @@
 import re
 from contextlib import contextmanager
 from six import text_type as unicode
+from six.moves import xrange
 
 from genshi.template.text import NewTextTemplate
 
@@ -769,7 +770,7 @@ class TicketNotifyEmail(NotifyEmail):
             cell_l.extend(vals_l)
             cell_r.extend(vals_r)
 
-        for i in range(max(len(cell_l), len(cell_r))):
+        for i in xrange(max(len(cell_l), len(cell_r))):
             if i >= len(cell_l):
                 cell_l.append(width_l * ' ')
             elif i >= len(cell_r):

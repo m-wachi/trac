@@ -13,6 +13,7 @@
 
 import unittest
 from datetime import timedelta
+from six.moves import xrange
 
 from trac.perm import DefaultPermissionPolicy, DefaultPermissionStore,\
                       PermissionCache, PermissionSystem

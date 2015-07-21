@@ -12,6 +12,7 @@
 # history and logs, available at http://trac.edgewall.org/log/.
 
 from datetime import datetime, timedelta
+from six.moves import xrange
 import difflib
 import re
 import unittest

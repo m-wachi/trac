@@ -20,6 +20,7 @@ from contextlib import contextmanager
 from functools import partial
 import re
 from six import text_type as unicode
+from six.moves import xrange
 from subprocess import Popen, PIPE
 from threading import Lock
 import weakref
@@ -749,7 +750,7 @@ class Storage(object):
         # the other ones from srevs
         crevs = srevs - set([rev])
 
-        for l in range(min_len+1, 40):
+        for l in xrange(min_len+1, 40):
             srev = rev[:l]
             if srev not in [ r[:l] for r in crevs ]:
                 return srev

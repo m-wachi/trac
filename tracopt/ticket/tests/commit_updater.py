@@ -13,6 +13,7 @@
 
 import unittest
 from datetime import datetime
+from six.moves import xrange
 
 from trac.test import EnvironmentStub, Mock
 from trac.tests.contentgen import random_sentence

@@ -18,6 +18,7 @@ import tempfile
 import unittest
 from datetime import datetime, timedelta
 from six import string_types as basestring
+from six.moves import xrange
 from subprocess import Popen, PIPE
 
 import trac.tests.compat

@@ -14,6 +14,7 @@
 from Cookie import SimpleCookie as Cookie
 import time
 from datetime import datetime
+from six.moves import xrange
 import unittest
 
 import trac.tests.compat

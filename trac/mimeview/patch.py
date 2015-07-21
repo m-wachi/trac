@@ -17,6 +17,7 @@
 #         Ludvig Strigeus
 
 import os.path
+from six.moves import xrange
 
 from trac.core import *
 from trac.mimeview.api import content_to_unicode, IHTMLPreviewRenderer, \
