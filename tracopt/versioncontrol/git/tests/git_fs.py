@@ -13,11 +13,12 @@
 
 import io
 import os
+import six
 import sys
 import tempfile
 import unittest
 from datetime import datetime, timedelta
-from six import string_types as basestring
+from six import text_type as unicode, string_types as basestring
 from six.moves import xrange
 from subprocess import Popen, PIPE
 
@@ -28,7 +29,7 @@ from trac.tests.compat import rmtree
 from trac.util import create_file
 from trac.util.compat import close_fds
 from trac.util.datefmt import to_timestamp, utc
-from trac.util.text import to_utf8
+from trac.util.text import to_unicode, to_utf8
 from trac.versioncontrol.api import Changeset, DbRepositoryProvider, \
                                     InvalidRepository, Node, \
                                     NoSuchChangeset, NoSuchNode, \
@@ -36,9 +37,17 @@ from trac.versioncontrol.api import Changeset, DbRepositoryProvider, \
 from trac.versioncontrol.web_ui.browser import BrowserModule
 from trac.versioncontrol.web_ui.log import LogModule
 from trac.web.href import Href
-from tracopt.versioncontrol.git.PyGIT import StorageFactory
+from tracopt.versioncontrol.git.PyGIT import StorageFactory, to_b, to_u
 from tracopt.versioncontrol.git.git_fs import GitCachedRepository, \
                                               GitConnector, GitRepository
+
+
+def to_mbcs(value):
+    if isinstance(value, unicode):
+        return value.encode('mbcs')
+    if isinstance(value, bytes):
+        return value.decode('utf-8').encode('mbcs')
+    return value
 
 
 class GitCommandMixin(object):
@@ -54,7 +63,13 @@ class GitCommandMixin(object):
         return self._git(*args, **kwargs)
 
     def _spawn_git(self, *args, **kwargs):
-        args = map(to_utf8, (self.git_bin,) + args)
+        if os.name != 'nt':
+            fn = to_b
+        elif six.PY2:
+            fn = to_mbcs
+        else:
+            fn = to_u
+        args = [fn(arg) for arg in (self.git_bin,) + args]
         kwargs.setdefault('stdin', PIPE)
         kwargs.setdefault('stdout', PIPE)
         kwargs.setdefault('stderr', PIPE)
@@ -602,7 +617,7 @@ class GitCachedRepositoryTestCase(GitRepositoryTestCase):
         self.assertEqual(202, rows[0][0])
 
     def _generate_data_many_merges(self, n, timestamp=1400000000):
-        init = """\
+        init = u"""\
 blob
 mark :1
 data 0
@@ -626,7 +641,7 @@ from :2
 M 100644 :1 master.txt
 
 """
-        merge = """\
+        merge = u"""\
 commit refs/heads/dev
 mark :%(dev)d
 author Joe <joe@example.com> %(timestamp)d +0000
@@ -648,13 +663,15 @@ M 100644 :1 dev%(dev)08d.txt
 
 """
         data = io.BytesIO()
-        data.write(init % {'timestamp': timestamp})
-        for idx in xrange(n):
-            data.write(merge % {'timestamp': timestamp,
-                                'dev': 4 + idx * 2,
-                                'merge': 5 + idx * 2,
-                                'from': 3 + idx * 2})
-        return data.getvalue()
+        with io.TextIOWrapper(data, encoding='utf-8', newline='') as f:
+            f.write(init % {'timestamp': timestamp})
+            for idx in xrange(n):
+                f.write(merge % {'timestamp': timestamp,
+                                 'dev': 4 + idx * 2,
+                                 'merge': 5 + idx * 2,
+                                 'from': 3 + idx * 2})
+            f.flush()
+            return data.getvalue()
 
 
 class StopSync(Exception):
