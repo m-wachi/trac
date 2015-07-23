@@ -313,7 +313,7 @@ link:"123"
 nolink:"<blink>"
 ------------------------------
 <p>
-nolink:&#34;&lt;blink&gt;&#34;
+nolink:"&lt;blink&gt;"
 </p>
 ------------------------------
 ============================== Bracketed links
@@ -924,7 +924,7 @@ And now it's <span class="important"><strong>TIME FOR BED!</strong></span>. Real
 <div class="important"><p>
 Go ahead, edit it freely.
 </p>
-<div style="border: 2pt solid blue; margin: 1em; padding: .5em" class="demo"><p>
+<div class="demo" style="border: 2pt solid blue; margin: 1em; padding: .5em"><p>
 And now it's <span class="important"><strong>TIME FOR BED! </strong></span>. Really.
 </p>
 </div><p>
@@ -990,7 +990,7 @@ Headings are now inside the block thanks to the default .wikipage class.
 }}}
 Done.
 ------------------------------
-<div style="background: #aeaeae" class="wikipage"><h2 id="Heading">Heading</h2>
+<div class="wikipage" style="background: #aeaeae"><h2 id="Heading">Heading</h2>
 <p>
 Headings are now inside the block thanks to the default .wikipage class.
 </p>
@@ -2195,7 +2195,7 @@ Paragraph
 <p>
 A very nice table:
 </p>
-<table style="border: none" class="wiki"><tr style="background: #ffd"><th style="background: #dfd"><p>
+<table class="wiki" style="border: none"><tr style="background: #ffd"><th style="background: #dfd"><p>
 Header A
 </p>
 </th><th style="background: #dfd"><p>
