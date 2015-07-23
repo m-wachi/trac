@@ -677,7 +677,7 @@ Checkout the <a class="ext-link" href="tsvn:http://svn.edgewall.com/repos/trac" 
 complex link <a class="ext-link" href="http://server/a/page/test?format=txt" title="resource test in a"><span class="icon"></span>complex:a:test</a> with positional arguments.
 </p>
 <p>
-js:&#34;alert(1)&#34; javasc:&#34;ript:alert(1)&#34;
+js:"alert(1)" javasc:"ript:alert(1)"
 </p>
 ------------------------------
 """ # "

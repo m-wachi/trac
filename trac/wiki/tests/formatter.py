@@ -16,6 +16,7 @@ import os
 import re
 import six
 import unittest
+from datetime import datetime
 from six import text_type as unicode
 
 # Python 2.7 `assertMultiLineEqual` calls `safe_repr(..., short=True)`
@@ -26,6 +27,9 @@ try:
     unittest.case.safe_repr = lambda obj, short=False: safe_repr(obj, False)
 except ImportError:
     pass
+
+from genshi.core import Attrs, START
+from genshi.input import ParseError, XML
 
 from trac.core import Component, TracError, implements
 from trac.test import Mock, MockPerm, EnvironmentStub, locale_en
@@ -204,6 +208,7 @@ class WikiTestCase(unittest.TestCase):
         v = unicode(formatter.generate(**self.generate_opts))
         v = v.replace('\r', '').replace(u'\u200b', '') # FIXME: keep ZWSP
         v = strip_line_ws(v, leading=False)
+        v = self._sort_xhtml_attrs(v)
         try:
             self.assertEqual(self.correct, v)
         except AssertionError as e:
@@ -236,6 +241,22 @@ class WikiTestCase(unittest.TestCase):
 
     def shortDescription(self):
         return 'Test ' + self.title
+
+    def _sort_xhtml_attrs(self, source):
+        def fn(stream):
+            for kind, data, pos in stream:
+                if kind is START:
+                    data = (data[0], Attrs(sorted(data[1])))
+                yield kind, data, pos
+        try:
+            stream = XML('<html>%s</html>' % source)
+        except ParseError:
+            return source
+        result = (stream | fn).render(method='xhtml', strip_whitespace=False,
+                                      encoding=None)
+        self.assertEqual('<html>', result[:6])
+        self.assertEqual('</html>', result[-7:])
+        return result[6:-7]
 
 
 class OneLinerTestCase(WikiTestCase):
