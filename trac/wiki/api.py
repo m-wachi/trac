@@ -222,8 +222,11 @@ def parse_args(args, strict=True):
       (['Some text'], {})
       >>> parse_args('Some text, mode= 3, some other arg\, with a comma.')
       (['Some text', ' some other arg, with a comma.'], {'mode': ' 3'})
-      >>> parse_args('milestone=milestone1,status!=closed', strict=False)
-      ([], {'status!': 'closed', 'milestone': 'milestone1'})
+      >>> rv = parse_args('milestone=milestone1,status!=closed', strict=False)
+      >>> rv[0]
+      []
+      >>> sorted(rv[1].items())
+      [('milestone', 'milestone1'), ('status!', 'closed')]
 
     """
     largs, kwargs = [], {}
@@ -236,7 +239,7 @@ def parse_args(args, strict=True):
                 m = re.match(r'\s*[^=]+=', arg)
             if m:
                 kw = arg[:m.end()-1].strip()
-                if strict:
+                if strict and not isinstance(kw, str):
                     kw = unicode(kw).encode('utf-8')
                 kwargs[kw] = arg[m.end():]
             else:
