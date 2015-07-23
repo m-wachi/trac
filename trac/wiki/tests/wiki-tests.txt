@@ -1244,22 +1244,38 @@ Inline  comment
 </p>
 ------------------------------
 Inline  comment
-============================== Exception with ascii bytes
+============================== Exception with ascii bytes [PY2]
 [[ValueErrorWithUtf8(error)]]
 ------------------------------
 <p>
 <div class="system-message"><strong>Error: Macro ValueErrorWithUtf8(error) failed</strong><pre>error</pre></div>
 </p>
 ------------------------------
-============================== Exception with utf-8 bytes
+============================== Exception with ascii bytes [PY3]
+[[ValueErrorWithUtf8(error)]]
+------------------------------
+<p>
+<div class="system-message"><strong>Error: Macro ValueErrorWithUtf8(error) failed</strong><pre>b'error'</pre></div>
+</p>
+------------------------------
+============================== Exception with utf-8 bytes [PY2]
 {{{#!ValueErrorWithUtf8
 Érrör
 }}}
 [[ValueErrorWithUtf8(érrör)]]
 ------------------------------
-<div class="system-message"><strong>Error: Processor ValueErrorWithUtf8 failed</strong><pre>Érrör
-</pre></div><p>
+<div class="system-message"><strong>Error: Processor ValueErrorWithUtf8 failed</strong><pre>Érrör</pre></div><p>
 <div class="system-message"><strong>Error: Macro ValueErrorWithUtf8(érrör) failed</strong><pre>érrör</pre></div>
+</p>
+------------------------------
+============================== Exception with utf-8 bytes [PY3]
+{{{#!ValueErrorWithUtf8
+Érrör
+}}}
+[[ValueErrorWithUtf8(érrör)]]
+------------------------------
+<div class="system-message"><strong>Error: Processor ValueErrorWithUtf8 failed</strong><pre>b'\xc3\x89rr\xc3\xb6r'</pre></div><p>
+<div class="system-message"><strong>Error: Macro ValueErrorWithUtf8(érrör) failed</strong><pre>b'\xc3\xa9rr\xc3\xb6r'</pre></div>
 </p>
 ------------------------------
 ============================== TracError with unicode
@@ -1268,8 +1284,7 @@ Inline  comment
 }}}
 [[TracErrorWithUnicode(érrör)]]
 ------------------------------
-<div class="system-message"><strong>Error: Processor TracErrorWithUnicode failed</strong><pre>Érrör
-</pre></div><p>
+<div class="system-message"><strong>Error: Processor TracErrorWithUnicode failed</strong><pre>Érrör</pre></div><p>
 <div class="system-message"><strong>Error: Macro TracErrorWithUnicode(érrör) failed</strong><pre>érrör</pre></div>
 </p>
 ------------------------------
