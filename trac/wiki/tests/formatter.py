@@ -246,7 +246,7 @@ class EscapeNewLinesTestCase(WikiTestCase):
 
 class OutlineTestCase(WikiTestCase):
     def formatter(self):
-        from StringIO import StringIO
+        from io import StringIO
         class Outliner(object):
             flavor = 'outliner'
             def __init__(self, env, context, input):
