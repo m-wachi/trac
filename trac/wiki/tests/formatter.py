@@ -103,16 +103,16 @@ class WikiProcessorSampleMacro(WikiMacroBase):
         else:
             return 'Called as a processor with params: <dl>%s</dl>' % \
                 ''.join('<dt>%s</dt><dd>%s</dd>' % kv
-                        for kv in six.iteritems(args)) \
+                        for kv in sorted(six.iteritems(args))) \
                 + content
 
 class ValueErrorWithUtf8Macro(WikiMacroBase):
     def expand_macro(self, formatter, name, content, args):
-        raise ValueError(content.encode('utf-8'))
+        raise ValueError(content.strip().encode('utf-8'))
 
 class TracErrorWithUnicodeMacro(WikiMacroBase):
     def expand_macro(self, formatter, name, content, args):
-        raise TracError(unicode(content))
+        raise TracError(unicode(content.strip()))
 
 class SampleResolver(Component):
     """A dummy macro returning a div block, used by the unit test."""
@@ -297,6 +297,10 @@ def suite(data=None, setup=None, file=__file__, teardown=None, context=None):
                 continue
             next_line += len(test.split('\n')) - 1
             if 'SKIP' in title or 'WONTFIX' in title:
+                continue
+            if 'PY2' in title and not six.PY2:
+                continue
+            if 'PY3' in title and not six.PY3:
                 continue
             blocks = test.split('-' * 30 + '\n')
             if len(blocks) < 5:
