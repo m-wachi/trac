@@ -502,7 +502,9 @@ class GitRepository(Repository):
         self._cached_git_id = str(self.id)
 
     def close(self):
-        self._git = None
+        if self._git is not None:
+            self._git.close()
+            self._git = None
 
     @property
     def git(self):

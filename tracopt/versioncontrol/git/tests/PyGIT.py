@@ -28,18 +28,18 @@ from trac.versioncontrol.api import Changeset, DbRepositoryProvider, \
 from tracopt.versioncontrol.git.git_fs import GitConnector
 from tracopt.versioncontrol.git.PyGIT import GitCore, GitError, Storage, \
                                              SizedDict, StorageFactory, \
-                                             parse_commit
+                                             parse_commit, to_b, to_u
 from tracopt.versioncontrol.git.tests.git_fs import GitCommandMixin
 
 
 class GitTestCase(unittest.TestCase):
 
     def test_is_sha(self):
-        self.assertFalse(GitCore.is_sha('123'))
-        self.assertTrue(GitCore.is_sha('1a3f'))
-        self.assertTrue(GitCore.is_sha('f' * 40))
-        self.assertFalse(GitCore.is_sha('x' + 'f' * 39))
-        self.assertFalse(GitCore.is_sha('f' * 41))
+        self.assertFalse(GitCore.is_sha(b'123'))
+        self.assertTrue(GitCore.is_sha(b'1a3f'))
+        self.assertTrue(GitCore.is_sha(b'f' * 40))
+        self.assertFalse(GitCore.is_sha(b'x' + b'f' * 39))
+        self.assertFalse(GitCore.is_sha(b'f' * 41))
 
     def test_git_version(self):
         v = Storage.git_version()
@@ -197,6 +197,16 @@ class NormalTestCase(unittest.TestCase, GitCommandMixin):
         os.remove(os.path.join(self.repos_path, '.git', 'HEAD'))
         self.assertRaises(GitError, self._storage, self.repos_path)
 
+    def test_commit_encoding(self):
+        storage = self._storage()
+        encoding = storage.commit_encoding
+        self.assertEqual(u'utf-8', encoding)
+
+        self._git('config', 'i18n.commitEncoding', 'iso-8859-15')
+        storage = self._storage()
+        encoding = storage.commit_encoding
+        self.assertEqual(u'iso-8859-15', encoding)
+
     def test_get_branches_with_cr_in_commitlog(self):
         # regression test for #11598
         message = 'message with carriage return'.replace(' ', '\r')
@@ -252,6 +262,7 @@ class NormalTestCase(unittest.TestCase, GitCommandMixin):
         node = repos.get_node('', rev)
         self.assertEqual(rev, repos.git.last_change(rev, ''))
         history = list(node.get_history())
+        self.assertTrue(history)
         self.assertEqual(u'', history[0][0])
         self.assertEqual(rev, history[0][1])
         self.assertEqual(Changeset.EDIT, history[0][2])
@@ -322,7 +333,7 @@ class UnicodeNameTestCase(unittest.TestCase, GitCommandMixin):
         self.assertIsNone(storage.verifyrev(u'tété'))
 
     def test_unicode_filename(self):
-        create_file(os.path.join(self.repos_path, 'tickét.txt'))
+        create_file(os.path.join(self.repos_path, u'tickét.txt').encode('utf-8'))
         self._git('add', 'tickét.txt')
         self._git_commit('-m', 'unicode-filename', date='1359912600 +0100')
         storage = self._storage()
@@ -335,6 +346,7 @@ class UnicodeNameTestCase(unittest.TestCase, GitCommandMixin):
         # check commit author, for good measure
         self.assertEqual(u'Joé <joe@example.com> 1359912600 +0100',
                          storage.read_commit(storage.head())[1]['author'][0])
+        storage = None
 
     def test_unicode_branches(self):
         self._git('checkout', '-b', 'tickɇt10980', 'master')
@@ -375,9 +387,8 @@ class UnicodeNameTestCase(unittest.TestCase, GitCommandMixin):
                  u'tickét.tx\\t',
                  u'\a\b\t\n\v\f\r\x1b"\\.tx\\t']
         for path in paths:
-            path_utf8 = path.encode('utf-8')
-            create_file(os.path.join(self.repos_path, path_utf8))
-            self._git('add', path_utf8)
+            create_file(to_b(os.path.join(self.repos_path, path)))
+        self._git('add', '--', *paths)
         self._git_commit('-m', 'ticket:11180 and ticket:11198',
                          date=datetime(2013, 4, 30, 13, 48, 57))
 
@@ -396,9 +407,8 @@ class UnicodeNameTestCase(unittest.TestCase, GitCommandMixin):
                  u'\a\b\t\n\v\f\r\x1b"\\.tx\\t']
 
         for path in paths:
-            path_utf8 = path.encode('utf-8')
-            create_file(os.path.join(self.repos_path, path_utf8))
-            self._git('add', path_utf8)
+            create_file(to_b(os.path.join(self.repos_path, path)))
+        self._git('add', '--', *paths)
         self._git_commit('-m', 'ticket:11180 and ticket:11198',
                          date=datetime(2013, 4, 30, 17, 48, 57))
 
@@ -510,7 +520,7 @@ class SizedDictTestCase(unittest.TestCase):
 #        print(list(g.children(list(p)[0])))
 #        print(list(g.children(list(p)[0])))
 #        print("--------------")
-#        print(g.get_commit_encoding())
+#        print(g.commit_encoding)
 #        print("--------------")
 #        print(g.get_branches())
 #        print("--------------")
