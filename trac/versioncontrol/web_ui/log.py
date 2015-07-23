@@ -18,7 +18,7 @@
 
 import re
 import six
-from six import text_type as unicode
+from six import python_2_unicode_compatible, text_type as unicode
 
 from genshi.builder import tag
 from genshi.core import Markup
@@ -426,6 +426,7 @@ class LogModule(Component):
         return tag.a(label, class_='missing source', title=errmsg)
 
 
+@python_2_unicode_compatible
 class RevRanges(object):
 
     def __init__(self, repos, revs=None, resolve=False):
@@ -531,7 +532,7 @@ class RevRanges(object):
     def __len__(self):
         return len(self.pairs)
 
-    def __unicode__(self):
+    def __str__(self):
         sep = '-' if self.repos.has_linear_changesets else ':'
         return ','.join(sep.join(map(unicode, pair)) if pair[0] != pair[1]
                                                      else unicode(pair[0])

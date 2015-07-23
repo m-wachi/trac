@@ -16,7 +16,8 @@
 # Author: Jonas Borgström <jonas@edgewall.com>
 #         Christopher Lenz <cmlenz@gmx.de>
 
-from six import add_metaclass, text_type as unicode
+from six import add_metaclass, python_2_unicode_compatible, \
+                text_type as unicode
 
 __all__ = ['Component', 'ExtensionPoint', 'implements', 'Interface',
            'TracBaseError', 'TracError']
@@ -35,6 +36,7 @@ class TracBaseError(Exception):
     title = N_("Trac Error")
 
 
+@python_2_unicode_compatible
 class TracError(TracBaseError):
     """Standard exception for errors in Trac."""
 
@@ -54,7 +56,7 @@ class TracError(TracBaseError):
     message = property(lambda self: self._message,
                        lambda self, v: setattr(self, '_message', v))
 
-    def __unicode__(self):
+    def __str__(self):
         return unicode(self.message)
 
 
