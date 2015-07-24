@@ -732,12 +732,13 @@ class NotificationTestCase(unittest.TestCase):
         headers, body = parse_smtp_message(message)
         self.assertIn('MIME-Version', headers)
         self.assertIn('Content-Type', headers)
-        self.assertTrue(re.compile(r"1.\d").match(headers['MIME-Version']))
+        self.assertTrue(b'1.0', headers['MIME-Version'])
         ctype_mo = re.match(r'\s*([^;\s]*)\s*(?:;\s*boundary="([^"]*)")?',
                             headers['Content-Type'])
         self.assertEqual('multipart/related', ctype_mo.group(1))
-        boundary_re = re.compile(r'(?:\r\n)*^--%s(?:--)?(?:\r\n|\Z)' %
-                                 re.escape(ctype_mo.group(2)), re.MULTILINE)
+        boundary_re = re.compile(
+            (r'(?:\r\n)*^--%s(?:--)?(?:\r\n|\Z)' %
+             re.escape(ctype_mo.group(2))).encode('utf-8'), re.MULTILINE)
         body = boundary_re.split(message)[1]
         headers, body = parse_smtp_message(body)
         self.assertIn('Content-Type', headers)
@@ -753,12 +754,14 @@ class NotificationTestCase(unittest.TestCase):
             self.assertTrue(len(line) <= MAXBODYWIDTH)
         # attempts to decode the body, following the specified MIME encoding
         # and charset
-        try:
-            if mime_decoder:
-                body = mime_decoder.decodestring(body)
+        if mime_decoder:
+            if isinstance(body, unicode):
+                body = body.encode('ascii')
+            body = (mime_decoder.decodebytes
+                    if hasattr(mime_decoder, 'decodebytes')
+                    else mime_decoder.decodestring)(body)
+        if isinstance(body, bytes):
             body = unicode(body, charset)
-        except Exception as e:
-            raise AssertionError(e)
         # now processes each line of the body
         bodylines = body.splitlines()
         # body starts with one of more summary lines, first line is prefixed
@@ -846,7 +849,7 @@ class NotificationTestCase(unittest.TestCase):
         ticket['resolution'] = u'fixed'
         ticket['keywords'] = u''
         ticket.insert()
-        formatted = """\
+        formatted = u"""\
   Reporter:  аnonymoиs        |      Owner:  somеbody
       Type:  バグ(dеfеct)     |     Status:  new
   Priority:  メジャー(mаjor)  |  Milestone:  マイルストーン1
@@ -870,7 +873,7 @@ Resolution:  fixed            |   Keywords:"""
         ticket['resolution'] = u'fixed'
         ticket['keywords'] = u''
         ticket.insert()
-        formatted = """\
+        formatted = u"""\
   Reporter:  аnonymoиs       |      Owner:  somеbody
       Type:  バグ(dеfеct)    |     Status:  new
   Priority:  メジャー(mаjor)  |  Milestone:  マイルストーン1
@@ -893,7 +896,7 @@ Resolution:  fixed             |   Keywords:"""
         ticket['resolution'] = u'fixed'
         ticket['keywords'] = u''
         ticket.insert()
-        formatted = """\
+        formatted = u"""\
   Reporter:  joe@…       |      Owner:  joe.bar@…
       Type:  defect      |     Status:  new
   Priority:  major       |  Milestone:  milestone1
@@ -917,7 +920,7 @@ Resolution:  fixed       |   Keywords:"""
         ticket['resolution'] = u'fixed'
         ticket['keywords'] = u''
         ticket.insert()
-        formatted = """\
+        formatted = u"""\
   Reporter:                          |      Owner:
   joe@foobar.foo.bar.example.org     |  joe.bar@foobar.foo.bar.example.org
       Type:  defect                  |     Status:  new
@@ -945,7 +948,7 @@ Resolution:  fixed                   |   Keywords:"""
         ticket['resolution'] = 'fixed'
         ticket['keywords'] = ''
         ticket.insert()
-        formatted = """\
+        formatted = u"""\
   Reporter:  Joę Fœœ     |      Owner:  Jœe Bær
       Type:  defect      |     Status:  new
   Priority:  major       |  Milestone:  milestone1
@@ -979,7 +982,7 @@ Resolution:  fixed       |   Keywords:"""
         ticket['resolution'] = u'fixed'
         ticket['keywords'] = u''
         ticket.insert()
-        formatted = """\
+        formatted = u"""\
   Reporter:  anonymous                           |      Owner:  somebody
       Type:  defect                              |     Status:  new
   Priority:  major                               |  Milestone:  milestone1
@@ -1017,7 +1020,7 @@ Resolution:  fixed                               |   Keywords:"""
         ticket['resolution'] = u'fixed'
         ticket['keywords'] = u''
         ticket.insert()
-        formatted = """\
+        formatted = u"""\
   Reporter:  anonymous                           |      Owner:  somebody
       Type:  defect                              |     Status:  new
   Priority:  major                               |  Milestone:  milestone1
@@ -1054,7 +1057,7 @@ Resolution:  fixed                               |   Keywords:"""
         ticket['resolution'] = u'fixed'
         ticket['keywords'] = u''
         ticket.insert()
-        formatted = """\
+        formatted = u"""\
   Reporter:  anonymous   |      Owner:  somebody
       Type:  defect      |     Status:  new
   Priority:  major       |  Milestone:  Lorem ipsum dolor sit amet,
@@ -1091,7 +1094,7 @@ Resolution:  fixed       |   Keywords:"""
         ticket['resolution'] = u'fixed'
         ticket['keywords'] = u''
         ticket.insert()
-        formatted = """\
+        formatted = u"""\
   Reporter:  anonymous   |      Owner:  somebody
       Type:  defect      |     Status:  new
   Priority:  major       |  Milestone:  Trac 在经过修改的BSD协议下发布。
@@ -1129,7 +1132,7 @@ Resolution:  fixed       |   Keywords:"""
         ticket['resolution'] = u'fixed'
         ticket['keywords'] = u'Ut enim ad minim veniam, ....'
         ticket.insert()
-        formatted = """\
+        formatted = u"""\
   Reporter:  anonymous               |      Owner:  somebody
       Type:  defect                  |     Status:  new
   Priority:  major                   |  Milestone:  Lorem ipsum dolor sit
@@ -1175,7 +1178,7 @@ Resolution:  fixed                   |   Keywords:  Ut enim ad minim
         ticket['resolution'] = u'fixed'
         ticket['keywords'] = u''
         ticket.insert()
-        formatted = """\
+        formatted = u"""\
   Reporter:  anonymous               |      Owner:  somebody
       Type:  defect                  |     Status:  new
   Priority:  major                   |  Milestone:  Trac 在经过修改的BSD协
@@ -1229,7 +1232,7 @@ Resolution:  fixed                   |   Keywords:"""
         ticket['blockedby'] = ''
         ticket.insert()
 
-        formatted = """\
+        formatted = u"""\
           Reporter:  anonymous                   |             Owner:
                                                  |  somebody
               Type:  defect                      |            Status:
@@ -1366,7 +1369,7 @@ Security sensitive:  0                           |          Blocking:
         notify_ticket_created(self.env, ticket)
         message = notifysuite.smtpd.get_message()
         headers, body = parse_smtp_message(message)
-        self.assertIn('\nSubject: =?utf-8?b?', message)  # is mime-encoded
+        self.assertIn(b'\nSubject: =?utf-8?b?', message)  # is mime-encoded
         self.assertEqual(summary,
                          re.split(r' #[0-9]+: ', headers['Subject'], 1)[1])
 
@@ -1417,10 +1420,10 @@ Security sensitive:  0                           |          Blocking:
         message = notifysuite.smtpd.get_message()
         body = parse_smtp_message(message)[1]
 
-        self.assertIn('Changes (by user0@…)', body)
-        self.assertIn('* owner:  user1@… => user2@…\n', body)
-        self.assertIn('* reporter:  user2@… => user1@…\n', body)
-        self.assertIn('* cc: user3@… (removed)\n', body)
+        self.assertIn(u'Changes (by user0@…)', body)
+        self.assertIn(u'* owner:  user1@… => user2@…\n', body)
+        self.assertIn(u'* reporter:  user2@… => user1@…\n', body)
+        self.assertIn(u'* cc: user3@… (removed)\n', body)
 
     def test_comment_change_author_is_obfuscated(self):
         ticket = self._insert_ticket()
@@ -1430,7 +1433,7 @@ Security sensitive:  0                           |          Blocking:
         message = notifysuite.smtpd.get_message()
         body = parse_smtp_message(message)[1]
 
-        self.assertIn('Comment (by user@…)', body)
+        self.assertIn(u'Comment (by user@…)', body)
 
     def test_property_change_author_is_not_obfuscated(self):
         self.env.config.set('trac', 'show_email_addresses', True)
@@ -1484,10 +1487,10 @@ Security sensitive:  0                           |          Blocking:
         message = notifysuite.smtpd.get_message()
         body = parse_smtp_message(message)[1]
 
-        self.assertIn('Changes (by Ußęr0)', body)
-        self.assertIn('* owner:  Ußęr1 => Ußęr2\n', body)
-        self.assertIn('* reporter:  Ußęr2 => Ußęr1\n', body)
-        self.assertIn('* cc: Ußęr3 (removed)\n', body)
+        self.assertIn(u'Changes (by Ußęr0)', body)
+        self.assertIn(u'* owner:  Ußęr1 => Ußęr2\n', body)
+        self.assertIn(u'* reporter:  Ußęr2 => Ußęr1\n', body)
+        self.assertIn(u'* cc: Ußęr3 (removed)\n', body)
 
     def test_comment_author_full_name(self):
         self.env.config.set('trac', 'show_email_addresses', True)
@@ -1501,7 +1504,7 @@ Security sensitive:  0                           |          Blocking:
         message = notifysuite.smtpd.get_message()
         body = parse_smtp_message(message)[1]
 
-        self.assertIn('Comment (by Thę Ußęr)', body)
+        self.assertIn(u'Comment (by Thę Ußęr)', body)
 
 
 class AttachmentNotificationTestCase(unittest.TestCase):
@@ -1558,8 +1561,7 @@ class AttachmentNotificationTestCase(unittest.TestCase):
 
         message = notifysuite.smtpd.get_message()
         body = parse_smtp_message(message)[1]
-
-        self.assertIn('Changes (by user@…)', body)
+        self.assertIn(u'Changes (by user@…)', body)
 
     def test_author_is_not_obfuscated(self):
         self.env.config.set('trac', 'show_email_addresses', True)
@@ -1581,7 +1583,7 @@ class AttachmentNotificationTestCase(unittest.TestCase):
         message = notifysuite.smtpd.get_message()
         body = parse_smtp_message(message)[1]
 
-        self.assertIn('Changes (by Thę Ußęr)', body)
+        self.assertIn(u'Changes (by Thę Ußęr)', body)
 
 
 class BatchTicketNotificationTestCase(unittest.TestCase):
@@ -1631,7 +1633,7 @@ class BatchTicketNotificationTestCase(unittest.TestCase):
         with self.env.db_transaction:
             for tktid in self.tktids:
                 t = Ticket(self.env, tktid)
-                for name, value in new_values.iteritems():
+                for name, value in six.iteritems(new_values):
                     t[name] = value
                 t.save_changes(author, comment, when=when)
         btn = BatchTicketNotifyEmail(self.env)
@@ -1648,7 +1650,7 @@ class BatchTicketNotificationTestCase(unittest.TestCase):
         self.assertEqual('trac@localhost', sender)
         self.assertIn('Date', headers)
         self.assertEqual('[TracTest] Batch modify: #3, #10, #4, #11, #5, #12, '
-                         '#6, #13, #7, #14,...', headers['Subject'])
+                         '#6, #13, #7, #14, ...', headers['Subject'])
         self.assertEqual('"TracTest" <trac@localhost>', headers['From'])
         self.assertIn('Message-ID', headers)
         self.assertIn('@localhost', headers['Message-ID'])

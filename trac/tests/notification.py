@@ -23,8 +23,8 @@ import base64
 import os
 import quopri
 import re
+import six
 import socket
-import string
 import threading
 import unittest
 from six import text_type as unicode
@@ -33,8 +33,7 @@ from trac.config import ConfigurationError
 from trac.notification import SendmailEmailSender, SmtpEmailSender
 from trac.test import EnvironmentStub
 
-LF = '\n'
-CR = '\r'
+CR = b'\r'[0]
 SMTP_TEST_PORT = 7000 + os.getpid() % 1000
 email_re = re.compile(r'([\w\d_\.\-])+\@(([\w\d\-])+\.)+([\w\d]{2,4})+')
 header_re = re.compile(r'^=\?(?P<charset>[\w\d\-]+)\?(?P<code>[qb])\?(?P<value>.*)\?=$')
@@ -83,8 +82,8 @@ def strip_address(address):
     Strip the leading & trailing <> from an address.  Handy for
     getting FROM: addresses.
     """
-    start = string.index(address, '<') + 1
-    end = string.index(address, '>')
+    start = address.index(b'<') + 1
+    end = address.index(b'>')
     return address[start:end]
 
 
@@ -93,9 +92,9 @@ def split_to(address):
     Return 'address' as undressed (host, fulladdress) tuple.
     Handy for use with TO: addresses.
     """
-    start = string.index(address, '<') + 1
-    sep = string.index(address, '@') + 1
-    end = string.index(address, '>')
+    start = address.index(b'<') + 1
+    sep = address.index(b'@') + 1
+    end = address.index(b'>')
     return address[sep:end], address[start:end]
 
 
@@ -129,9 +128,9 @@ class SMTPServerEngine:
         SMTPServerInterface methods on the object passed at
         construction time.
         """
-        self.socket.send("220 Welcome to Trac notification test server\r\n")
+        self.socket.send(b"220 Welcome to Trac notification test server\r\n")
         while 1:
-            data = ''
+            data = b''
             completeLine = 0
             # Make sure an entire line is received before handing off
             # to the state engine. Thanks to John Hall for pointing
@@ -141,15 +140,16 @@ class SMTPServerEngine:
                     lump = self.socket.recv(1024)
                     if len(lump):
                         data += lump
-                        if len(data) >= 2 and data[-2:] == '\r\n':
+                        if len(data) >= 2 and data[-2:] == b'\r\n':
                             completeLine = 1
                             if self.state != SMTPServerEngine.ST_DATA:
-                                rsp, keep = self.do_command(data)
+                                rsp, keep = \
+                                    self.do_command(data)
                             else:
                                 rsp = self.do_data(data)
                                 if rsp is None:
                                     continue
-                            self.socket.send(rsp + "\r\n")
+                            self.socket.send(rsp + b"\r\n")
                             if keep == 0:
                                 self.socket.close()
                                 return
@@ -161,46 +161,45 @@ class SMTPServerEngine:
 
     def do_command(self, data):
         """Process a single SMTP Command"""
-        cmd = data[0:4]
-        cmd = string.upper(cmd)
+        cmd = data[0:4].upper()
         keep = 1
         rv = None
-        if cmd == "HELO":
+        if cmd == b"HELO":
             self.state = SMTPServerEngine.ST_HELO
             rv = self.impl.helo(data[5:])
-        elif cmd == "RSET":
+        elif cmd == b"RSET":
             rv = self.impl.reset(data[5:])
             self.data_accum = ""
             self.state = SMTPServerEngine.ST_INIT
-        elif cmd == "NOOP":
+        elif cmd == b"NOOP":
             pass
-        elif cmd == "QUIT":
+        elif cmd == b"QUIT":
             rv = self.impl.quit(data[5:])
             keep = 0
-        elif cmd == "MAIL":
+        elif cmd == b"MAIL":
             if self.state != SMTPServerEngine.ST_HELO:
-                return "503 Bad command sequence", 1
+                return b"503 Bad command sequence", 1
             self.state = SMTPServerEngine.ST_MAIL
             rv = self.impl.mail_from(data[5:])
-        elif cmd == "RCPT":
+        elif cmd == b"RCPT":
             if (self.state != SMTPServerEngine.ST_MAIL) and \
                (self.state != SMTPServerEngine.ST_RCPT):
-                return "503 Bad command sequence", 1
+                return b"503 Bad command sequence", 1
             self.state = SMTPServerEngine.ST_RCPT
             rv = self.impl.rcpt_to(data[5:])
-        elif cmd == "DATA":
+        elif cmd == b"DATA":
             if self.state != SMTPServerEngine.ST_RCPT:
-                return "503 Bad command sequence", 1
+                return b"503 Bad command sequence", 1
             self.state = SMTPServerEngine.ST_DATA
-            self.data_accum = ""
-            return "354 OK, Enter data, terminated with a \\r\\n.\\r\\n", 1
+            self.data_accum = b""
+            return b"354 OK, Enter data, terminated with a \\r\\n.\\r\\n", 1
         else:
-            return "505 Eh? WTF was that?", 1
+            return b"505 Eh? WTF was that?", 1
 
         if rv:
             return rv, keep
         else:
-            return "250 OK", keep
+            return b"250 OK", keep
 
     def do_data(self, data):
         """
@@ -208,14 +207,14 @@ class SMTPServerEngine:
         terminator is found.
         """
         self.data_accum = self.data_accum + data
-        if len(self.data_accum) > 4 and self.data_accum[-5:] == '\r\n.\r\n':
+        if len(self.data_accum) > 4 and self.data_accum[-5:] == b'\r\n.\r\n':
             self.data_accum = self.data_accum[:-5]
             rv = self.impl.data(self.data_accum)
             self.state = SMTPServerEngine.ST_HELO
             if rv:
                 return rv
             else:
-                return "250 OK - Data and terminator. found"
+                return b"250 OK - Data and terminator. found"
         else:
             return None
 
@@ -280,13 +279,14 @@ class SMTPServerStore(SMTPServerInterface):
         self.reset(None)
 
     def mail_from(self, args):
-        if args.lower().startswith('from:'):
-            self.sender = strip_address(args[5:].replace('\r\n', '').strip())
+        if args.lower().startswith(b'from:'):
+            self.sender = strip_address(args[5:].replace(b'\r\n', b'')) \
+                          .decode('utf-8')
 
     def rcpt_to(self, args):
-        if args.lower().startswith('to:'):
-            rcpt = args[3:].replace('\r\n', '').strip()
-            self.recipients.append(strip_address(rcpt))
+        if args.lower().startswith(b'to:'):
+            rcpt = args[3:].replace(b'\r\n', b'').strip()
+            self.recipients.append(strip_address(rcpt).decode('utf-8'))
 
     def data(self, args):
         self.message = args
@@ -310,6 +310,7 @@ class SMTPThreadedServer(threading.Thread):
         self.server = SMTPServer(port)
         self.store = SMTPServerStore()
         threading.Thread.__init__(self)
+        self.daemon = True
 
     def run(self):
         # run from within the SMTP server thread
@@ -327,7 +328,7 @@ class SMTPThreadedServer(threading.Thread):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             s.connect(('127.0.0.1', self.port))
-            r = s.send("QUIT\r\n")
+            r = s.send(b"QUIT\r\n")
         except socket.error:
             pass
         s.close()
@@ -360,24 +361,23 @@ def smtp_address(fulladdr):
 
 def decode_header(header):
     """ Decode a MIME-encoded header value """
+    header = header.decode('utf-8')
     mo = header_re.match(header)
     # header does not seem to be MIME-encoded
     if not mo:
         return header
     # attempts to decode the header,
     # following the specified MIME encoding and charset
-    try:
-        encoding = mo.group('code').lower()
-        if encoding == 'q':
-            val = quopri.decodestring(mo.group('value'), header=True)
-        elif encoding == 'b':
-            val = base64.decodestring(mo.group('value'))
-        else:
-            raise AssertionError("unsupported encoding: %s" % encoding)
-        header = unicode(val, mo.group('charset'))
-    except Exception as e:
-        raise AssertionError(e)
-    return header
+    encoding = mo.group('code').lower()
+    if encoding == 'q':
+        val = quopri.decodestring(mo.group('value'), header=True)
+    elif encoding == 'b':
+        val = (base64.decodebytes
+               if hasattr(base64, 'decodebytes')
+               else base64.decodestring)(mo.group('value').encode('ascii'))
+    else:
+        raise AssertionError("unsupported encoding: %s" % encoding)
+    return unicode(val, mo.group('charset'))
 
 
 def parse_smtp_message(msg):
@@ -390,35 +390,38 @@ def parse_smtp_message(msg):
     lh = None
     body = None
     # last line does not contain the final line ending
-    msg += '\r\n'
+    msg += b'\r\n'
     for line in msg.splitlines(True):
         if body is not None:
             # append current line to the body
             if line[-2] == CR:
                 body += line[0:-2]
-                body += '\n'
+                body += b'\n'
             else:
                 raise AssertionError("body misses CRLF: %s (0x%x)"
-                                     % (line, ord(line[-1])))
+                                     % (line, six.indexbytes(line, -1)))
         else:
             if line[-2] != CR:
                 # RFC822 requires CRLF at end of field line
                 raise AssertionError("header field misses CRLF: %s (0x%x)"
-                                     % (line, ord(line[-1])))
+                                     % (line, six.indexbytes(line, -1)))
             # discards CR
             line = line[0:-2]
-            if line.strip() == '':
+            if line.strip() == b'':
                 # end of headers, body starts
-                body = ''
+                body = b''
             else:
                 val = None
-                if line[0] in ' \t':
+                if line[0] in b' \t':
                     # continuation of the previous line
                     if not lh:
                         # unexpected multiline
                         raise AssertionError("unexpected folded line: %s"
                                              % line)
-                    val = decode_header(line.strip(' \t'))
+                    line = line.strip(b' \t')
+                    val = decode_header(line)
+                    if line == val:  # is not mime encoded?
+                        val = ' ' + val
                     # appends the current line to the previous one
                     if not isinstance(headers[lh], tuple):
                         headers[lh] += val
@@ -426,7 +429,8 @@ def parse_smtp_message(msg):
                         headers[lh][-1] = headers[lh][-1] + val
                 else:
                     # splits header name from value
-                    (h, v) = line.split(':', 1)
+                    (h, v) = line.split(b':', 1)
+                    h = h.decode('utf-8')
                     val = decode_header(v.strip())
                     if h in headers:
                         if isinstance(headers[h], tuple):
@@ -438,7 +442,7 @@ def parse_smtp_message(msg):
                     # stores the last header (for multi-line headers)
                     lh = h
     # returns the headers and the message body
-    return headers, body
+    return headers, body.decode('utf-8')
 
 
 class SendmailEmailSenderTestCase(unittest.TestCase):
