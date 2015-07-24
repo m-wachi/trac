@@ -706,17 +706,17 @@ class TicketNotifyEmail(NotifyEmail):
             i += 1
         width_l = width[0] + width[1] + 5
         width_r = width[2] + width[3] + 5
-        half_cols = (self.COLS - 1) / 2
+        half_cols = (self.COLS - 1) // 2
         if width_l + width_r + 1 > self.COLS:
             if ((width_l > half_cols and width_r > half_cols) or
-                    (width[0] > half_cols / 2 or width[2] > half_cols / 2)):
+                    (width[0] > half_cols // 2 or width[2] > half_cols // 2)):
                 width_l = half_cols
                 width_r = half_cols
             elif width_l > width_r:
-                width_l = min((self.COLS - 1) * 2 / 3, width_l)
+                width_l = min((self.COLS - 1) * 2 // 3, width_l)
                 width_r = self.COLS - width_l - 1
             else:
-                width_r = min((self.COLS - 1) * 2 / 3, width_r)
+                width_r = min((self.COLS - 1) * 2 // 3, width_r)
                 width_l = self.COLS - width_r - 1
         sep = width_l * '-' + '+' + width_r * '-'
         txt = sep + '\n'
@@ -1009,9 +1009,10 @@ class BatchTicketNotifyEmail(NotifyEmail):
         return list(all_to_recipients), list(all_cc_recipients)
 
     def get_message_id(self, modtime=None):
-        s = '%s.%s.%d' % (self.env.project_url.encode('utf-8'),
-                          ','.join(map(str, self.tickets)),
-                          to_utimestamp(modtime))
+        s = b'.'.join(value.encode('utf-8')
+                      for value in (self.env.project_url,
+                                    u','.join(map(unicode, self.tickets)),
+                                    unicode(to_utimestamp(modtime))))
         dig = md5(s).hexdigest()
         host = self.from_email[self.from_email.find('@') + 1:]
         msgid = '<%03d.%s@%s>' % (len(s), dig, host)
