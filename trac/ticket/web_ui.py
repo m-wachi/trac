@@ -43,6 +43,7 @@ from trac.ticket.notification import TicketChangeEvent
 from trac.ticket.roadmap import group_milestones
 from trac.timeline.api import ITimelineEventProvider
 from trac.util import as_bool, as_int, get_reporter_id, lazy
+from trac.util.csv import UnicodeCsvWriter
 from trac.util.datefmt import (
     datetime_now, format_date_or_datetime, from_utimestamp,
     get_date_format_hint, get_datetime_format_hint, parse_date, to_utimestamp,
@@ -1195,24 +1196,25 @@ class TicketModule(Component):
         #        as one row of output doesn't seem to be terribly useful...
         fields = [f for f in ticket.fields
                   if f['name'] not in ('time', 'changetime')]
+        chrome = Chrome(self.env)
         content = io.BytesIO()
-        content.write('\xef\xbb\xbf')   # BOM
-        writer = csv.writer(content, delimiter=sep, quoting=csv.QUOTE_MINIMAL)
-        writer.writerow(['id'] + [unicode(f['name']) for f in fields])
-
-        context = web_context(req, ticket.resource)
-        cols = [unicode(ticket.id)]
-        for f in fields:
-            name = f['name']
-            value = ticket[name] or ''
-            if name in ('cc', 'owner', 'reporter'):
-                value = Chrome(self.env).format_emails(context, value, ' ')
-            elif name in ticket.time_fields:
-                format = ticket.fields.by_name(name).get('format')
-                value = user_time(req, format_date_or_datetime, format,
-                                  value) if value else ''
-            cols.append(value.encode('utf-8'))
-        writer.writerow(cols)
+        content.write(b'\xef\xbb\xbf')   # BOM
+        with UnicodeCsvWriter(content, delimiter=sep,
+                              quoting=csv.QUOTE_MINIMAL) as writer:
+            writer.writerow(['id'] + [unicode(f['name']) for f in fields])
+            context = web_context(req, ticket.resource)
+            cols = [unicode(ticket.id)]
+            for f in fields:
+                name = f['name']
+                value = ticket[name] or ''
+                if name in ('cc', 'owner', 'reporter'):
+                    value = chrome.format_emails(context, value, ' ')
+                elif name in ticket.time_fields:
+                    format = ticket.fields.by_name(name).get('format')
+                    value = user_time(req, format_date_or_datetime, format,
+                                      value) if value else ''
+                cols.append(value)
+            writer.writerow(cols)
         return content.getvalue(), '%s;charset=utf-8' % mimetype
 
     def export_rss(self, req, ticket):
