@@ -61,9 +61,10 @@ def to_unicode(text, charset=None):
         except UnicodeDecodeError:
             return unicode(text, 'latin1')
     elif isinstance(text, Exception):
-        if os.name == 'nt' and isinstance(text, (OSError, IOError)):
-            # the exception might have a localized error string encoded with
-            # ANSI codepage if OSError and IOError on Windows
+        if six.PY2 and os.name == 'nt' and \
+                isinstance(text, (OSError, IOError)):
+            # For Python 2, the exception might have a localized error string
+            # encoded with ANSI codepage if OSError and IOError on Windows
             try:
                 return unicode(str(text), 'mbcs')
             except UnicodeError:
