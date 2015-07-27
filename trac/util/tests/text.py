@@ -68,21 +68,30 @@ class ToUnicodeTestCase(unittest.TestCase):
         except OSError as e:
             uc = to_unicode(e)
             self.assertIsInstance(uc, unicode, uc)
-            self.assertTrue(uc.startswith('[Error '), uc)
-            self.assertIn(e.strerror.decode('mbcs'), uc)
+            self.assertIn('Error %d]' % e.winerror, uc)
+            strerror = e.strerror
+            if six.PY2:
+                strerror = strerror.decode('mbcs')
+            self.assertIn(strerror, uc)
 
     def test_from_socket_error(self):
         for res in socket.getaddrinfo('127.0.0.1', 65536, 0,
                                       socket.SOCK_STREAM):
             af, socktype, proto, canonname, sa = res
-            s = socket.socket(af, socktype, proto)
             try:
-                s.connect(sa)
-            except socket.error as e:
-                uc = to_unicode(e)
-                self.assertIsInstance(uc, unicode, uc)
-                if hasattr(e, 'strerror'):
-                    self.assertIn(e.strerror.decode('mbcs'), uc)
+                s = socket.socket(af, socktype, proto)
+                try:
+                    s.connect(sa)
+                except socket.error as e:
+                    uc = to_unicode(e)
+                    self.assertIsInstance(uc, unicode, uc)
+                    strerror = e.strerror
+                    if six.PY2:
+                        strerror = strerror.decode('mbcs')
+                    self.assertIn(strerror, uc)
+                    break
+            finally:
+                s.close()
 
     if os.name != 'nt':
         del test_from_windows_error
