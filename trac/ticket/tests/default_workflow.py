@@ -18,6 +18,8 @@ import six
 import tempfile
 import unittest
 
+from genshi.core import Attrs, START
+
 import trac.tests.compat
 from trac.perm import PermissionCache, PermissionSystem
 from trac.test import EnvironmentStub, Mock, MockPerm, locale_en
@@ -28,6 +30,16 @@ from trac.util import create_file
 from trac.util.datefmt import to_utimestamp, utc
 from trac.web.api import RequestDone
 from tracopt.perm.authz_policy import AuthzPolicy
+
+
+def _serialize_fragment(control):
+    def fn(stream):
+        for kind, data, pos in stream:
+            if kind is START:
+                data = (data[0], Attrs(sorted(data[1])))
+            yield kind, data, pos
+    return (control.generate() | fn).render(method='xhtml',
+                                            strip_whitespace=False)
 
 
 class ConfigurableTicketWorkflowTestCase(unittest.TestCase):
@@ -300,8 +312,8 @@ class SetOwnerAttributeTestCase(unittest.TestCase):
         self.req = Mock(authname='user1', args={},
                         perm=PermissionCache(self.env, 'user0'))
         self.expected = """\
-to <select name="action_reassign_reassign_owner" \
-id="action_reassign_reassign_owner"><option selected="True" \
+to <select id="action_reassign_reassign_owner" \
+name="action_reassign_reassign_owner"><option selected="selected" \
 value="user1">user1</option><option value="user2">user2</option>\
 <option value="user3">user3</option></select>"""
 
@@ -319,7 +331,7 @@ value="user1">user1</option><option value="user2">user2</option>\
         args = self.req, self.ticket, 'reassign'
         label, control, hints = self.ctlr.render_ticket_action_control(*args)
 
-        self.assertEqual(self.expected, str(control))
+        self.assertEqual(self.expected, _serialize_fragment(control))
 
     def test_groups(self):
         self.env.config.set('ticket-workflow', 'reassign.set_owner',
@@ -329,7 +341,7 @@ value="user1">user1</option><option value="user2">user2</option>\
         args = self.req, self.ticket, 'reassign'
         label, control, hints = self.ctlr.render_ticket_action_control(*args)
 
-        self.assertEqual(self.expected, str(control))
+        self.assertEqual(self.expected, _serialize_fragment(control))
 
     def test_permission(self):
         self.env.config.set('ticket-workflow', 'reassign.set_owner',
@@ -339,7 +351,7 @@ value="user1">user1</option><option value="user2">user2</option>\
         args = self.req, self.ticket, 'reassign'
         label, control, hints = self.ctlr.render_ticket_action_control(*args)
 
-        self.assertEqual(self.expected, str(control))
+        self.assertEqual(self.expected, _serialize_fragment(control))
 
 
 class RestrictOwnerTestCase(unittest.TestCase):
@@ -380,14 +392,16 @@ class RestrictOwnerTestCase(unittest.TestCase):
     def test_set_owner(self):
         """Restricted owners list contains users with TICKET_MODIFY.
         """
-        ctrl = self.ctlr.render_ticket_action_control(self.req1, self.ticket,
-                                                      'reassign')
+        label, control, hints = \
+            self.ctlr.render_ticket_action_control(self.req1, self.ticket,
+                                                   'reassign')
+        control = _serialize_fragment(control)
 
-        self.assertEqual('reassign', ctrl[0])
-        self.assertIn('value="user1">user1</option>', str(ctrl[1]))
-        self.assertNotIn('value="user2">user2</option>', str(ctrl[1]))
-        self.assertIn('value="user3">user3</option>', str(ctrl[1]))
-        self.assertIn('value="user4">user4</option>', str(ctrl[1]))
+        self.assertEqual('reassign', label)
+        self.assertIn('value="user1">user1</option>', control)
+        self.assertNotIn('value="user2">user2</option>', control)
+        self.assertIn('value="user3">user3</option>', control)
+        self.assertIn('value="user4">user4</option>', control)
 
     def test_set_owner_fine_grained_permissions(self):
         """Fine-grained permission checks when populating the restricted
@@ -398,14 +412,16 @@ class RestrictOwnerTestCase(unittest.TestCase):
 user4 = !TICKET_MODIFY
 """)
 
-        ctrl = self.ctlr.render_ticket_action_control(self.req1, self.ticket,
-                                                      'reassign')
+        label, control, hints = \
+            self.ctlr.render_ticket_action_control(self.req1, self.ticket,
+                                                   'reassign')
+        control = _serialize_fragment(control)
 
-        self.assertEqual('reassign', ctrl[0])
-        self.assertIn('value="user1">user1</option>', str(ctrl[1]))
-        self.assertNotIn('value="user2">user2</option>', str(ctrl[1]))
-        self.assertIn('value="user3">user3</option>', str(ctrl[1]))
-        self.assertNotIn('value="user4">user4</option>', str(ctrl[1]))
+        self.assertEqual('reassign', label)
+        self.assertIn('value="user1">user1</option>', control)
+        self.assertNotIn('value="user2">user2</option>', control)
+        self.assertIn('value="user3">user3</option>', control)
+        self.assertNotIn('value="user4">user4</option>', control)
 
 
 def suite():
