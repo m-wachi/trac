@@ -311,7 +311,7 @@ try:
                     t = Translations(infile, self.domain)
                     catalog = t._catalog
 
-                with open(js_file, 'w') as outfile:
+                with open(js_file, 'wb') as outfile:
                     write_js(outfile, catalog, self.domain, locale)
 
 
@@ -442,11 +442,11 @@ try:
                         break
         data['messages'] = messages
 
-        fileobj.write('// Generated messages javascript file '
-                      'from compiled MO file\n')
-        fileobj.write('babel.Translations.load(')
+        fileobj.write(b'// Generated messages javascript file '
+                      b'from compiled MO file\n')
+        fileobj.write(b'babel.Translations.load(')
         fileobj.write(to_json(data).encode('utf-8'))
-        fileobj.write(').install();\n')
+        fileobj.write(b').install();\n')
 
     def pluralexpr(forms):
         match = re.search(r'\bplural\s*=\s*([^;]+)', forms)
