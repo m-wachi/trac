@@ -313,7 +313,7 @@ query:summary=résumé
 <a class="query" href="/query?reporter=!&amp;order=priority">query:reporter!=</a>
 </p>
 <p>
-<a class="query" href="/query?owner=me&amp;reporter=joe&amp;reporter=jack&amp;order=priority">query:reporter=joe|jack&amp;owner=me</a>
+<a class="query" href="/query?reporter=joe&amp;reporter=jack&amp;owner=me&amp;order=priority">query:reporter=joe|jack&amp;owner=me</a>
 </p>
 <p>
 <a class="query" href="/query?group=owner&amp;order=priority">query:group=owner</a>
@@ -336,14 +336,14 @@ Reopened tickets: <span class="query_no_results">No results</span>
 Reopened tickets: [[TicketQuery(status=reopened, format=rawcount)]]
 ------------------------------
 <p>
-Reopened tickets: <span class="query_count" title="0 tickets matching status=reopened, max=0, order=id">0</span>
+Reopened tickets: <span class="query_count" title="0 tickets matching status=reopened, order=id, max=0">0</span>
 </p>
 ------------------------------
 ============================== TicketQuery macro: no results, count 0
 Reopened tickets: [[TicketQuery(status=reopened, format=count)]]
 ------------------------------
 <p>
-Reopened tickets: <a href="/query?status=reopened&amp;max=0&amp;order=id" title="0 tickets matching status=reopened, max=0, order=id">0</a>
+Reopened tickets: <a href="/query?status=reopened&amp;max=0&amp;order=id" title="0 tickets matching status=reopened, order=id, max=0">0</a>
 </p>
 ------------------------------
 ============================== TicketQuery macro: no results, compact form
@@ -364,14 +364,14 @@ New tickets: </p><div><dl class="wiki compact"><dt><a class="new" href="/ticket/
 New tickets: [[TicketQuery(status=new, format=rawcount)]]
 ------------------------------
 <p>
-New tickets: <span class="query_count" title="1 ticket matching status=new, max=0, order=id">1</span>
+New tickets: <span class="query_count" title="1 ticket matching status=new, order=id, max=0">1</span>
 </p>
 ------------------------------
 ============================== TicketQuery macro: one result, count 1
 New tickets: [[TicketQuery(status=new, format=count)]]
 ------------------------------
 <p>
-New tickets: <a href="/query?status=new&amp;max=0&amp;order=id" title="1 ticket matching status=new, max=0, order=id">1</a>
+New tickets: <a href="/query?status=new&amp;max=0&amp;order=id" title="1 ticket matching status=new, order=id, max=0">1</a>
 </p>
 ------------------------------
 ============================== TicketQuery macro: one result, compact form
@@ -409,14 +409,14 @@ New tickets: </p><div><dl class="wiki compact"><dt><a class="new" href="/ticket/
 New tickets: [[TicketQuery(status=new, order=reporter, format=rawcount)]]
 ------------------------------
 <p>
-New tickets: <span class="query_count" title="2 tickets matching status=new, max=0, order=reporter">2</span>
+New tickets: <span class="query_count" title="2 tickets matching status=new, order=reporter, max=0">2</span>
 </p>
 ------------------------------
 ============================== TicketQuery macro: two results, count 2
 New tickets: [[TicketQuery(status=new, order=reporter, format=count)]]
 ------------------------------
 <p>
-New tickets: <a href="/query?status=new&amp;max=0&amp;order=reporter" title="2 tickets matching status=new, max=0, order=reporter">2</a>
+New tickets: <a href="/query?status=new&amp;max=0&amp;order=reporter" title="2 tickets matching status=new, order=reporter, max=0">2</a>
 </p>
 ------------------------------
 ============================== TicketQuery macro: two results, compact form

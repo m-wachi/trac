@@ -545,7 +545,7 @@ class TestTicketCustomFieldTextReferenceFormat(FunctionalTwillTestCaseSetup):
         word2 = random_word()
         val = "%s %s" % (word1, word2)
         self._tester.create_ticket(info={'newfield': val})
-        query = 'status=!closed&amp;newfield=%s\+%s' % (word1, word2)
+        query = 'newfield=%s\+%s&amp;status=!closed' % (word1, word2)
         querylink = '<a href="/query\?%s">%s</a>' % (query, val)
         tc.find('<td headers="h_newfield"[^>]*>\s*%s\s*</td>' % querylink)
 
@@ -568,8 +568,8 @@ class TestTicketCustomFieldTextListFormat(FunctionalTwillTestCaseSetup):
         word2 = random_word()
         val = "%s %s" % (word1, word2)
         self._tester.create_ticket(info={'newfield': val})
-        query1 = 'status=!closed&amp;newfield=~%s' % word1
-        query2 = 'status=!closed&amp;newfield=~%s' % word2
+        query1 = 'newfield=~%s&amp;status=!closed' % word1
+        query2 = 'newfield=~%s&amp;status=!closed' % word2
         querylink1 = '<a href="/query\?%s">%s</a>' % (query1, word1)
         querylink2 = '<a href="/query\?%s">%s</a>' % (query2, word2)
         querylinks = '%s %s' % (querylink1, querylink2)
@@ -616,9 +616,9 @@ class RegressionTestTicket10828(FunctionalTwillTestCaseSetup):
         tc.submit('submit')
         tc.find('<em>%s</em> <em>%s</em> <em>%s</em> added'
                 % (word1, word2, word3))
-        query1 = 'status=!closed&amp;newfield=~%s' % word1
-        query2 = 'status=!closed&amp;newfield=~%s' % word2
-        query3 = 'status=!closed&amp;newfield=~%s' % word3
+        query1 = 'newfield=~%s&amp;status=!closed' % word1
+        query2 = 'newfield=~%s&amp;status=!closed' % word2
+        query3 = 'newfield=~%s&amp;status=!closed' % word3
         querylink1 = '<a href="/query\?%s">%s</a>' % (query1, word1)
         querylink2 = '<a href="/query\?%s">%s</a>' % (query2, word2)
         querylink3 = '<a href="/query\?%s">%s</a>' % (query3, word3)
@@ -1554,6 +1554,85 @@ class RegressionTestTicket10010(FunctionalTwillTestCaseSetup):
             go_to_and_find_markup('<option selected="selected" ', False)
         finally:
             self._testenv.remove_config('milestone', 'default_retarget_to')
+
+
+class RegressionTestTicket10772(FunctionalTwillTestCaseSetup):
+    def runTest(self):
+        """Test for regression of http://trac.edgewall.org/ticket/10772"""
+        def find_prop(field, value=None):
+            if value and field == 'type':
+                tc.find(r'<span class="trac-%(field)s">\s*'
+                        r'<a href="/query\?status=!closed&amp;'
+                        r'%(field)s=%(value)s">\s*%(value)s\s*</a>\s*</span>'
+                        % {'field': field, 'value': value})
+            elif value and field == 'milestone':
+                tc.find(r'<td headers="h_%(field)s">\s*'
+                        r'<a class="%(field)s" href="/%(field)s/%(value)s" '
+                        r'title=".+">\s*%(value)s\s*</a>\s*</td>'
+                        % {'field': field, 'value': value})
+            elif value:
+                if field < 'status':
+                    tc.find(r'<td headers="h_%(field)s">\s*'
+                            r'<a href="/query\?%(field)s=%(value)s&amp;'
+                            r'status=!closed">\s*%(value)s\s*</a>\s*</td>'
+                            % {'field': field, 'value': value})
+                else:
+                    tc.find(r'<td headers="h_%(field)s">\s*'
+                            r'<a href="/query\?status=!closed&amp;'
+                            r'%(field)s=%(value)s">\s*%(value)s\s*</a>\s*</td>'
+                            % {'field': field, 'value': value})
+            else:
+                tc.find(r'<td headers="h_%(field)s">\s*</td>'
+                        % {'field': field})
+
+        self._testenv.set_config('ticket', 'allowed_empty_fields',
+                                 'component, milestone, priority, version')
+
+        try:
+            # TODO: use the //Clear default// buttons to clear these values
+            self._tester.go_to_admin("Components")
+            tc.submit('clear', formname='component_table')
+            self._tester.go_to_admin("Milestones")
+            tc.submit('clear', formname='milestone_table')
+            self._tester.go_to_admin("Versions")
+            tc.submit('clear', formname='version_table')
+            self._tester.go_to_admin("Priorities")
+            tc.formvalue('enumtable', 'default', 'major')
+            tc.submit('apply')
+
+            self._tester.create_ticket('ticket summary')
+
+            find_prop('component')
+            find_prop('milestone')
+            find_prop('priority', 'major')
+            find_prop('version')
+
+            self._testenv.set_config('ticket', 'allowed_empty_fields', '')
+            self._tester.go_to_admin("Components")
+            tc.formvalue('component_table', 'default', 'component2')
+            tc.submit('apply')
+            self._tester.go_to_admin("Milestones")
+            tc.formvalue('milestone_table', 'ticket_default', 'milestone2')
+            tc.submit('apply')
+            self._tester.go_to_admin("Priorities")
+            tc.formvalue('enumtable', 'default', 'minor')
+            tc.submit('apply')
+            self._tester.go_to_admin("Versions")
+            tc.formvalue('version_table', 'default', '2.0')
+            tc.submit('apply')
+            self._tester.go_to_admin("Ticket Types")
+            tc.formvalue('enumtable', 'default', 'task')
+            tc.submit('apply')
+
+            self._tester.create_ticket('ticket summary')
+
+            find_prop('component', 'component2')
+            find_prop('milestone', 'milestone2')
+            find_prop('priority', 'minor')
+            find_prop('version', '2.0')
+            find_prop('type', 'task')
+        finally:
+            self._testenv.remove_config('ticket', 'allowed_empty_fields')
 
 
 class RegressionTestTicket10984(FunctionalTwillTestCaseSetup):
