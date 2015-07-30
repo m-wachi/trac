@@ -30,7 +30,7 @@ class AuthzPolicyTestCase(unittest.TestCase):
     def setUp(self):
         tmpdir = os.path.realpath(tempfile.gettempdir())
         self.authz_file = os.path.join(tmpdir, 'trac-authz-policy')
-        create_file(self.authz_file, """\
+        content = u"""\
 # -*- coding: utf-8 -*-
 # Unicode user names
 [groups]
@@ -69,7 +69,8 @@ administrators = éat
 änon = BROWSER_VIEW, FILE_VIEW
 @administrators = BROWSER_VIEW, FILE_VIEW
 * =
-""")
+"""
+        create_file(self.authz_file, content.encode('utf-8'), 'wb')
         self.env = EnvironmentStub(enable=['trac.*', AuthzPolicy], path=tmpdir)
         self.env.config.set('trac', 'permission_policies',
                             'AuthzPolicy, DefaultPermissionPolicy')
@@ -201,22 +202,22 @@ administrators = éat
 
     def test_parse_authz_no_settings(self):
         """Allow the file to have no settings."""
-        create_file(self.authz_file, """\
+        create_file(self.authz_file, u"""\
 # [wiki:WikiStart]
 # änon = WIKI_VIEW
 # * =
-""")
+""".encode('utf-8'), 'wb')
         authz_policy = AuthzPolicy(self.env)
         authz_policy.parse_authz()
         self.assertEqual([], authz_policy.authz.sections())
 
     def test_parse_authz_malformed_raises(self):
         """ConfigurationError should be raised if the file is malformed."""
-        create_file(self.authz_file, """\
+        create_file(self.authz_file, u"""\
 wiki:WikiStart]
 änon = WIKI_VIEW
 * =
-""")
+""".encode('utf-8'), 'wb')
         authz_policy = AuthzPolicy(self.env)
         self.assertRaises(ConfigurationError, authz_policy.parse_authz)
 
