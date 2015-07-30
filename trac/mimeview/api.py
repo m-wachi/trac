@@ -382,7 +382,7 @@ MODE_RE = re.compile(r"""
     | \#!(?:[/\w.-_]+/)?(\w+)               # 2. look for regular shebang
     | -\*-\s*(?:mode:\s*)?([\w+-]+)\s*-\*-  # 3. look for Emacs' -*- mode -*-
     | vim:.*?(?:syntax|filetype|ft)=(\w+)   # 4. look for VIM's syntax=<n>
-    """, re.VERBOSE)
+    """.encode('utf-8'), re.VERBOSE)
 
 
 def get_mimetype(filename, content=None, mime_map=MIME_MAP,
@@ -411,10 +411,13 @@ def get_mimetype(filename, content=None, mime_map=MIME_MAP,
         except Exception:
             pass
         if not mimetype and content:
-            match = re.search(MODE_RE, content[:1000] + content[-1000:])
+            tmp = content.encode('latin1', 'replace') \
+                  if isinstance(content, unicode) else content
+            match = re.search(MODE_RE, tmp[:1000] + tmp[-1000:])
             if match:
-                mode = match.group(1) or match.group(2) or match.group(4) or \
-                    match.group(3).lower()
+                mode = unicode(match.group(1) or match.group(2) or
+                               match.group(4) or match.group(3).lower(),
+                               'latin1')
                 if mode in mime_map:
                     # 3) mimetype from the content, using the `MODE_RE`
                     return mime_map[mode]
@@ -435,9 +438,14 @@ def is_binary(data):
 
     Operate on either `str` or `unicode` strings.
     """
-    if isinstance(data, bytes) and detect_unicode(data):
+    if isinstance(data, bytes):
+        if detect_unicode(data):
+            return False
+        return b'\0' in data[:1000]
+    elif isinstance(data, unicode):
+        return u'\0' in data[:1000]
+    else:
         return False
-    return '\0' in data[:1000]
 
 
 def detect_unicode(data):

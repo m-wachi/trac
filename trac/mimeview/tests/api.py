@@ -51,37 +51,36 @@ class GetMimeTypeTestCase(unittest.TestCase):
         self.assertTrue(get_mimetype('doc/trac_logo.png', None) in accepted)
 
     def test_from_content_using_CONTENT_RE(self):
-        self.assertEqual('text/x-python',
-                         get_mimetype('xxx', """
+        self._test_get_mimetype('text/x-python', 'xxx', u"""
 #!/usr/bin/python
 # This is a python script
-"""))
-        self.assertEqual('text/x-python',
-                         get_mimetype('xxx', """
+""")
+        self._test_get_mimetype('text/x-python', 'xxx', u"""
 #!/usr/bin/env python
 # This is a python script
-"""))
-        self.assertEqual('text/x-ksh',
-                         get_mimetype('xxx', """
+""")
+        self._test_get_mimetype('text/x-ksh', 'xxx', u"""
 #!/bin/ksh
 # This is a shell script
-"""))
-        self.assertEqual('text/x-python',
-                         get_mimetype('xxx', """
+""")
+        self._test_get_mimetype('text/x-python', 'xxx', u"""
 # -*- Python -*-
 # This is a python script
-"""))
-        self.assertEqual('text/x-ruby',
-                         get_mimetype('xxx', """
+""")
+        self._test_get_mimetype('text/x-ruby', 'xxx', u"""
 # -*- mode: ruby -*-
 # This is a ruby script
-"""))
-        self.assertEqual('text/x-python',
-                         get_mimetype('xxx', ' ' * 2000 + '# vim: ft=python'))
+""")
+        self._test_get_mimetype('text/x-python', 'xxx',
+                                u' ' * 2000 + u'# vim: ft=python')
 
     def test_from_content_using_is_binary(self):
-        self.assertEqual('application/octet-stream',
-                         get_mimetype('xxx', "abc\0xyz"))
+        self._test_get_mimetype('application/octet-stream', 'xxx', u"abc\0xyz")
+
+    def _test_get_mimetype(self, expected, filename, content):
+        self.assertEqual(expected, get_mimetype(filename, content))
+        self.assertEqual(expected, get_mimetype(filename,
+                                                content.encode('utf-8')))
 
 
 class MimeviewTestCase(unittest.TestCase):
