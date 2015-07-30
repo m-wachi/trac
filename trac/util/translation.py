@@ -107,6 +107,10 @@ class NullTranslationsBabel(NullTranslations):
     def dungettext(self, domain, singular, plural, num):
         return self.ungettext(singular, plural, num)
 
+    if six.PY3:
+        ugettext = NullTranslations.gettext
+        ungettext = NullTranslations.ngettext
+
 has_babel = False
 
 try:
