@@ -36,6 +36,8 @@ from trac.ticket.api import TicketSystem
 from trac.ticket.model import Milestone
 from trac.ticket.roadmap import group_milestones
 from trac.util import Ranges, as_bool
+from trac.util.compat import OrderedDict
+from trac.util.csv import UnicodeCsvWriter
 from trac.util.datefmt import (datetime_now, from_utimestamp,
                                format_date_or_datetime, parse_date,
                                to_timestamp, to_utimestamp, utc, user_time)
@@ -136,7 +138,7 @@ class Query(object):
         if self.group not in field_names:
             self.group = None
 
-        constraint_cols = {}
+        constraint_cols = OrderedDict()
         for clause in self.constraints:
             for k, v in six.iteritems(clause):
                 if k == 'id' or k in field_names:
@@ -156,16 +158,17 @@ class Query(object):
         kw_synonyms = {'row': 'rows'}
         # i18n TODO - keys will be unicode
         synonyms = TicketSystem(env).get_field_synonyms()
-        constraints = [{}]
+        constraints = [OrderedDict()]
         cols = []
         report = None
-        def as_str(s):
-            if isinstance(s, unicode):
-                return s.encode('utf-8')
-            return s
+        if six.PY2:
+            as_str = lambda s: s.encode('utf-8') \
+                               if isinstance(s, unicode) else s
+        else:
+            as_str = str
         for filter_ in cls._clause_splitter.split(string):
             if filter_ == 'or':
-                constraints.append({})
+                constraints.append(OrderedDict())
                 continue
             filter_ = filter_.replace(r'\&', '&').split('=', 1)
             if len(filter_) != 2:
@@ -201,7 +204,7 @@ class Query(object):
             else:
                 constraints[-1].setdefault(synonyms.get(field, field),
                                            []).extend(processed_values)
-        constraints = filter(None, constraints)
+        constraints = [c for c in constraints if c]
         report = kw.pop('report', report)
         return cls(env, report, constraints=constraints, cols=cols, **kw)
 
@@ -430,7 +433,7 @@ class Query(object):
         if self.rows:
             add_cols('reporter', *self.rows)
         add_cols('status', 'priority', 'time', 'changetime', self.order)
-        cols.extend([c for c in self.constraint_cols if c not in cols])
+        add_cols(*self.constraint_cols)
 
         custom_fields = [f['name'] for f in self.fields if f.get('custom')]
         list_fields = [f['name'] for f in self.fields
@@ -609,7 +612,7 @@ class Query(object):
                     elif v:
                         constraint_sql = [get_constraint_sql(k, val, mode, neg)
                                           for val in v]
-                        constraint_sql = filter(None, constraint_sql)
+                        constraint_sql = [c for c in constraint_sql if c]
                         if not constraint_sql:
                             continue
                         if neg:
@@ -624,8 +627,7 @@ class Query(object):
 
             args = []
             errors = []
-            clauses = filter(None,
-                             (get_clause_sql(c) for c in self.constraints))
+            clauses = [c for c in map(get_clause_sql, self.constraints) if c]
             if clauses:
                 sql.append("\nWHERE ")
                 sql.append(" OR ".join('(%s)' % c for c in clauses))
@@ -1068,9 +1070,7 @@ class QueryModule(Component):
                 clauses.append({})
             elif field in fields:
                 clauses[-1].setdefault(field, []).append(val)
-        clauses = filter(None, clauses)
-
-        return clauses
+        return [c for c in clauses if c]
 
     def display_html(self, req, query):
         # The most recent query is stored in the user session;
@@ -1165,29 +1165,31 @@ class QueryModule(Component):
         return ''.join(content), content_type
 
     def _export_csv(self, req, query, sep=',', mimetype='text/plain'):
-        def iterate():
-            out = io.BytesIO()
-            writer = csv.writer(out, delimiter=sep, quoting=csv.QUOTE_MINIMAL)
+        chrome = Chrome(self.env)
+        context = web_context(req)
+        cols = query.get_columns()
+        results = query.execute(req)
 
+        def iterate():
             def writerow(values):
-                writer.writerow([unicode(value).encode('utf-8')
-                                 for value in values])
+                writer.writerow(unicode(value) for value in values)
                 rv = out.getvalue()
+                if isinstance(rv, unicode):
+                    rv = rv.encode('utf-8')
                 out.truncate(0)
                 out.seek(0)
                 return rv
 
-            yield '\xef\xbb\xbf'  # BOM
+            out = io.BytesIO()
+            with UnicodeCsvWriter(out, encoding='utf-8', delimiter=sep,
+                                  quoting=csv.QUOTE_MINIMAL) as writer:
+                yield b'\xef\xbb\xbf'  # BOM
+                yield writerow(cols)
 
-            cols = query.get_columns()
-            yield writerow(cols)
-
-            chrome = Chrome(self.env)
-            context = web_context(req)
-            results = query.execute(req)
-            for result in results:
-                ticket = Resource(self.realm, result['id'])
-                if 'TICKET_VIEW' in req.perm(ticket):
+                for result in results:
+                    ticket = Resource(self.realm, result['id'])
+                    if 'TICKET_VIEW' not in req.perm(ticket):
+                        continue
                     values = []
                     for col in cols:
                         value = result[col]
@@ -1321,9 +1323,9 @@ class TicketQueryMacro(WikiMacroBase):
     @staticmethod
     def parse_args(content):
         """Parse macro arguments and translate them to a query string."""
-        clauses = [{}]
+        clauses = [OrderedDict()]
         argv = []
-        kwargs = {}
+        kwargs = OrderedDict()
         for arg in TicketQueryMacro._comma_splitter.split(content or ''):
             arg = arg.replace(r'\,', ',')
             m = re.match(r'\s*[^=]+=', arg)
@@ -1335,10 +1337,10 @@ class TicketQueryMacro(WikiMacroBase):
                 else:
                     clauses[-1][kw] = value
             elif arg.strip() == 'or':
-                clauses.append({})
+                clauses.append(OrderedDict())
             else:
                 argv.append(arg)
-        clauses = filter(None, clauses)
+        clauses = [c for c in clauses if c]
 
         if len(argv) > 0 and 'format' not in kwargs:  # 0.10 compatibility hack
             kwargs['format'] = argv[0]
@@ -1409,7 +1411,7 @@ class TicketQueryMacro(WikiMacroBase):
                                            if kw not in ['group', 'status']
                                            for v in extra_args[kw])
                 q = Query.from_string(self.env, q)
-                args = {}
+                args = OrderedDict()
                 if q.group:
                     args[q.group] = group_value
                 q.group = extra_args.get('group')

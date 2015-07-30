@@ -832,7 +832,7 @@ ORDER BY COALESCE(t.id,0)=0,t.id""" % {'like': like})
         query = Query.from_string(self.env, 'milestone=milestone1&or&version=version1', order='id')
         sql, args = query.get_sql()
         self.assertEqualSQL(sql,
-"""SELECT t.id AS id,t.summary AS summary,t.owner AS owner,t.type AS type,t.status AS status,t.priority AS priority,t.component AS component,t.time AS time,t.changetime AS changetime,t.version AS version,t.milestone AS milestone,priority.value AS priority_value
+"""SELECT t.id AS id,t.summary AS summary,t.owner AS owner,t.type AS type,t.status AS status,t.priority AS priority,t.component AS component,t.time AS time,t.changetime AS changetime,t.milestone AS milestone,t.version AS version,priority.value AS priority_value
 FROM ticket AS t
   LEFT OUTER JOIN enum AS priority ON (priority.type='priority' AND priority.name=priority)
 WHERE ((COALESCE(t.milestone,'')=%s)) OR ((COALESCE(t.version,'')=%s))
@@ -902,7 +902,8 @@ ORDER BY COALESCE(t.id,0)=0,t.id""")
         req = Mock(href=self.env.href, perm=MockPerm())
         content, mimetype, ext = Mimeview(self.env).convert_content(
             req, 'trac.ticket.Query', query, 'csv')
-        self.assertEqual('\xef\xbb\xbfid,col1\r\n1,"value, needs escaped"\r\n',
+        self.assertEqual(b'\xef\xbb\xbf'
+                         b'id,col1\r\n1,"value, needs escaped"\r\n',
                          content)
 
     def test_csv_obfuscation(self):
@@ -1102,7 +1103,7 @@ QUERY_TEST_CASES = u"""
       <td class="closed" style="width: 33%">
         <a href="/query?status=closed&amp;group=resolution&amp;max=0&amp;order=time" title="1/3 closed"></a>
       </td><td class="open" style="width: 67%">
-        <a href="/query?status=assigned&amp;status=new&amp;status=accepted&amp;status=reopened&amp;max=0&amp;order=id" title="2/3 active"></a>
+        <a href="/query?status=accepted&amp;status=assigned&amp;status=new&amp;status=reopened&amp;max=0&amp;order=id" title="2/3 active"></a>
       </td>
     </tr>
   </table>
@@ -1116,7 +1117,7 @@ QUERY_TEST_CASES = u"""
     <span class="interval">
       - <a href="/query?status=closed&amp;group=resolution&amp;max=0&amp;order=time">closed: 1</a>
     </span><span class="interval">
-      - <a href="/query?status=assigned&amp;status=new&amp;status=accepted&amp;status=reopened&amp;max=0&amp;order=id">active: 2</a>
+      - <a href="/query?status=accepted&amp;status=assigned&amp;status=new&amp;status=reopened&amp;max=0&amp;order=id">active: 2</a>
     </span>
   </p>
 </div><p>
@@ -1131,9 +1132,9 @@ QUERY_TEST_CASES = u"""
   <table xmlns="http://www.w3.org/1999/xhtml" class="progress">
     <tr>
       <td class="closed" style="display: none">
-        <a href="/query?status=closed&amp;reporter=santa&amp;group=resolution&amp;max=0&amp;order=time" title="0/1 closed"></a>
+        <a href="/query?reporter=santa&amp;status=closed&amp;group=resolution&amp;max=0&amp;order=time" title="0/1 closed"></a>
       </td><td class="open" style="width: 100%">
-        <a href="/query?status=assigned&amp;status=new&amp;status=accepted&amp;status=reopened&amp;reporter=santa&amp;max=0&amp;order=id" title="1/1 active"></a>
+        <a href="/query?reporter=santa&amp;status=accepted&amp;status=assigned&amp;status=new&amp;status=reopened&amp;max=0&amp;order=id" title="1/1 active"></a>
       </td>
     </tr>
   </table>
@@ -1145,9 +1146,9 @@ QUERY_TEST_CASES = u"""
       <a href="/query?reporter=santa&amp;max=0&amp;order=id">Total number of tickets: 1</a>
     </span>
     <span class="interval">
-      - <a href="/query?status=closed&amp;reporter=santa&amp;group=resolution&amp;max=0&amp;order=time">closed: 0</a>
+      - <a href="/query?reporter=santa&amp;status=closed&amp;group=resolution&amp;max=0&amp;order=time">closed: 0</a>
     </span><span class="interval">
-      - <a href="/query?status=assigned&amp;status=new&amp;status=accepted&amp;status=reopened&amp;reporter=santa&amp;max=0&amp;order=id">active: 1</a>
+      - <a href="/query?reporter=santa&amp;status=accepted&amp;status=assigned&amp;status=new&amp;status=reopened&amp;max=0&amp;order=id">active: 1</a>
     </span>
   </p>
 </div><p>
@@ -1162,9 +1163,9 @@ QUERY_TEST_CASES = u"""
   <table xmlns="http://www.w3.org/1999/xhtml" class="progress">
     <tr>
       <td class="closed" style="width: 50%">
-        <a href="/query?status=closed&amp;reporter=santa&amp;or&amp;owner=santa&amp;status=closed&amp;group=resolution&amp;max=0&amp;order=time" title="1/2 closed"></a>
+        <a href="/query?reporter=santa&amp;status=closed&amp;or&amp;owner=santa&amp;status=closed&amp;group=resolution&amp;max=0&amp;order=time" title="1/2 closed"></a>
       </td><td class="open" style="width: 50%">
-        <a href="/query?status=assigned&amp;status=new&amp;status=accepted&amp;status=reopened&amp;reporter=santa&amp;or&amp;owner=santa&amp;status=assigned&amp;status=new&amp;status=accepted&amp;status=reopened&amp;max=0&amp;order=id" title="1/2 active"></a>
+        <a href="/query?reporter=santa&amp;status=accepted&amp;status=assigned&amp;status=new&amp;status=reopened&amp;or&amp;owner=santa&amp;status=accepted&amp;status=assigned&amp;status=new&amp;status=reopened&amp;max=0&amp;order=id" title="1/2 active"></a>
       </td>
     </tr>
   </table>
@@ -1176,9 +1177,9 @@ QUERY_TEST_CASES = u"""
       <a href="/query?reporter=santa&amp;or&amp;owner=santa&amp;max=0&amp;order=id">Total number of tickets: 2</a>
     </span>
     <span class="interval">
-      - <a href="/query?status=closed&amp;reporter=santa&amp;or&amp;owner=santa&amp;status=closed&amp;group=resolution&amp;max=0&amp;order=time">closed: 1</a>
+      - <a href="/query?reporter=santa&amp;status=closed&amp;or&amp;owner=santa&amp;status=closed&amp;group=resolution&amp;max=0&amp;order=time">closed: 1</a>
     </span><span class="interval">
-      - <a href="/query?status=assigned&amp;status=new&amp;status=accepted&amp;status=reopened&amp;reporter=santa&amp;or&amp;owner=santa&amp;status=assigned&amp;status=new&amp;status=accepted&amp;status=reopened&amp;max=0&amp;order=id">active: 1</a>
+      - <a href="/query?reporter=santa&amp;status=accepted&amp;status=assigned&amp;status=new&amp;status=reopened&amp;or&amp;owner=santa&amp;status=accepted&amp;status=assigned&amp;status=new&amp;status=reopened&amp;max=0&amp;order=id">active: 1</a>
     </span>
   </p>
 </div><p>
@@ -1204,7 +1205,7 @@ QUERY_TEST_CASES = u"""
       <td class="closed" style="display: none">
         <a href="/query?project=&amp;status=closed&amp;group=resolution&amp;max=0&amp;order=time" title="0/1 closed"></a>
       </td><td class="open" style="width: 100%">
-        <a href="/query?project=&amp;status=assigned&amp;status=new&amp;status=accepted&amp;status=reopened&amp;max=0&amp;order=id" title="1/1 active"></a>
+        <a href="/query?project=&amp;status=accepted&amp;status=assigned&amp;status=new&amp;status=reopened&amp;max=0&amp;order=id" title="1/1 active"></a>
       </td>
     </tr>
   </table>
@@ -1228,7 +1229,7 @@ QUERY_TEST_CASES = u"""
       <td class="closed" style="width: 50%">
         <a href="/query?project=xmas&amp;status=closed&amp;group=resolution&amp;max=0&amp;order=time" title="1/2 closed"></a>
       </td><td class="open" style="width: 50%">
-        <a href="/query?project=xmas&amp;status=assigned&amp;status=new&amp;status=accepted&amp;status=reopened&amp;max=0&amp;order=id" title="1/2 active"></a>
+        <a href="/query?project=xmas&amp;status=accepted&amp;status=assigned&amp;status=new&amp;status=reopened&amp;max=0&amp;order=id" title="1/2 active"></a>
       </td>
     </tr>
   </table>
@@ -1253,7 +1254,7 @@ QUERY_TEST_CASES = u"""
       <th scope="row">
 
 
-        <a href="/query?project=xmas&amp;reporter=santa&amp;max=0&amp;order=id">xmas</a>
+        <a href="/query?reporter=santa&amp;project=xmas&amp;max=0&amp;order=id">xmas</a>
       </th>
       <td>
 
@@ -1261,9 +1262,9 @@ QUERY_TEST_CASES = u"""
   <table class="progress" style="width: 80%">
     <tr>
       <td class="closed" style="display: none">
-        <a href="/query?project=xmas&amp;status=closed&amp;reporter=santa&amp;group=resolution&amp;max=0&amp;order=time" title="0/1 closed"></a>
+        <a href="/query?reporter=santa&amp;project=xmas&amp;status=closed&amp;group=resolution&amp;max=0&amp;order=time" title="0/1 closed"></a>
       </td><td class="open" style="width: 100%">
-        <a href="/query?project=xmas&amp;status=assigned&amp;status=new&amp;status=accepted&amp;status=reopened&amp;reporter=santa&amp;max=0&amp;order=id" title="1/1 active"></a>
+        <a href="/query?reporter=santa&amp;project=xmas&amp;status=accepted&amp;status=assigned&amp;status=new&amp;status=reopened&amp;max=0&amp;order=id" title="1/1 active"></a>
       </td>
     </tr>
   </table>
@@ -1288,7 +1289,7 @@ QUERY_TEST_CASES = u"""
       <th scope="row">
 
 
-        <a href="/query?project=xmas&amp;reporter=santa&amp;or&amp;owner=santa&amp;project=xmas&amp;max=0&amp;order=id">xmas</a>
+        <a href="/query?reporter=santa&amp;project=xmas&amp;or&amp;owner=santa&amp;project=xmas&amp;max=0&amp;order=id">xmas</a>
       </th>
       <td>
 
@@ -1296,9 +1297,9 @@ QUERY_TEST_CASES = u"""
   <table class="progress" style="width: 80%">
     <tr>
       <td class="closed" style="width: 50%">
-        <a href="/query?project=xmas&amp;status=closed&amp;reporter=santa&amp;or&amp;owner=santa&amp;project=xmas&amp;status=closed&amp;group=resolution&amp;max=0&amp;order=time" title="1/2 closed"></a>
+        <a href="/query?reporter=santa&amp;project=xmas&amp;status=closed&amp;or&amp;owner=santa&amp;project=xmas&amp;status=closed&amp;group=resolution&amp;max=0&amp;order=time" title="1/2 closed"></a>
       </td><td class="open" style="width: 50%">
-        <a href="/query?project=xmas&amp;status=assigned&amp;status=new&amp;status=accepted&amp;status=reopened&amp;reporter=santa&amp;or&amp;owner=santa&amp;project=xmas&amp;status=assigned&amp;status=new&amp;status=accepted&amp;status=reopened&amp;max=0&amp;order=id" title="1/2 active"></a>
+        <a href="/query?reporter=santa&amp;project=xmas&amp;status=accepted&amp;status=assigned&amp;status=new&amp;status=reopened&amp;or&amp;owner=santa&amp;project=xmas&amp;status=accepted&amp;status=assigned&amp;status=new&amp;status=reopened&amp;max=0&amp;order=id" title="1/2 active"></a>
       </td>
     </tr>
   </table>
