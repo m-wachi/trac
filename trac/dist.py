@@ -87,6 +87,10 @@ try:
 
         encoding = str(parse_encoding(fileobj) or
                        options.get('encoding', 'iso-8859-1'))
+        if six.PY2:
+            readline = fileobj.readline
+        else:
+            readline = lambda: fileobj.readline().decode(encoding)
         kwargs_maps = _DEFAULT_KWARGS_MAPS.copy()
         if 'kwargs_maps' in options:
             kwargs_maps.update(options['kwargs_maps'])
@@ -94,7 +98,7 @@ try:
         if 'cleandoc_keywords' in options:
             cleandoc_keywords.update(options['cleandoc_keywords'])
 
-        tokens = generate_tokens(fileobj.readline)
+        tokens = generate_tokens(readline)
         tok = value = None
         for _ in tokens:
             prev_tok, prev_value = tok, value
@@ -117,7 +121,9 @@ try:
                 continue
             elif call_stack == -1 and tok == COMMENT:
                 # Strip the comment token from the line
-                value = value.decode(encoding)[1:].strip()
+                if six.PY2:
+                    value = value.decode(encoding)
+                value = value[1:].strip()
                 if in_translator_comments and \
                         translator_comments[-1][0] == lineno - 1:
                     # We're already inside a translator comment, continue
