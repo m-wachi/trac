@@ -15,22 +15,19 @@ import random
 import uuid
 from six.moves import xrange
 
-try:
-    all_words = [x.strip() for x in open('/usr/share/dict/words').readlines()
-                           if x.strip().isalpha()]
-except IOError:
-    all_words = [
-        'one',
-        'two',
-        'three',
-        'four',
-        'five',
-        'six',
-        'seven',
-        'eight',
-        'nine',
-        'ten',
-    ]
+
+def _read_words():
+    try:
+        with open('/usr/share/dict/words', 'rb') as f:
+            return [word.decode('utf-8')
+                    for word in (line.strip() for line in f)
+                    if word.isalpha()]
+    except IOError:
+        return ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight',
+                'nine', 'ten']
+
+
+all_words = _read_words()
 
 
 def random_word(min_length=1):
