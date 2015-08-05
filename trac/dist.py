@@ -350,7 +350,7 @@ try:
         def run(self):
             for filename in self._get_po_files():
                 log.info('checking catalog %s', filename)
-                f = open(filename)
+                f = open(filename, 'rb')
                 try:
                     catalog = read_po(f, domain=self.domain)
                 finally:
