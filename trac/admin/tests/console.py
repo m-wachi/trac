@@ -36,7 +36,7 @@ from trac.core import Component, ComponentMeta, implements
 from trac.env import Environment
 from trac.loader import load_components
 from trac.test import EnvironmentStub
-from trac.util import create_file
+from trac.util import create_file, read_file
 from trac.util.datefmt import format_date, get_date_format_hint, \
                               get_datetime_format_hint
 from trac.util.translation import get_available_locales, has_babel
@@ -1452,6 +1452,25 @@ class TracadminTestCase(TracAdminTestCaseBase):
     def test_help_session_purge(self):
         doc = self._get_command_help('session', 'purge')
         self.assertIn(u'"YYYY-MM-DDThh:mm:ss±hh:mm"', doc)
+
+    def test_deploy(self):
+        dest_path = tempfile.mkdtemp()
+        shebang = ('#!' + sys.executable).encode('utf-8')
+        try:
+            rv, output = self._execute('deploy %s' % dest_path)
+            self.assertEqual(0, rv, output)
+            self.assertTrue(os.path.isfile(os.path.join(
+                dest_path, 'htdocs', 'common', 'js', 'trac.js')))
+            self.assertTrue(os.path.isfile(os.path.join(
+                dest_path, 'htdocs', 'common', 'css', 'trac.css')))
+            for ext in ('cgi', 'fcgi', 'wsgi'):
+                content = read_file(os.path.join(dest_path, 'cgi-bin',
+                                                 'trac.%s' % ext), 'rb')
+                self.assertIn(shebang, content)
+                self.assertEqual(0, content.index(shebang))
+                self.assertIn(repr(self.env.path).encode('ascii'), content)
+        finally:
+            shutil.rmtree(dest_path)
 
 
 class TracadminNoEnvTestCase(unittest.TestCase):

@@ -17,6 +17,7 @@
 """Trac Environment model and related APIs."""
 
 import hashlib
+import io
 import os.path
 import setuptools
 import shutil
@@ -941,8 +942,8 @@ class EnvironmentAdmin(Component):
             template = Chrome(self.env).load_template('deploy_trac.' + script,
                                                       'text')
             stream = template.generate(**data)
-            with open(dest, 'w') as out:
-                stream.render('text', out=out, encoding='utf-8')
+            with io.open(dest, 'w', encoding='utf-8') as out:
+                stream.render('text', out=out, encoding=None)
 
     def _do_hotcopy(self, dest, no_db=None):
         if no_db not in (None, '--no-database'):
