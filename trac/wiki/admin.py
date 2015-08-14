@@ -118,7 +118,8 @@ class WikiAdmin(Component):
             data = read_file(filename)
         else:
             data = sys.stdin.read()
-        data = to_unicode(data, 'utf-8')
+            if isinstance(data, bytes):
+                data = data.decode('utf-8')
 
         with self.env.db_transaction as db:
             # Make sure we don't insert the exact same page twice
