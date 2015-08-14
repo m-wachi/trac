@@ -232,23 +232,43 @@ class AtomicFile(object):
     closed = property(lambda self: self._file is None or self._file.closed)
 
 
-def read_file(path, mode='r'):
+def read_file(path, mode='r', encoding=None, errors=None, newline=None):
     """Read a file and return its content."""
-    with open(path, mode) as f:
+    kwargs = {}
+    if 'b' not in mode:
+        kwargs['encoding'] = encoding or 'utf-8'
+        kwargs['errors'] = errors
+        kwargs['newline'] = newline
+    with io.open(path, mode=mode, **kwargs) as f:
         return f.read()
 
 
-def create_file(path, data='', mode='w'):
+def create_file(path, data=None, mode='w', encoding=None, errors=None,
+                newline=None):
     """Create a new file with the given data.
 
     :data: string or iterable of strings.
     """
-    with open(path, mode) as f:
-        if data:
+    binary = 'b' in mode
+    if encoding is None:
+        encoding = 'utf-8'
+    if errors is None:
+        errors = 'strict'
+    kwargs = {}
+    if 'b' not in mode:
+        kwargs['encoding'] = encoding
+        kwargs['errors'] = errors
+        kwargs['newline'] = newline
+    with io.open(path, mode, **kwargs) as f:
+        if data is not None:
             if isinstance(data, (unicode, bytes)):
-                f.write(data)
-            else:  # Assume iterable
-                f.writelines(data)
+                data = (data,)
+            for chunk in data:
+                if not chunk:
+                    continue
+                if not binary and isinstance(chunk, bytes):
+                    chunk = chunk.decode(encoding, errors)
+                f.write(chunk)
 
 
 def create_unique_file(path):
