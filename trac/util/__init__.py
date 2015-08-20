@@ -447,17 +447,23 @@ def copytree(src, dst, symlinks=False, skip=[], overwrite=False):
     Added a `skip` parameter consisting of absolute paths
     which we don't want to copy.
     """
-    def str_path(path):
-        if isinstance(path, unicode):
-            path = path.encode(sys.getfilesystemencoding() or
-                               getpreferredencoding())
-        return path
+    if os.name == 'nt':
+        def encode_path(path):
+            if not isinstance(path, unicode):
+                path = path.decode('mbcs')
+            return path
+    else:
+        encoding = sys.getfilesystemencoding() or getpreferredencoding()
+        def encode_path(path):
+            if isinstance(path, unicode):
+                path = path.encode(encoding)
+            return path
 
     def remove_if_overwriting(path):
         if overwrite and os.path.exists(path):
             os.unlink(path)
 
-    skip = [str_path(f) for f in skip]
+    skip = [encode_path(f) for f in skip]
     def copytree_rec(src, dst):
         names = os.listdir(src)
         makedirs(dst, overwrite=overwrite)
@@ -492,7 +498,7 @@ def copytree(src, dst, symlinks=False, skip=[], overwrite=False):
             errors.append((src, dst, str(why)))
         if errors:
             raise shutil.Error(errors)
-    copytree_rec(str_path(src), str_path(dst))
+    copytree_rec(encode_path(src), encode_path(dst))
 
 
 def is_path_below(path, parent):
