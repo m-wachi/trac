@@ -20,7 +20,3 @@ install:
   - echo ".uri = $TRAC_TEST_DB_URI" >Makefile.cfg
 script:
   - make Trac.egg-info compile unit-test functional-test
-notifications:
-  email:
-    recipients:
-      - trac-builds@googlegroups.com
