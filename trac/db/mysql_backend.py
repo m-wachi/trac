@@ -19,6 +19,7 @@ import re
 import six
 import sys
 import types
+from six import text_type as unicode
 
 from genshi.core import Markup
 
@@ -35,17 +36,26 @@ from trac.util.translation import _
 
 _like_escape_re = re.compile(r'([/_%])')
 
+MySQLdb = None
+has_mysqldb = False
+mysqldb_version = None
+
 try:
     import MySQLdb
-    import MySQLdb.cursors
+    from MySQLdb import cursors
 except ImportError:
-    has_mysqldb = False
-    mysqldb_version = None
-else:
+    try:
+        import pymysql as MySQLdb
+        from pymysql import cursors
+        MySQLdb.install_as_MySQLdb()
+    except ImportError:
+        pass
+
+if MySQLdb:
     has_mysqldb = True
     mysqldb_version = get_pkginfo(MySQLdb).get('version', MySQLdb.__version__)
 
-    class MySQLUnicodeCursor(MySQLdb.cursors.Cursor):
+    class MySQLUnicodeCursor(cursors.Cursor):
         def _convert_row(self, row):
             return tuple(v.decode('utf-8') if isinstance(v, bytes) else v
                          for v in row)
@@ -63,6 +73,16 @@ else:
             rows = super(MySQLUnicodeCursor, self).fetchall()
             return [self._convert_row(row) for row in rows] \
                    if rows is not None else []
+
+    if MySQLdb.__name__ == 'MySQLdb':
+        class MySQLSilentCursor(MySQLUnicodeCursor):
+            _defer_warnings = True
+
+    elif MySQLdb.__name__ == 'pymysql':
+        class MySQLSilentCursor(MySQLUnicodeCursor):
+            def _show_warnings(self, conn):
+                pass
+
 
 # Mapping from "abstract" SQL types to DB-specific types
 _type_map = {
@@ -103,7 +123,7 @@ class MySQLConnector(Component):
     def get_system_info(self):
         if self.required:
             yield 'MySQL', self._mysql_version
-            yield 'MySQLdb', mysqldb_version
+            yield MySQLdb.__name__, mysqldb_version
 
     # IDatabaseConnector methods
 
@@ -380,17 +400,23 @@ class MySQLConnection(ConnectionBase, ConnectionWrapper):
                                  name)
         cnx = MySQLdb.connect(db=path, user=user, passwd=password, host=host,
                               port=port, charset='utf8', **opts)
-        self.schema = path
-        if hasattr(cnx, 'encoders'):
-            # 'encoders' undocumented but present since 1.2.1 (r422)
-            cnx.encoders[Markup] = cnx.encoders[types.UnicodeType]
         cursor = cnx.cursor()
         cursor.execute("SHOW VARIABLES WHERE "
                        " variable_name='character_set_database'")
         self.charset = cursor.fetchone()[1]
-        if self.charset != 'utf8':
-            cnx.query("SET NAMES %s" % self.charset)
-            cnx.store_result()
+        cursor.close()
+        if self.charset == 'utf8mb4':
+            if MySQLdb.__name__ == 'MySQLdb':
+                cnx.query("SET NAMES %s" % self.charset)
+                cnx.store_result()
+            elif MySQLdb.__name__ == 'pymysql':
+                cnx = MySQLdb.connect(db=path, user=user, passwd=password,
+                                      host=host, port=port, charset='utf8mb4',
+                                      **opts)
+        self.schema = path
+        if hasattr(cnx, 'encoders'):
+            # 'encoders' undocumented but present since 1.2.1 (r422)
+            cnx.encoders[Markup] = cnx.encoders[unicode]
         ConnectionWrapper.__init__(self, cnx, log)
         self._is_closed = False
 
@@ -423,8 +449,7 @@ class MySQLConnection(ConnectionBase, ConnectionWrapper):
         return 'concat(%s)' % ', '.join(args)
 
     def drop_table(self, table):
-        cursor = MySQLdb.cursors.Cursor(self.cnx)
-        cursor._defer_warnings = True  # ignore "Warning: Unknown table ..."
+        cursor = MySQLSilentCursor(self.cnx)
         cursor.execute("DROP TABLE IF EXISTS " + self.quote(table))
 
     def get_column_names(self, table):
