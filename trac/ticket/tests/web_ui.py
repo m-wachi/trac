@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 import unittest
 from six import text_type as unicode
 
+import trac.tests.compat
 from trac.core import TracError
 from trac.resource import ResourceNotFound
 from trac.test import EnvironmentStub, Mock, MockPerm, locale_en
@@ -98,12 +99,17 @@ class TicketModuleTestCase(unittest.TestCase):
 
         data = self.ticket_module.process_request(req)[1]
 
-        self.assertEqual(u'<a class="trac-author" href="/trac.cgi/query?'
-                         u'status=!closed&amp;reporter=user1">User One</a>',
-                         unicode(data['reporter_link']))
-        self.assertEqual(u'<a class="trac-author-user" href="/trac.cgi/query?'
-                         u'status=!closed&amp;owner=user2">User Two</a>',
-                         unicode(data['owner_link']))
+        reporter_link = unicode(data['reporter_link'])
+        self.assertIn(u' class="trac-author"', reporter_link)
+        self.assertIn(u' href="/trac.cgi/query?reporter=user1&amp;'
+                      u'status=!closed"', reporter_link)
+        self.assertIn(u'>User One</a>', reporter_link)
+
+        owner_link = unicode(data['owner_link'])
+        self.assertIn(u' class="trac-author-user"', owner_link)
+        self.assertIn(u' href="/trac.cgi/query?owner=user2&amp;status=!closed"',
+                      owner_link)
+        self.assertIn(u'>User Two</a>', owner_link)
 
     def test_quoted_reply_author_is_obfuscated(self):
         """Reply-to author is obfuscated in a quoted reply."""
