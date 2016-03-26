@@ -23,7 +23,3 @@ addons:
       - python-subversion
 script:
   - make Trac.egg-info compile unit-test functional-test
-notifications:
-  email:
-    recipients:
-      - trac-builds@googlegroups.com
