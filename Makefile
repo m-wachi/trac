@@ -143,7 +143,7 @@ Makefile.cfg:
 
 status:
 	@echo
-	@echo -n "Python: "
+	@printf "Python: "
 	@which python
 	@echo
 	@python contrib/make_status.py
@@ -155,7 +155,7 @@ status:
 	@echo "  server-options=$(server-options)"
 	@echo
 	@echo "External dependencies:"
-	@echo -n "  Git version: "
+	@printf "  Git version: "
 	@git --version 2>/dev/null || echo "not installed"
 	@echo
 
@@ -253,7 +253,7 @@ pre-check:
 	@echo "checking catalogs for $(locales)..."
 
 check-%:
-	@echo -n "$(@): "
+	@printf "$(@): "
 	python setup.py $(foreach catalog,$(catalogs), \
 	    check_catalog$(_catalog) -l $(*))
 	@$(foreach catalog,$(catalogs), \
@@ -269,14 +269,14 @@ pre-stats: stats-pot
 stats-pot:
 	@echo "translation statistics for catalog templates:"
 	@$(foreach catalog,$(catalogs), \
-	    echo -n "$(catalog.pot): "; \
+	    printf "$(catalog.pot): "; \
 	    msgfmt --statistics $(catalog.pot);)
 	@rm -f messages.mo
 
 stats-%:
 	@$(foreach catalog,$(catalogs), \
 	    [ -e $(catalog.po) ] \
-	    && { echo -n "$(catalog.po): "; \
+	    && { printf "$(catalog.po): "; \
 	         msgfmt --statistics $(catalog.po); } \
 	    || echo "$(catalog.po) doesn't exist (make init-$(*))";)
 	@rm -f messages.mo
@@ -317,7 +317,7 @@ diff-%:
 	@diff=l10n-$(*).diff; \
 	$(vc) diff trac/locale/$(*) > $$diff; \
 	[ -s $$diff ] && { \
-	    echo -n "# $(*) changed -> "; \
+	    printf "# $(*) changed -> "; \
 	    python contrib/l10n_diff_index.py $$diff; \
 	} || rm $$diff
 
