@@ -65,15 +65,20 @@ before_install:
           pg_ctl -w start --pgdata /usr/local/var/postgres --log /usr/local/var/postgres/postgresql.log
           createuser -s postgres
         fi
-        echo "PostgreSQL: $(psql -U postgres -t -c 'SELECT version()')"
+        tracdb_version="PostgreSQL: $(psql -U postgres -t -c 'SELECT version()')"
+        echo "$tracdb_version"
         psql -U postgres -e -c "CREATE USER tracuser NOSUPERUSER NOCREATEDB CREATEROLE PASSWORD 'password';"
         psql -U postgres -e -c "CREATE DATABASE trac OWNER tracuser;"
         ;;
       mysql)
-        echo "MySQL: $(mysql -u root -sN -e 'SELECT version()')"
+        tracdb_version="MySQL: $(mysql -u root -sN -e 'SELECT version()')"
+        echo "$tracdb_version"
         mysql -u root -v -e "CREATE DATABASE trac DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;"
         mysql -u root -v -e "CREATE USER tracuser@localhost IDENTIFIED BY 'password';"
         mysql -u root -v -e "GRANT ALL ON trac.* TO tracuser@localhost; FLUSH PRIVILEGES;"
+        ;;
+      *)
+        tracdb_version=
         ;;
     esac
   - |
@@ -103,4 +108,5 @@ install:
     esac
     echo ".uri = $tracdb_uri" >Makefile.cfg
 script:
+  - if [ -n "$tracdb_version" ]; then echo "$tracdb_version"; fi
   - make Trac.egg-info compile unit-test functional-test
