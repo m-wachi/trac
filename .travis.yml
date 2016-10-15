@@ -7,6 +7,7 @@ addons:
 cache:
   directories:
     - "$HOME/.cache/pip"
+    - "$HOME/venv-lib"
 matrix:
   include:
     - os: linux
@@ -86,8 +87,8 @@ before_install:
   - |
     set -e
     if [ "$TRAVIS_OS_NAME" = osx ]; then
-      mkdir $HOME/venv-lib
-      PYTHONPATH=$HOME/venv-lib /usr/bin/easy_install-$pyver -Z -d $HOME/venv-lib virtualenv
+      test -d $HOME/venv-lib || mkdir $HOME/venv-lib
+      PYTHONPATH=$HOME/venv-lib /usr/bin/easy_install-$pyver -ZU -d $HOME/venv-lib virtualenv
       PYTHONPATH=$HOME/venv-lib /usr/bin/python$pyver -m virtualenv $HOME/venv-$pyver
       source $HOME/venv-$pyver/bin/activate
       python --version
