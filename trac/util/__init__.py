@@ -730,9 +730,10 @@ def get_pkginfo(dist):
     Always returns a dictionary but it will be empty if no Distribution
     instance can be created for the given module.
     """
+    import email
     import types
     if isinstance(dist, types.ModuleType):
-        def has_resource(dist, resource_name):
+        def has_resource(dist, module, resource_name):
             if dist.location.endswith('.egg'):  # installed by easy_install
                 return dist.has_resource(resource_name)
             if dist.has_metadata('installed-files.txt'):  # installed by pip
@@ -747,6 +748,17 @@ def get_pkginfo(dist):
             if dist.has_metadata('RECORD'):  # *.dist-info/RECORD
                 reader = csv.reader(StringIO(dist.get_metadata('RECORD')))
                 return any(resource_name == row[0] for row in reader)
+            if dist.has_metadata('PKG-INFO'):
+                try:
+                    pkginfo = email.message_from_string(
+                                                dist.get_metadata('PKG-INFO'))
+                    provides = pkginfo.get_all('Provides', ())
+                    names = module.__name__.split('.')
+                    if any('.'.join(names[:n + 1]) in provides
+                           for n in xrange(len(names))):
+                        return True
+                except (IOError, email.Errors.MessageError):
+                    pass
             toplevel = resource_name.split('/')[0]
             if dist.has_metadata('top_level.txt'):
                 return toplevel in dist.get_metadata_lines('top_level.txt')
@@ -761,11 +773,10 @@ def get_pkginfo(dist):
             resource_name += '.py'
         for dist in find_distributions(module_path, only=True):
             if os.path.isfile(module_path) or \
-                    has_resource(dist, resource_name):
+                    has_resource(dist, module, resource_name):
                 break
         else:
             return {}
-    import email
     from trac.util.translation import _
     attrs = ('author', 'author-email', 'license', 'home-page', 'summary',
              'description', 'version')
