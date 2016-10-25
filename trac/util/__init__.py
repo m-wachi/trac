@@ -732,6 +732,11 @@ def get_pkginfo(dist):
     """
     import email
     import types
+    from trac.util.translation import _
+
+    def parse_pkginfo(dist, name):
+        return email.message_from_string(to_utf8(dist.get_metadata(name)))
+
     if isinstance(dist, types.ModuleType):
         def has_resource(dist, module, resource_name):
             if dist.location.endswith('.egg'):  # installed by easy_install
@@ -750,8 +755,7 @@ def get_pkginfo(dist):
                 return any(resource_name == row[0] for row in reader)
             if dist.has_metadata('PKG-INFO'):
                 try:
-                    pkginfo = email.message_from_string(
-                                                dist.get_metadata('PKG-INFO'))
+                    pkginfo = parse_pkginfo(dist, 'PKG-INFO')
                     provides = pkginfo.get_all('Provides', ())
                     names = module.__name__.split('.')
                     if any('.'.join(names[:n + 1]) in provides
@@ -777,7 +781,7 @@ def get_pkginfo(dist):
                 break
         else:
             return {}
-    from trac.util.translation import _
+
     attrs = ('author', 'author-email', 'license', 'home-page', 'summary',
              'description', 'version')
     info = {}
@@ -785,7 +789,7 @@ def get_pkginfo(dist):
         return attr.lower().replace('-', '_')
     metadata = 'METADATA' if dist.has_metadata('METADATA') else 'PKG-INFO'
     try:
-        pkginfo = email.message_from_string(dist.get_metadata(metadata))
+        pkginfo = parse_pkginfo(dist, metadata)
         for attr in [key for key in attrs if key in pkginfo]:
             info[normalize(attr)] = pkginfo[attr]
     except IOError, e:

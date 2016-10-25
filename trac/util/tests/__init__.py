@@ -264,8 +264,8 @@ class SetuptoolsUtilsTestCase(unittest.TestCase):
             self.assertEqual(pkginfo, util.get_pkginfo(psycopg2.extensions))
 
     def test_file_metadata(self):
-        modname = 'test_' + util.hex_entropy(12)
-        pkgname = modname.replace('_', '-')
+        pkgname = 'TestModule_' + util.hex_entropy(16)
+        modname = pkgname.lower()
         with open(os.path.join(self.dir, pkgname + '-0.1.egg-info'), 'w') as f:
             f.write('Metadata-Version: 1.1\n'
                     'Name: %(pkgname)s\n'
