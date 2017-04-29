@@ -18,15 +18,39 @@
 See also: https://github.com/textile/python-textile
 """
 
+from StringIO import StringIO
+from genshi.core import Stream
+from genshi.input import HTMLParser, ParseError
+
 try:
     import textile
 except ImportError:
-    pass
+    textile = None
+else:
+    try:
+        from textile import Textile  # 2.1.0 and later
+    except ImportError:
+        Textile = None
+has_textile = textile is not None
 
-from trac.core import *
+from trac.core import Component, implements
 from trac.env import ISystemInfoProvider
 from trac.mimeview.api import IHTMLPreviewRenderer
-from trac.util import get_pkginfo
+from trac.util import get_pkginfo, lazy
+from trac.util.html import Markup, TracHTMLSanitizer, escape
+from trac.util.translation import _
+from trac.wiki.api import WikiSystem
+from trac.wiki.formatter import system_message
+
+
+if Textile and hasattr(Textile, 'parse'):  # 2.2.0 and later
+    def render_textile(text):
+        return textile.textile(text)
+else:
+    def render_textile(text):
+        text = text.encode('utf-8')
+        rv = textile.textile(text)
+        return rv.decode('utf-8')
 
 
 class TextileRenderer(Component):
@@ -41,8 +65,23 @@ class TextileRenderer(Component):
             return 8
         return 0
 
+    @lazy
+    def _sanitizer(self):
+        wikisys = WikiSystem(self.env)
+        return TracHTMLSanitizer(safe_schemes=wikisys.safe_schemes)
+
     def render(self, context, mimetype, content, filename=None, rev=None):
-        return textile.textile(content.encode('utf-8'), encoding='utf-8')
+        output = render_textile(content)
+        if WikiSystem(self.env).render_unsafe_content:
+            return Markup(output)
+        try:
+            stream = Stream(HTMLParser(StringIO(output)))
+            return (stream | self._sanitizer).render('xhtml', encoding=None)
+        except ParseError as e:
+            self.log.warning(e)
+            line = content.splitlines()[e.lineno - 1].strip()
+            return system_message(_("HTML parsing error: %(message)s",
+                                    message=escape(e.msg)), line)
 
     # ISystemInfoProvider methods
 
