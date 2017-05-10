@@ -26,11 +26,6 @@ try:
     import textile
 except ImportError:
     textile = None
-else:
-    try:
-        from textile import Textile  # 2.1.0 and later
-    except ImportError:
-        Textile = None
 has_textile = textile is not None
 
 from trac.api import ISystemInfoProvider
@@ -43,8 +38,11 @@ from trac.wiki.api import WikiSystem
 from trac.wiki.formatter import system_message
 
 
-if Textile and hasattr(Textile, 'parse'):  # 2.2.0 and later
+if not has_textile:
     def render_textile(text):
+        return None
+elif hasattr(textile, 'Textile') and hasattr(textile.Textile, 'parse'):
+    def render_textile(text):  # 2.2.0 and later
         return textile.textile(text)
 else:
     def render_textile(text):
