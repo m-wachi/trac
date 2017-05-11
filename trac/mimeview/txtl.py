@@ -59,7 +59,7 @@ class TextileRenderer(Component):
     # IHTMLPreviewRenderer methods
 
     def get_quality_ratio(self, mimetype):
-        if mimetype == 'text/x-textile':
+        if has_textile and mimetype == 'text/x-textile':
             return 8
         return 0
 
@@ -83,5 +83,6 @@ class TextileRenderer(Component):
     # ISystemInfoProvider methods
 
     def get_system_info(self):
-        version = get_pkginfo(textile).get('version')
-        yield 'Textile', version
+        if has_textile:
+            version = get_pkginfo(textile).get('version', textile.__version__)
+            yield 'Textile', version
