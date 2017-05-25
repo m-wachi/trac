@@ -372,23 +372,27 @@ class SystemInfoTestCase(unittest.TestCase):
         info_after = self.env.system_info
 
         def get_info(system_info, name):
+            if isinstance(name, basestring):
+                name = [name]
             for info in system_info:
-                if info[0] == name:
+                if info[0] in name:
                     return info[1]
             self.fail('Missing %r' % name)
 
         if self.env.dburi.startswith('mysql'):
             self.assertRegexpMatches(get_info(info_before, 'MySQL'),
                                      r'^server: \(not-connected\), '
-                                     r'client: "\d+(\.\d+)+(-.+)?", '
-                                     r'thread-safe: 1$')
+                                     r'client: "\d+(\.\d+)+([-.].+)?", '
+                                     r'thread-safe: (1|True)$')
             self.assertRegexpMatches(get_info(info_after, 'MySQL'),
-                                     r'^server: "\d+(\.\d+)+(-.+)?", '
-                                     r'client: "\d+(\.\d+)+(-.+)?", '
-                                     r'thread-safe: 1$')
-            self.assertRegexpMatches(get_info(info_before, 'MySQLdb'),
+                                     r'^server: "\d+(\.\d+)+([-.].+)?", '
+                                     r'client: "\d+(\.\d+)+([-.].+)?", '
+                                     r'thread-safe: (1|True)$')
+            self.assertRegexpMatches(get_info(info_before,
+                                              ('MySQLdb', 'pymysql')),
                                      r'^\d+(\.\d+)+$')
-            self.assertRegexpMatches(get_info(info_after, 'MySQLdb'),
+            self.assertRegexpMatches(get_info(info_after,
+                                              ('MySQLdb', 'pymysql')),
                                      r'^\d+(\.\d+)+$')
         elif self.env.dburi.startswith('postgres'):
             self.assertRegexpMatches(get_info(info_before, 'PostgreSQL'),

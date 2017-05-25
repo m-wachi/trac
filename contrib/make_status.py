@@ -36,6 +36,7 @@ PACKAGES = [
     ("PySqlite",          ('pysqlite2.dbapi2.version',
                            'pysqlite2.dbapi2.sqlite_version')),
     ("MySQLdb",           'MySQLdb.__version__'),
+    ("PyMySQL",           'pymysql.__version__'),
     ("Psycopg2",          'psycopg2.__version__'),
     ("SVN bindings",      '__main__._svn_version()'),
     ("Mercurial",         'mercurial.util.version()'),

@@ -44,9 +44,10 @@ except ImportError:
     try:
         import pymysql as MySQLdb
         from pymysql import cursors
-        MySQLdb.install_as_MySQLdb()
     except ImportError:
         pass
+    else:
+        MySQLdb.install_as_MySQLdb()
 
 if MySQLdb:
     has_mysqldb = True
@@ -77,7 +78,7 @@ if MySQLdb:
 
     elif MySQLdb.__name__ == 'pymysql':
         class MySQLSilentCursor(MySQLUnicodeCursor):
-            def _show_warnings(self, conn):
+            def _show_warnings(self, conn=None):
                 pass
 
 
