@@ -391,7 +391,7 @@ class MySQLConnection(ConnectionBase, ConnectionWrapper):
             password = ''
         if port is None:
             port = 3306
-        opts = {}
+        opts = {'charset': 'utf8'}
         for name, value in params.iteritems():
             key = name.encode('utf-8')
             if name == 'read_default_group':
@@ -402,24 +402,32 @@ class MySQLConnection(ConnectionBase, ConnectionWrapper):
                 opts[key] = value.encode(sys.getfilesystemencoding())
             elif name in ('compress', 'named_pipe'):
                 opts[key] = as_int(value, 0)
+            elif name == 'charset':
+                value = value.lower()
+                if value in ('utf8', 'utf8mb4'):
+                    opts[key] = value
+                else:
+                    self.log.warning("Invalid connection string parameter "
+                                     "'%s=%s'", name, value)
             else:
                 self.log.warning("Invalid connection string parameter '%s'",
                                  name)
         cnx = MySQLdb.connect(db=path, user=user, passwd=password, host=host,
-                              port=port, charset='utf8', **opts)
+                              port=port, **opts)
         cursor = cnx.cursor()
         cursor.execute("SHOW VARIABLES WHERE "
                        " variable_name='character_set_database'")
         self.charset = cursor.fetchone()[1]
         cursor.close()
-        if self.charset == 'utf8mb4':
+        if self.charset != opts['charset']:
             if MySQLdb.__name__ == 'MySQLdb':
                 cnx.query("SET NAMES %s" % self.charset)
                 cnx.store_result()
             elif MySQLdb.__name__ == 'pymysql':
+                cnx.close()
+                opts['charset'] = self.charset
                 cnx = MySQLdb.connect(db=path, user=user, passwd=password,
-                                      host=host, port=port, charset='utf8mb4',
-                                      **opts)
+                                      host=host, port=port, **opts)
         self.schema = path
         if hasattr(cnx, 'encoders'):
             # 'encoders' undocumented but present since 1.2.1 (r422)

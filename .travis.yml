@@ -95,7 +95,7 @@ install:
     case "$tracdb" in
       sqlite)   tracdb_uri='sqlite:test.db' ;;
       postgres) tracdb_uri='postgres://tracuser:password@localhost/trac?schema=tractest' ;;
-      mysql)    tracdb_uri='mysql://tracuser:password@localhost/trac' ;;
+      mysql)    tracdb_uri='mysql://tracuser:password@localhost/trac?charset=utf8mb4' ;;
       *)        tracdb_uri= ;;
     esac
     echo ".uri = $tracdb_uri" >Makefile.cfg
