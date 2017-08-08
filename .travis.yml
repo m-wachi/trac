@@ -1,5 +1,6 @@
 language: python
 sudo: false
+dist: trusty
 addons:
   apt:
     packages:
@@ -51,6 +52,12 @@ before_install:
       pip --version
     fi
 install:
+  - |
+    if [ "$TRAVIS_PYTHON_VERSION" = "2.7_with_system_site_packages" ]; then
+      no_global="$HOME/virtualenv/python2.7_with_system_site_packages/lib/python2.7/no-global-site-packages.txt"
+      if [ -f "$no_global" ]; then rm -v "$no_global"; fi
+      python -c 'from svn import core'
+    fi
   - test -d "$HOME/.pip" || mkdir "$HOME/.pip"
   - ( echo "[global]"; echo "cache-dir = $HOME/.cache/pip" ) >"$HOME/.pip/pip.conf"
   - pip install --upgrade pip
