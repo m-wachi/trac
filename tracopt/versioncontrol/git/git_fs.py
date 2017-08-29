@@ -163,18 +163,20 @@ class GitCachedRepository(CachedRepository):
 
             return updated
 
-        while True:
-            repos.sync()
-            repos_youngest = repos.youngest_rev or ''
-            if needs_sync() and sync_revs():
-                continue  # sync again
-            if meta_youngest != repos_youngest:
-                with self.env.db_transaction as db:
-                    db("""
-                        UPDATE repository SET value=%s WHERE id=%s AND name=%s
-                        """, (repos_youngest, self.id, CACHE_YOUNGEST_REV))
-                    del self.metadata
-            return
+        with self.env.db_query:
+            while True:
+                repos.sync()
+                repos_youngest = repos.youngest_rev or ''
+                if needs_sync() and sync_revs():
+                    continue  # sync again
+                if meta_youngest != repos_youngest:
+                    with self.env.db_transaction as db:
+                        db("""
+                            UPDATE repository SET value=%s
+                            WHERE id=%s AND name=%s
+                            """, (repos_youngest, self.id, CACHE_YOUNGEST_REV))
+                        del self.metadata
+                return
 
 
 class GitCachedChangeset(CachedChangeset):
