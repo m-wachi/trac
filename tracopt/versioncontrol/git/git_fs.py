@@ -100,6 +100,21 @@ class GitCachedRepository(CachedRepository):
                 return count > 0
             return False
 
+        def needs_sync():
+            max_holders = 999
+            revs = sorted(set(rev for refname, rev in repos.git.get_refs()))
+            for idx in xrange(0, len(revs), max_holders):
+                revs_ = revs[idx:idx + max_holders]
+                holders = ','.join(('%s',) * len(revs_))
+                args = [self.id]
+                args.extend(revs_)
+                query = 'SELECT COUNT(*) FROM revision ' \
+                        'WHERE repos=%s AND rev IN (' + holders + ')'
+                for count, in self.env.db_query(query, args):
+                    if count < len(revs_):
+                        return True
+            return False
+
         def traverse(rev, seen):
             revs = []
             merge_revs = []
@@ -121,9 +136,7 @@ class GitCachedRepository(CachedRepository):
                     revs[idx:idx] = traverse(rev, seen)
             return revs
 
-        while True:
-            repos.sync()
-            repos_youngest = repos.youngest_rev or ''
+        def sync_revs():
             updated = False
             seen = set()
 
@@ -148,9 +161,13 @@ class GitCachedRepository(CachedRepository):
                     if feedback:
                         feedback(rev)
 
-            if updated:
-                continue  # sync again
+            return updated
 
+        while True:
+            repos.sync()
+            repos_youngest = repos.youngest_rev or ''
+            if needs_sync() and sync_revs():
+                continue  # sync again
             if meta_youngest != repos_youngest:
                 with self.env.db_transaction as db:
                     db("""
