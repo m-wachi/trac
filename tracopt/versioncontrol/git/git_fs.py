@@ -103,7 +103,7 @@ class GitCachedRepository(CachedRepository):
         def needs_sync():
             max_holders = 999
             revs = sorted(set(rev for refname, rev in repos.git.get_refs()))
-            for idx in xrange(0, len(revs), max_holders):
+            for idx in xrange(0, len(revs), max_holders - 1):
                 revs_ = revs[idx:idx + max_holders]
                 holders = ','.join(('%s',) * len(revs_))
                 args = [self.id]
