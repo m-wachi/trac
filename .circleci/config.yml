@@ -1,0 +1,84 @@
+version: 2
+workflows:
+  version: 2
+  build:
+    jobs:
+      - python2.7
+      - python2.7-sqlite
+      - python2.7-postgres
+      - python2.7-mysql
+jobs:
+  python2.7:
+    docker:
+      - image: circleci/python:2.7
+    steps: &steps
+      - checkout
+      - restore_cache:
+          key: v1-dependencies-{{ checksum ".circleci/config.yml" }}
+      - run:
+          name: Install packages
+          command: |
+            sudo apt-get -qq update
+            sudo apt-get -qq install python-subversion postgresql-client mysql-client
+            [ -d ~/.cache/pip ] || mkdir -p ~/.cache/pip
+            [ -d ~/venv ] || virtualenv ~/venv
+            sudo chown -R "$(id -un):$(id -gn)" ~/.cache/pip ~/venv
+            . ~/venv/bin/activate
+            pip install --upgrade pip
+            pip install --upgrade \
+                Genshi==0.7 Babel configobj Pygments docutils textile lxml \
+                pytz twill==0.9.1 psycopg2 MySQL-python
+            case "$CIRCLE_STAGE" in
+            python2.7-sqlite)
+              tracdb_uri='sqlite:test.db'
+              ;;
+            python2.7-postgres)
+              tracdb_uri='postgres://tracuser:password@127.0.0.1/trac?schema=tractest'
+              echo '127.0.0.1:5432:postgres:postgres:password' >~/.pgpass
+              { echo "CREATE USER tracuser NOSUPERUSER NOCREATEDB CREATEROLE PASSWORD 'password';"
+                echo "CREATE DATABASE trac OWNER tracuser;"
+              } | psql -h 127.0.0.1 -U postgres -e
+              ;;
+            python2.7-mysql)
+              tracdb_uri='mysql://tracuser:password@127.0.0.1/trac'
+              printf '[client]\nhost = 127.0.0.1\nuser = root\npassword = password\n' >~/.my.cnf
+              { echo "CREATE DATABASE trac DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;"
+                echo "CREATE USER tracuser@'%' IDENTIFIED BY 'password';"
+                echo "GRANT ALL ON trac.* TO tracuser@'%';"
+                echo "FLUSH PRIVILEGES;"
+              } | mysql -v
+              ;;
+            *)
+              tracdb_uri=
+              ;;
+            esac
+            echo ".uri = $tracdb_uri" >Makefile.cfg
+      - save_cache:
+          paths:
+            - ~/venv
+            - ~/.cache/pip
+          key: v1-dependencies-{{ checksum ".circleci/config.yml" }}
+      - run:
+          name: Run tests
+          command: |
+            . ~/venv/bin/activate
+            make Trac.egg-info compile unit-test functional-test
+
+  python2.7-sqlite:
+    docker:
+      - image: circleci/python:2.7
+    steps: *steps
+
+  python2.7-postgres:
+    docker:
+      - image: circleci/python:2.7
+      - image: postgres:9.4
+        environment: {POSTGRES_PASSWORD: password}
+    steps: *steps
+
+  python2.7-mysql:
+    docker:
+      - image: circleci/python:2.7
+      - image: mysql:5
+        environment: {MYSQL_ROOT_PASSWORD: password}
+    steps: *steps
