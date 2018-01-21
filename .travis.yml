@@ -12,7 +12,6 @@ before_install:
   - print_version='import sys; print("%d.%d" % sys.version_info[:2])'
   - test -n "$pyver" || pyver="$(python -c "$print_version")"
   - |
-    set -e
     case "$tracdb" in
       postgres)
         if [ "$TRAVIS_OS_NAME" = osx ]; then
@@ -50,7 +49,6 @@ before_install:
       echo "format = legacy"
     } >"$HOME/.pip/pip.conf"
   - |
-    set -e
     if [ "$TRAVIS_OS_NAME" = osx ]; then
       test -d $HOME/venv-lib || mkdir $HOME/venv-lib
       PYTHONPATH=$HOME/venv-lib /usr/bin/easy_install-$pyver \
@@ -79,12 +77,14 @@ install:
       ln -s "$sitelib_global/libsvn" "$sitelib_venv/libsvn"
       python -c 'from svn import core'
     fi
-  - pip install Genshi==0.7 'Babel!=2.3.0,!=2.3.1' configobj Pygments docutils textile lxml pytz twill==0.9.1 setuptools_git
-  - if [ "$tracdb" = postgres ]; then pip install psycopg2; fi
-  - if [ "$tracdb" = mysql ]; then pip install MySQL-python; fi
-  - pip list
   - |
-    set -e
+    requires='Genshi==0.7 Babel!=2.3.0,!=2.3.1 configobj Pygments docutils textile lxml pytz twill==0.9.1 setuptools_git'
+    if [ "$tracdb" = postgres ]; then requires="$requires psycopg2"; fi
+    if [ "$tracdb" = mysql ]; then requires="$requires MySQL-python"; fi
+    pip install $requires
+    python -c 'import sys, pkg_resources as p; p.require(sys.argv[1:])' $requires
+    pip list
+  - |
     case "$tracdb" in
       sqlite)   tracdb_uri='sqlite:test.db' ;;
       postgres) tracdb_uri='postgres://tracuser:password@localhost/trac?schema=tractest' ;;
