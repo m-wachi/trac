@@ -71,7 +71,6 @@ $svnBase = "svn-win32-1.8.15"
 $svnBaseAp = "$svnBase-ap24"
 $svnUrlBase = "https://sourceforge.net/projects/win32svn/files/1.8.15/apache24"
 
-
 $pipPackages = @{
     '1.0-stable' = @($fcrypt)
     trunk = @('passlib')
@@ -178,6 +177,7 @@ if (-not $py64) {
 }
 
 
+
 # ------------------------------------------------------------------
 # Steps
 # ------------------------------------------------------------------
@@ -239,6 +239,41 @@ function Trac-Install {
     }
 
     & pip --version
+
+    if ($pyVersion -eq '2.6') {
+        $pipPy26Deps = @(
+            'https://files.pythonhosted.org/packages/67/4b/141a581104b1f6397bfa78ac9d43d8ad29a7ca43ea90a2d863fe3056e86a/six-1.11.0-py2.py3-none-any.whl'
+            'https://files.pythonhosted.org/packages/c5/db/e56e6b4bbac7c4a06de1c50de6fe1ef3810018ae11732a50f15f62c7d050/enum34-1.1.6-py2-none-any.whl'
+            'https://files.pythonhosted.org/packages/fc/d0/7fc3a811e011d4b388be48a0e381db8d990042df54aa4ef4599a31d39853/ipaddress-1.0.22-py2.py3-none-any.whl'
+            'https://files.pythonhosted.org/packages/8c/2d/aad7f16146f4197a11f8e91fb81df177adcc2073d36a17b1491fd09df6ed/pycparser-2.18.tar.gz'
+            'https://files.pythonhosted.org/packages/ea/cd/35485615f45f30a510576f1a56d1e0a7ad7bd8ab5ed7cdc600ef7cd06222/asn1crypto-0.24.0-py2.py3-none-any.whl'
+            'https://files.pythonhosted.org/packages/27/cc/6dd9a3869f15c2edfab863b992838277279ce92663d334df9ecf5106f5c6/idna-2.6-py2.py3-none-any.whl'
+            'https://files.pythonhosted.org/packages/7c/e6/92ad559b7192d846975fc916b65f667c7b8c3a32bea7372340bfe9a15fa5/certifi-2018.4.16-py2.py3-none-any.whl'
+            'https://files.pythonhosted.org/packages/79/db/7c0cfe4aa8341a5fab4638952520d8db6ab85ff84505e12c00ea311c3516/pyOpenSSL-17.5.0-py2.py3-none-any.whl'
+            'https://files.pythonhosted.org/packages/3f/08/7347ca4021e7fe0f1ab8f93cbc7d2a7a7350012300ad0e0227d55625e2b8/pip-1.5.6-py2.py3-none-any.whl'
+        )
+        if ($py64) {
+            $pipPy26Deps += @(
+                'https://files.pythonhosted.org/packages/c6/3a/e2698ef21b88e2dc3af4897e522abbeb7db861d342995ac7d35f9cef254b/cffi-1.10.0-cp26-cp26m-win_amd64.whl'
+                'https://files.pythonhosted.org/packages/64/73/64eb5d9db4d293f3ddc18eee1af2f5a80818cee6a0e8039e11888caafa51/cryptography-2.0.3-cp26-cp26m-win_amd64.whl'
+            )
+        }
+        else {
+            $pipPy26Deps += @(
+                'https://files.pythonhosted.org/packages/7e/b6/8c22d057ea9495db1e0fbf642a4cea2208164d85c46672990915232584fe/cffi-1.10.0-cp26-cp26m-win32.whl'
+                'https://files.pythonhosted.org/packages/0a/62/8cf4b5ee4aa74444fa6238a8fd8673bca1ac81f29ae525fb93e441ebf599/cryptography-2.0.3-cp26-cp26m-win32.whl'
+            )
+        }
+        $pyopensslPackages = @()
+        Foreach ($url in $pipPy26Deps) {
+            $filename = $deps + '\' + ([uri]$url).Segments[-1]
+            & curl.exe -sS $url -o $filename
+            $pyopensslPackages += $filename
+        }
+        & pip install --upgrade $pyopensslPackages
+        & pip --version
+    }
+
     & pip install $pipCommonPackages $pipPackages.$svnBranch
 
     if ($pyIsConda) {
