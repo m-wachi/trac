@@ -278,6 +278,11 @@ class TracHTMLSanitizerTestCase(unittest.TestCase):
         test(u'<div style="background:url(qux.png)">safe</div>',
              u'<div style="background:url(qux.png)">safe</div>')
 
+    def test_special_characters(self):
+        self.assertEqual(u'<p> & </p>', self.sanitize(u'<p> & </p>'))
+        self.assertEqual(u'<p> < </p>', self.sanitize(u'<p> < </p>'))
+        self.assertEqual(u'<p> > </p>', self.sanitize(u'<p> > </p>'))
+
 
 if genshi:
     class TracHTMLSanitizerLegacyGenshiTestCase(TracHTMLSanitizerTestCase):
@@ -285,6 +290,11 @@ if genshi:
             sanitizer = TracHTMLSanitizer(safe_schemes=self.safe_schemes,
                                           safe_origins=self.safe_origins)
             return unicode(HTML(html, encoding='utf-8') | sanitizer)
+
+        def test_special_characters(self):
+            self.assertEqual(u'<p> &amp; </p>', self.sanitize(u'<p> & </p>'))
+            self.assertEqual(u'<p> &lt; </p>', self.sanitize(u'<p> < </p>'))
+            self.assertEqual(u'<p> &gt; </p>', self.sanitize(u'<p> > </p>'))
 
 
 class FindElementTestCase(unittest.TestCase):

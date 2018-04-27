@@ -913,33 +913,44 @@ class HTMLTransform(HTMLParser):
     def __init__(self, out):
         HTMLParser.__init__(self)
         self.out = out
+        if isinstance(out, io.TextIOBase):
+            self._convert = lambda v: v.decode('utf-8') \
+                                      if isinstance(v, bytes) else v
+        elif isinstance(out, io.IOBase):
+            self._convert = lambda v: v.encode('utf-8') \
+                                      if isinstance(v, unicode) else v
+        else:
+            self._convert = lambda v: v
 
     def handle_starttag(self, tag, attrs):
-        self.out.write(self.get_starttag_text())
+        self._write(self.get_starttag_text())
 
     def handle_startendtag(self, tag, attrs):
-        self.out.write(self.get_starttag_text())
+        self._write(self.get_starttag_text())
 
     def handle_charref(self, name):
-        self.out.write('&#%s;' % name)
+        self._write('&#%s;' % name)
 
     def handle_entityref(self, name):
-        self.out.write('&%s;' % name)
+        self._write('&%s;' % name)
 
     def handle_comment(self, data):
-        self.out.write('<!--%s-->' % data)
+        self._write('<!--%s-->' % data)
 
     def handle_decl(self, data):
-        self.out.write('<!%s>' % data)
+        self._write('<!%s>' % data)
 
     def handle_pi(self, data):
-        self.out.write('<?%s?>' % data)
+        self._write('<?%s?>' % data)
 
     def handle_data(self, data):
-        self.out.write(data)
+        self._write(data)
 
     def handle_endtag(self, tag):
-        self.out.write('</' + tag + '>')
+        self._write('</' + tag + '>')
+
+    def _write(self, data):
+        self.out.write(self._convert(data))
 
 
 class FormTokenInjector(HTMLTransform):
@@ -958,8 +969,8 @@ class FormTokenInjector(HTMLTransform):
         if tag.lower() == 'form':
             for name, value in attrs:
                 if name == 'method' and value.lower() == 'post':
-                    self.out.write('<input type="hidden" name="__FORM_TOKEN"'
-                                   ' value="%s"/>' % self.token)
+                    self._write('<input type="hidden" name="__FORM_TOKEN"'
+                                ' value="%s"/>' % self.token)
                     break
 
 class HTMLSanitization(HTMLTransform):
@@ -980,7 +991,7 @@ class HTMLSanitization(HTMLTransform):
         new_attrs = self.sanitizer.sanitize_attrs(tag, dict(attrs))
         html_attrs = ''.join(' %s="%s"' % (name, escape(value))
                              for name, value in new_attrs.iteritems())
-        self.out.write('<%s%s%s>' % (tag, html_attrs, startend))
+        self._write('<%s%s%s>' % (tag, html_attrs, startend))
 
     def handle_starttag(self, tag, attrs):
         if not self.waiting_for:
@@ -992,33 +1003,33 @@ class HTMLSanitization(HTMLTransform):
 
     def handle_charref(self, name):
         if not self.waiting_for:
-            self.out.write('&#%s;' % name)
+            self._write('&#%s;' % name)
 
     def handle_entityref(self, name):
         if not self.waiting_for:
-            self.out.write('&%s;' % name)
+            self._write('&%s;' % name)
 
     def handle_comment(self, data):
         pass
 
     def handle_decl(self, data):
         if not self.waiting_for:
-            self.out.write('<!%s>' % data)
+            self._write('<!%s>' % data)
 
     def handle_pi(self, data):
         if not self.waiting_for:
-            self.out.write('<?%s?>' % data.replace('?>', ''))
+            self._write('<?%s?>' % data.replace('?>', ''))
 
     def handle_data(self, data):
         if not self.waiting_for:
-            self.out.write(data)
+            self._write(data)
 
     def handle_endtag(self, tag):
         if self.waiting_for:
             if self.waiting_for == tag:
                 self.waiting_for = None
         else:
-            self.out.write('</' + tag + '>')
+            self._write('</' + tag + '>')
 
 
 def plaintext(text, keeplinebreaks=True):
