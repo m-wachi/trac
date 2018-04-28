@@ -1022,7 +1022,7 @@ class HTMLSanitization(HTMLTransform):
 
     def handle_data(self, data):
         if not self.waiting_for:
-            self._write(data)
+            self._write(escape(data))
 
     def handle_endtag(self, tag):
         if self.waiting_for:

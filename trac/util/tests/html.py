@@ -241,8 +241,7 @@ class TracHTMLSanitizerTestCase(unittest.TestCase):
         self.assertEqual('<div>XSS</div>', self.sanitize(html))
 
     def test_cross_origin(self):
-        def test(expected, content):
-            self.assertEqual(expected, self.sanitize(content))
+        test = self._assert_sanitize
 
         test(u'<img src="data:image/png,...."/>',
              u'<img src="data:image/png,...."/>')
@@ -279,9 +278,19 @@ class TracHTMLSanitizerTestCase(unittest.TestCase):
              u'<div style="background:url(qux.png)">safe</div>')
 
     def test_special_characters(self):
-        self.assertEqual(u'<p> & </p>', self.sanitize(u'<p> & </p>'))
-        self.assertEqual(u'<p> < </p>', self.sanitize(u'<p> < </p>'))
-        self.assertEqual(u'<p> > </p>', self.sanitize(u'<p> > </p>'))
+        self._assert_sanitize(u'<p> &amp;amp; </p>', u'<p> &amp;amp; </p>')
+        self._assert_sanitize(u'<p> &amp; </p>',     u'<p> &amp; </p>')
+        self._assert_sanitize(u'<p> &amp; </p>',     u'<p> & </p>')
+        self._assert_sanitize(u'<p> &lt;lt; </p>',   u'<p> &lt;lt; </p>')
+        self._assert_sanitize(u'<p> &lt; </p>',      u'<p> &lt; </p>')
+        self._assert_sanitize(u'<p> &lt; </p>',      u'<p> < </p>')
+        self._assert_sanitize(u'<p> &gt;gt; </p>',   u'<p> &gt;gt; </p>')
+        self._assert_sanitize(u'<p> &gt; </p>',      u'<p> &gt; </p>')
+        self._assert_sanitize(u'<p> &gt; </p>',      u'<p> > </p>')
+        self._assert_sanitize(u'<p> &amp;&lt;&gt; </p>', u'<p> &<> </p>')
+
+    def _assert_sanitize(self, expected, content):
+        self.assertEqual(expected, self.sanitize(content))
 
 
 if genshi:
@@ -290,11 +299,6 @@ if genshi:
             sanitizer = TracHTMLSanitizer(safe_schemes=self.safe_schemes,
                                           safe_origins=self.safe_origins)
             return unicode(HTML(html, encoding='utf-8') | sanitizer)
-
-        def test_special_characters(self):
-            self.assertEqual(u'<p> &amp; </p>', self.sanitize(u'<p> & </p>'))
-            self.assertEqual(u'<p> &lt; </p>', self.sanitize(u'<p> < </p>'))
-            self.assertEqual(u'<p> &gt; </p>', self.sanitize(u'<p> > </p>'))
 
 
 class FindElementTestCase(unittest.TestCase):
