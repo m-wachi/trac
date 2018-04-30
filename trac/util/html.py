@@ -761,7 +761,8 @@ class TracHTMLSanitizer(object):
         """
         new_attrs = {}
         for attr, value in attrs.iteritems():
-            value = stripentities(value) if value is not None else attr
+            if value is None:
+                value = attr
             if attr not in self.safe_attrs:
                 continue
             elif attr in self.uri_attrs:
