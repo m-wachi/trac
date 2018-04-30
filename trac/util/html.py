@@ -930,10 +930,10 @@ class HTMLTransform(HTMLParser):
         self._write(self.get_starttag_text())
 
     def handle_charref(self, name):
-        self._write('&#%s;' % name)
+        self._handle_charref(name)
 
     def handle_entityref(self, name):
-        self._write('&%s;' % name)
+        self._handle_entityref(name)
 
     def handle_comment(self, data):
         self._write('<!--%s-->' % data)
@@ -949,6 +949,24 @@ class HTMLTransform(HTMLParser):
 
     def handle_endtag(self, tag):
         self._write('</' + tag + '>')
+
+    def _handle_charref(self, name):
+        if name.startswith('x'):
+            codepoint = int(name[1:], 16)
+        else:
+            codepoint = int(name)
+        if 0 <= codepoint <= 0x10ffff:
+            text = '&#%s;' % name
+        else:
+            text = '&amp;#%s;' % name
+        self._write(text)
+
+    def _handle_entityref(self, name):
+        if name in entities.name2codepoint:
+            text = '&%s;' % name
+        else:
+            text = '&amp;%s;' % name
+        self._write(text)
 
     def _write(self, data):
         self.out.write(self._convert(data))
@@ -1004,11 +1022,11 @@ class HTMLSanitization(HTMLTransform):
 
     def handle_charref(self, name):
         if not self.waiting_for:
-            self._write('&#%s;' % name)
+            self._handle_charref(name)
 
     def handle_entityref(self, name):
         if not self.waiting_for:
-            self._write('&%s;' % name)
+            self._handle_entityref(name)
 
     def handle_comment(self, data):
         pass
