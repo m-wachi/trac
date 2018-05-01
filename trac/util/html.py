@@ -20,6 +20,7 @@
 
 import io
 import re
+import sys
 from HTMLParser import HTMLParser
 import htmlentitydefs as entities
 
@@ -178,13 +179,13 @@ def stripentities(text, keepxmlentities=False):
                 ref = int(ref[1:], 16)
             else:
                 ref = int(ref, 10)
-            return unichr(ref)
+            return _unichr(ref)
         else: # character entity
             ref = match.group(2)
             if keepxmlentities and ref in ('amp', 'apos', 'gt', 'lt', 'quot'):
                 return '&%s;' % ref
             try:
-                return unichr(entities.name2codepoint[ref])
+                return _unichr(entities.name2codepoint[ref])
             except KeyError:
                 if keepxmlentities:
                     return '&amp;%s;' % ref
@@ -845,7 +846,7 @@ class TracHTMLSanitizer(object):
             t = match.group(1)
             if t:
                 code = int(t, 16)
-                chr = unichr(code)
+                chr = _unichr(code)
                 if code <= 0x1f:
                     # replace space character because IE ignores control
                     # characters
@@ -950,22 +951,26 @@ class HTMLTransform(HTMLParser):
     def handle_endtag(self, tag):
         self._write('</' + tag + '>')
 
+    _codepoint2ref = {38: '&amp;', 60: '&lt;', 62: '&gt;', 34: '&#34;'}
+
     def _handle_charref(self, name):
         if name.startswith('x'):
             codepoint = int(name[1:], 16)
         else:
             codepoint = int(name)
         if 0 <= codepoint <= 0x10ffff:
-            text = '&#%s;' % name
+            text = self._codepoint2ref.get(codepoint) or _unichr(codepoint)
         else:
             text = '&amp;#%s;' % name
         self._write(text)
 
     def _handle_entityref(self, name):
-        if name in entities.name2codepoint:
-            text = '&%s;' % name
-        else:
+        try:
+            codepoint = entities.name2codepoint[name]
+        except KeyError:
             text = '&amp;%s;' % name
+        else:
+            text = self._codepoint2ref.get(codepoint) or _unichr(codepoint)
         self._write(text)
 
     def _write(self, data):
@@ -1162,6 +1167,23 @@ _invalid_control_chars = ''.join(chr(i) for i in xrange(32)
 
 def valid_html_bytes(bytes):
     return bytes.translate(_translate_nop, _invalid_control_chars)
+
+
+if sys.maxunicode > 0xffff:
+    _unichr = unichr
+else:
+    def _unichr(codepoint):  # narrow Python build
+        try:
+            return unichr(codepoint)
+        except ValueError:
+            if not (0 <= codepoint <= 0x10ffff):
+                raise
+            s = r'\U%08x' % codepoint
+            try:
+                return s.decode('unicode-escape')
+            except Exception as e:
+                raise ValueError(e)
+
 
 if genshi:
     def expand_markup(stream, ctxt=None):
