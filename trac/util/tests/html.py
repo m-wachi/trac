@@ -288,6 +288,7 @@ class TracHTMLSanitizerTestCaseBase(unittest.TestCase):
         test(u"<p>&amp;unknown;</p>",    u'<p>&unknown;</p>')
         test(u"<p>\U0010ffff</p>",       u'<p>&#1114111;</p>')
         test(u"<p>\U0010ffff</p>",       u'<p>&#x10ffff;</p>')
+        test(u"<p>\U0010ffff</p>",       u'<p>&#X10ffff;</p>')
 
     def test_special_characters_attribute(self):
         self._assert_sanitize(u'<img title="&amp;"/>', u'<img title="&amp;"/>')
@@ -300,7 +301,11 @@ class TracHTMLSanitizerTestCaseBase(unittest.TestCase):
         self._assert_sanitize(u'<img title="&amp;\u2026"/>',
                               u'<img title="&amp;&hellip;"/>')
         self._assert_sanitize(u'<img title="\U0010ffff"/>',
+                              u'<img title="&#1114111;"/>')
+        self._assert_sanitize(u'<img title="\U0010ffff"/>',
                               u'<img title="&#x10ffff;"/>')
+        self._assert_sanitize(u'<img title="\U0010ffff"/>',
+                              u'<img title="&#X10ffff;"/>')
 
     def _assert_sanitize(self, expected, content):
         self.assertEqual(expected, self.sanitize(content))
@@ -316,14 +321,19 @@ class TracHTMLSanitizerTestCase(TracHTMLSanitizerTestCaseBase):
              u'<p>&#38;&#60;&#62;&#34;&#39;</p>')
         test(u"<p>&amp;#1114112;</p>", u'<p>&#1114112;</p>')
         test(u"<p>&amp;#x110000;</p>", u'<p>&#x110000;</p>')
+        test(u"<p>&amp;#X110000;</p>", u'<p>&#X110000;</p>')
 
     def test_special_characters_attribute_jinja2(self):
         self._assert_sanitize(u'<img title="&amp;hellip;"/>',
                               u'<img title="&amp;hellip;"/>')
         self._assert_sanitize(u'<img title="&amp;unknown;"/>',
                               u'<img title="&unknown;"/>')
+        self._assert_sanitize(u'<img title="&amp;#1114112;"/>',
+                              u'<img title="&#1114112;"/>')
         self._assert_sanitize(u'<img title="&amp;#x110000;"/>',
                               u'<img title="&#x110000;"/>')
+        self._assert_sanitize(u'<img title="&amp;#X110000;"/>',
+                              u'<img title="&#X110000;"/>')
 
 
 if genshi:
@@ -342,6 +352,7 @@ if genshi:
             # XXX ValueError is raised from unichr()
             # test(u"<p>&amp;#1114112;</p>", u'<p>&#1114112;</p>')
             # test(u"<p>&amp;#x110000;</p>", u'<p>&#x110000;</p>')
+            # test(u"<p>&amp;#X110000;</p>", u'<p>&#X110000;</p>')
 
         def test_special_characters_attribute_genshi(self):
             # XXX genshi.HTML incorrectly returns '\u2026' for "&amp;hellip;"
@@ -351,8 +362,12 @@ if genshi:
             self._assert_sanitize(u'<img title="unknown"/>',
                                   u'<img title="&unknown;"/>')
             # XXX ValueError is raised from unichr()
+            # self._assert_sanitize(u'<img title="&amp;#1114112;"/>',
+            #                       u'<img title="&#1114112;"/>')
             # self._assert_sanitize(u'<img title="&amp;#x110000;"/>',
             #                       u'<img title="&#x110000;"/>')
+            # self._assert_sanitize(u'<img title="&amp;#X110000;"/>',
+            #                       u'<img title="&#X110000;"/>')
             pass
 
 

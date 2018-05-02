@@ -175,7 +175,7 @@ def stripentities(text, keepxmlentities=False):
     def _replace_entity(match):
         if match.group(1): # numeric entity
             ref = match.group(1)
-            if ref.startswith('x'):
+            if ref.startswith(('x', 'X')):
                 ref = int(ref[1:], 16)
             else:
                 ref = int(ref, 10)
@@ -954,7 +954,7 @@ class HTMLTransform(HTMLParser):
     _codepoint2ref = {38: '&amp;', 60: '&lt;', 62: '&gt;', 34: '&#34;'}
 
     def _handle_charref(self, name):
-        if name.startswith('x'):
+        if name.startswith(('x', 'X')):
             codepoint = int(name[1:], 16)
         else:
             codepoint = int(name)
