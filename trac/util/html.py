@@ -65,6 +65,10 @@ __all__ = ['Deuglifier', 'FormTokenInjector', 'TracHTMLSanitizer', 'escape',
            'unescape']
 
 
+_name2codepoint = entities.name2codepoint.copy()
+_name2codepoint['apos'] = 39  # single quote
+
+
 def escape(str, quotes=True):
     """Create a Markup instance from a string and escape special characters
     it may contain (<, >, & and \").
@@ -185,7 +189,7 @@ def stripentities(text, keepxmlentities=False):
             if keepxmlentities and ref in ('amp', 'apos', 'gt', 'lt', 'quot'):
                 return '&%s;' % ref
             try:
-                return _unichr(entities.name2codepoint[ref])
+                return _unichr(_name2codepoint[ref])
             except KeyError:
                 if keepxmlentities:
                     return '&amp;%s;' % ref
@@ -951,6 +955,33 @@ class HTMLTransform(HTMLParser):
     def handle_endtag(self, tag):
         self._write('</' + tag + '>')
 
+    _reference_re = re.compile(r'&(?:#[xX][0-9a-fA-F]+|#[0-9]+|\w{1,8});')
+
+    def unescape(self, s):
+        """This is to avoid an issue which HTMLParser.unescape() raises
+        ValueError or OverflowError from unichr() when character reference
+        with a large integer.
+        """
+
+        def repl(match):
+            match = match.group(0)
+            name = match[1:-1]
+            if name.startswith(('#x', '#X')):
+                codepoint = int(name[2:], 16)
+            elif name.startswith('#'):
+                codepoint = int(name[1:])
+            else:
+                try:
+                    codepoint = _name2codepoint[name]
+                except KeyError:
+                    return match
+            if 0 <= codepoint <= 0x10ffff:
+                return _unichr(codepoint)
+            else:
+                return match
+
+        return self._reference_re.sub(repl, s)
+
     _codepoint2ref = {38: '&amp;', 60: '&lt;', 62: '&gt;', 34: '&#34;'}
 
     def _handle_charref(self, name):
@@ -966,7 +997,7 @@ class HTMLTransform(HTMLParser):
 
     def _handle_entityref(self, name):
         try:
-            codepoint = entities.name2codepoint[name]
+            codepoint = _name2codepoint[name]
         except KeyError:
             text = '&amp;%s;' % name
         else:

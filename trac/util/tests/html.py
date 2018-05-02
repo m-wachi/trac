@@ -14,6 +14,7 @@
 import doctest
 import io
 import unittest
+import sys
 
 from trac.core import TracError
 from trac.util import html
@@ -288,7 +289,7 @@ class TracHTMLSanitizerTestCaseBase(unittest.TestCase):
         test(u"<p>&amp;unknown;</p>",    u'<p>&unknown;</p>')
         test(u"<p>\U0010ffff</p>",       u'<p>&#1114111;</p>')
         test(u"<p>\U0010ffff</p>",       u'<p>&#x10ffff;</p>')
-        test(u"<p>\U0010ffff</p>",       u'<p>&#X10ffff;</p>')
+        test(u"<p>\U0010ffff</p>",       u'<p>&#X10FFFF;</p>')
 
     def test_special_characters_attribute(self):
         self._assert_sanitize(u'<img title="&amp;"/>', u'<img title="&amp;"/>')
@@ -305,7 +306,7 @@ class TracHTMLSanitizerTestCaseBase(unittest.TestCase):
         self._assert_sanitize(u'<img title="\U0010ffff"/>',
                               u'<img title="&#x10ffff;"/>')
         self._assert_sanitize(u'<img title="\U0010ffff"/>',
-                              u'<img title="&#X10ffff;"/>')
+                              u'<img title="&#X10FFFF;"/>')
 
     def _assert_sanitize(self, expected, content):
         self.assertEqual(expected, self.sanitize(content))
@@ -315,13 +316,15 @@ class TracHTMLSanitizerTestCase(TracHTMLSanitizerTestCaseBase):
 
     def test_special_characters_data_jinja2(self):
         test = self._assert_sanitize
-        test(u'<p>&amp;&lt;&gt;&#34;&amp;apos;</p>',
+        test(u"<p>&amp;&lt;&gt;&#34;'</p>",
              u'<p>&amp;&lt;&gt;&quot;&apos;</p>')
         test(u"<p>&amp;&lt;&gt;&#34;'</p>",
              u'<p>&#38;&#60;&#62;&#34;&#39;</p>')
         test(u"<p>&amp;#1114112;</p>", u'<p>&#1114112;</p>')
         test(u"<p>&amp;#x110000;</p>", u'<p>&#x110000;</p>')
         test(u"<p>&amp;#X110000;</p>", u'<p>&#X110000;</p>')
+        test(u'<p>&amp;#%d;</p>' % (sys.maxint + 1),
+             u'<p>&#%d;</p>' % (sys.maxint + 1))
 
     def test_special_characters_attribute_jinja2(self):
         self._assert_sanitize(u'<img title="&amp;hellip;"/>',
@@ -334,6 +337,8 @@ class TracHTMLSanitizerTestCase(TracHTMLSanitizerTestCaseBase):
                               u'<img title="&#x110000;"/>')
         self._assert_sanitize(u'<img title="&amp;#X110000;"/>',
                               u'<img title="&#X110000;"/>')
+        self._assert_sanitize(u'<img title="&amp;#%d;"/>' % (sys.maxint + 1),
+                              u'<img title="&#%d;"/>' % (sys.maxint + 1))
 
 
 if genshi:
@@ -368,6 +373,10 @@ if genshi:
             #                       u'<img title="&#x110000;"/>')
             # self._assert_sanitize(u'<img title="&amp;#X110000;"/>',
             #                       u'<img title="&#X110000;"/>')
+            # XXX OverflowError is raised from unichr()
+            # self._assert_sanitize(
+            #     u'<img title="&amp;#%d;"/>' % (sys.maxint + 1),
+            #     u'<img title="&#%d;"/>' % (sys.maxint + 1))
             pass
 
 
