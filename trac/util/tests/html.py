@@ -287,9 +287,6 @@ class TracHTMLSanitizerTestCaseBase(unittest.TestCase):
         test(u'<p>&amp;&amp;</p>',       u'<p>&amp;&amp;</p>')
         test(u'<p>&amp;\u2026</p>',      u'<p>&amp;&hellip;</p>')
         test(u"<p>&amp;unknown;</p>",    u'<p>&unknown;</p>')
-        test(u"<p>\U0010ffff</p>",       u'<p>&#1114111;</p>')
-        test(u"<p>\U0010ffff</p>",       u'<p>&#x10ffff;</p>')
-        test(u"<p>\U0010ffff</p>",       u'<p>&#X10FFFF;</p>')
 
     def test_special_characters_attribute(self):
         self._assert_sanitize(u'<img title="&amp;"/>', u'<img title="&amp;"/>')
@@ -301,12 +298,6 @@ class TracHTMLSanitizerTestCaseBase(unittest.TestCase):
                               u'<img title="&amp;&amp;"/>')
         self._assert_sanitize(u'<img title="&amp;\u2026"/>',
                               u'<img title="&amp;&hellip;"/>')
-        self._assert_sanitize(u'<img title="\U0010ffff"/>',
-                              u'<img title="&#1114111;"/>')
-        self._assert_sanitize(u'<img title="\U0010ffff"/>',
-                              u'<img title="&#x10ffff;"/>')
-        self._assert_sanitize(u'<img title="\U0010ffff"/>',
-                              u'<img title="&#X10FFFF;"/>')
 
     def _assert_sanitize(self, expected, content):
         self.assertEqual(expected, self.sanitize(content))
@@ -320,6 +311,9 @@ class TracHTMLSanitizerTestCase(TracHTMLSanitizerTestCaseBase):
              u'<p>&amp;&lt;&gt;&quot;&apos;</p>')
         test(u"<p>&amp;&lt;&gt;&#34;'</p>",
              u'<p>&#38;&#60;&#62;&#34;&#39;</p>')
+        test(u"<p>\U0010ffff</p>", u'<p>&#1114111;</p>')
+        test(u"<p>\U0010ffff</p>", u'<p>&#x10ffff;</p>')
+        test(u"<p>\U0010ffff</p>", u'<p>&#X10FFFF;</p>')
         test(u"<p>&amp;#1114112;</p>", u'<p>&#1114112;</p>')
         test(u"<p>&amp;#x110000;</p>", u'<p>&#x110000;</p>')
         test(u"<p>&amp;#X110000;</p>", u'<p>&#X110000;</p>')
@@ -331,6 +325,12 @@ class TracHTMLSanitizerTestCase(TracHTMLSanitizerTestCaseBase):
                               u'<img title="&amp;hellip;"/>')
         self._assert_sanitize(u'<img title="&amp;unknown;"/>',
                               u'<img title="&unknown;"/>')
+        self._assert_sanitize(u'<img title="\U0010ffff"/>',
+                              u'<img title="&#1114111;"/>')
+        self._assert_sanitize(u'<img title="\U0010ffff"/>',
+                              u'<img title="&#x10ffff;"/>')
+        self._assert_sanitize(u'<img title="\U0010ffff"/>',
+                              u'<img title="&#X10FFFF;"/>')
         self._assert_sanitize(u'<img title="&amp;#1114112;"/>',
                               u'<img title="&#1114112;"/>')
         self._assert_sanitize(u'<img title="&amp;#x110000;"/>',
@@ -354,6 +354,10 @@ if genshi:
                  u'<p>&amp;&lt;&gt;&quot;&apos;</p>')
             test(u'''<p>&amp;&lt;&gt;"'</p>''',
                  u'<p>&#38;&#60;&#62;&#34;&#39;</p>')
+            # XXX ValueError is raised from unichr() on narrow Python build
+            # test(u"<p>\U0010ffff</p>", u'<p>&#1114111;</p>')
+            # test(u"<p>\U0010ffff</p>", u'<p>&#x10ffff;</p>')
+            # test(u"<p>\U0010ffff</p>", u'<p>&#X10FFFF;</p>')
             # XXX ValueError is raised from unichr()
             # test(u"<p>&amp;#1114112;</p>", u'<p>&#1114112;</p>')
             # test(u"<p>&amp;#x110000;</p>", u'<p>&#x110000;</p>')
@@ -366,6 +370,13 @@ if genshi:
             #                       u'<img title="&amp;hellip;"/>')
             self._assert_sanitize(u'<img title="unknown"/>',
                                   u'<img title="&unknown;"/>')
+            # XXX ValueError is raised from unichr() on narrow Python build
+            # self._assert_sanitize(u'<img title="\U0010ffff"/>',
+            #                       u'<img title="&#1114111;"/>')
+            # self._assert_sanitize(u'<img title="\U0010ffff"/>',
+            #                       u'<img title="&#x10ffff;"/>')
+            # self._assert_sanitize(u'<img title="\U0010ffff"/>',
+            #                       u'<img title="&#X10FFFF;"/>')
             # XXX ValueError is raised from unichr()
             # self._assert_sanitize(u'<img title="&amp;#1114112;"/>',
             #                       u'<img title="&#1114112;"/>')
