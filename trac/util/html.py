@@ -1161,23 +1161,6 @@ def is_safe_origin(safe_origins, uri, req=None):
     return False
 
 
-def expand_markup(stream, ctxt=None):
-    """A Genshi stream filter for expanding `genshi.Markup` events.
-
-    Note: Expansion may not be possible if the fragment is badly
-    formed, or partial.
-    """
-    for event in stream:
-        if isinstance(event[1], Markup):
-            try:
-                for subevent in HTML(event[1]):
-                    yield subevent
-            except ParseError:
-                yield event
-        else:
-            yield event
-
-
 def to_fragment(input):
     """Convert input to a `Fragment` object."""
 
@@ -1235,3 +1218,5 @@ if genshi:
                     yield event
             else:
                 yield event
+else:
+    expand_markup = None
