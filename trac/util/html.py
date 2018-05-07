@@ -40,7 +40,7 @@ If Genshi is not installed, `genshi` and all related symbols will be
 
 try:
     import genshi
-    from genshi import HTML
+    import genshi.input
     from genshi.core import Attrs, QName, Stream, COMMENT, START, END, TEXT
     from genshi.input import ParseError
     def stream_to_unicode(stream):
@@ -955,32 +955,8 @@ class HTMLTransform(HTMLParser):
     def handle_endtag(self, tag):
         self._write('</' + tag + '>')
 
-    _reference_re = re.compile(r'&(?:#[xX][0-9a-fA-F]+|#[0-9]+|\w{1,8});')
-
     def unescape(self, s):
-        """This is to avoid an issue which HTMLParser.unescape() raises
-        ValueError or OverflowError from unichr() when character reference
-        with a large integer.
-        """
-
-        def repl(match):
-            match = match.group(0)
-            name = match[1:-1]
-            if name.startswith(('#x', '#X')):
-                codepoint = int(name[2:], 16)
-            elif name.startswith('#'):
-                codepoint = int(name[1:])
-            else:
-                try:
-                    codepoint = _name2codepoint[name]
-                except KeyError:
-                    return match
-            if 0 <= codepoint <= 0x10ffff:
-                return _unichr(codepoint)
-            else:
-                return match
-
-        return self._reference_re.sub(repl, s)
+        return _html_parser_unescape(s)
 
     _codepoint2ref = {38: '&amp;', 60: '&lt;', 62: '&gt;', 34: '&#34;'}
 
@@ -1199,7 +1175,82 @@ else:
                 raise ValueError(e)
 
 
+_reference_re = re.compile(r'&(?:#[xX][0-9a-fA-F]+|#[0-9]+|\w{1,8});')
+
+def _html_parser_unescape(s):
+    """This is to avoid an issue which HTMLParser.unescape() raises
+    ValueError or OverflowError from unichr() when character reference
+    with a large integer in the attribute.
+    """
+
+    def repl(match):
+        match = match.group(0)
+        name = match[1:-1]
+        if name.startswith(('#x', '#X')):
+            codepoint = int(name[2:], 16)
+        elif name.startswith('#'):
+            codepoint = int(name[1:])
+        else:
+            try:
+                codepoint = _name2codepoint[name]
+            except KeyError:
+                return match
+        if 0 <= codepoint <= 0x10ffff:
+            return _unichr(codepoint)
+        else:
+            return match
+
+    return _reference_re.sub(repl, s)
+
+
 if genshi:
+    class GenshiHTMLParserFixup(genshi.input.HTMLParser):
+
+        def handle_starttag(self, tag, attrib):
+            fixed_attrib = [(QName(name), name if value is None else value)
+                            for name, value in attrib]
+            self._enqueue(START, (QName(tag), Attrs(fixed_attrib)))
+            if tag in self._EMPTY_ELEMS:
+                self._enqueue(END, QName(tag))
+            else:
+                self._open_tags.append(tag)
+
+        def handle_charref(self, name):
+            if name.startswith(('x', 'X')):
+                codepoint = int(name[1:], 16)
+            else:
+                codepoint = int(name)
+            if 0 <= codepoint <= 0x10ffff:
+                text = _unichr(codepoint)
+            else:
+                text = '&#%s;' % name
+            self._enqueue(TEXT, text)
+
+        def handle_entityref(self, name):
+            text = None
+            try:
+                codepoint = _name2codepoint[name]
+            except KeyError:
+                pass
+            else:
+                if 0 <= codepoint <= 0x10ffff:
+                    text = _unichr(codepoint)
+            self._enqueue(TEXT, text or '&%s;' % name)
+
+        def unescape(self, s):
+            return _html_parser_unescape(s)
+
+
+    def HTML(text, encoding=None):
+        if isinstance(text, unicode):
+            f = io.StringIO(text)
+            encoding = None
+        else:
+            f = io.BytesIO(text)
+        parser = GenshiHTMLParserFixup(f, encoding=encoding)
+        return Stream(list(parser))
+
+
     def expand_markup(stream, ctxt=None):
         """A Genshi stream filter for expanding `genshi.Markup` events.
 
