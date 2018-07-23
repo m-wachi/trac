@@ -630,11 +630,11 @@ def dispatch_request(environ, start_response):
         env.abs_href = req.abs_href
     translation.make_activable(lambda: req.locale, env.path if env else None)
     resp = []
-    dispatcher = RequestDispatcher(env)
-    dispatcher.set_default_callbacks(req)
     try:
         if not env and env_error:
             raise HTTPInternalServerError(env_error)
+        dispatcher = RequestDispatcher(env)
+        dispatcher.set_default_callbacks(req)
         try:
             dispatcher.dispatch(req)
         except RequestDone as req_done:
