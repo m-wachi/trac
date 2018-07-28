@@ -111,8 +111,8 @@ def to_unicode(text, charset=None):
             filename = text.filename
             if strerror and filename:
                 try:
-                    strerror = unicode(strerror, 'mbcs')
-                    filename = unicode(filename, 'mbcs')
+                    strerror = unicode(str(strerror), 'mbcs')
+                    filename = unicode(str(filename), 'mbcs')
                 except UnicodeError:
                     pass
                 else:
