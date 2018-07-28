@@ -1032,7 +1032,7 @@ class SendErrorTestCase(unittest.TestCase):
 
         self.assertEqual(
             "Trac Error\n\nTracError: No Trac environment found at %s\n"
-            "[Errno 2] No such file or directory: %r"
+            "[Errno 2] No such file or directory: '%s'"
             % (env_path, os.path.join(env_path, 'VERSION')), content)
 
 

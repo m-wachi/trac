@@ -47,7 +47,7 @@ from trac.util.compat import Popen, close_fds
 from trac.util.concurrency import threading
 from trac.util.datefmt import pytz
 from trac.util.text import exception_to_unicode, path_to_unicode, printerr, \
-                           printferr, printfout, printout
+                           printferr, printfout, printout, to_unicode
 from trac.util.translation import _, N_
 from trac.web.chrome import Chrome
 from trac.web.href import Href
@@ -406,7 +406,7 @@ class Environment(Component, ComponentManager):
                                   type=tag))
         except Exception as e:
             raise TracError(_("No Trac environment found at %(path)s\n"
-                              "%(e)s", path=self.path, e=e))
+                              "%(e)s", path=self.path, e=to_unicode(e)))
 
     @lazy
     def db_exc(self):

@@ -106,7 +106,22 @@ def to_unicode(text, charset=None):
         except UnicodeDecodeError:
             return unicode(text, 'latin1')
     elif isinstance(text, Exception):
-        if os.name == 'nt' and isinstance(text, (OSError, IOError)):
+        if os.name == 'nt' and isinstance(text, EnvironmentError):
+            strerror = text.strerror
+            filename = text.filename
+            if strerror and filename:
+                try:
+                    strerror = unicode(strerror, 'mbcs')
+                    filename = unicode(filename, 'mbcs')
+                except UnicodeError:
+                    pass
+                else:
+                    if isinstance(text, WindowsError):
+                        return u"[Error %s] %s: '%s'" % (text.winerror,
+                                                         strerror, filename)
+                    else:
+                        return u"[Errno %s] %s: '%s'" % (text.errno, strerror,
+                                                         filename)
             # the exception might have a localized error string encoded with
             # ANSI codepage if OSError and IOError on Windows
             try:
