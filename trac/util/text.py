@@ -109,10 +109,13 @@ def to_unicode(text, charset=None):
         if os.name == 'nt' and isinstance(text, EnvironmentError):
             strerror = text.strerror
             filename = text.filename
-            if strerror and filename:
+            if isinstance(strerror, basestring) and \
+                    isinstance(filename, basestring):
                 try:
-                    strerror = unicode(str(strerror), 'mbcs')
-                    filename = unicode(str(filename), 'mbcs')
+                    if not isinstance(strerror, unicode):
+                        strerror = unicode(strerror, 'mbcs')
+                    if not isinstance(filename, unicode):
+                        filename = unicode(filename, 'mbcs')
                 except UnicodeError:
                     pass
                 else:
