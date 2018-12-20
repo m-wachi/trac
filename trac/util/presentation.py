@@ -299,11 +299,15 @@ def separated(items, sep=',', last=None):
     [(1, ';'), (2, ';'), (3, '.')]
     """
     items = iter(items)
-    nextval = next(items)
-    for i in items:
-        yield nextval, sep
-        nextval = i
-    yield nextval, last
+    try:
+        nextval = next(items)
+    except StopIteration:
+        pass
+    else:
+        for i in items:
+            yield nextval, sep
+            nextval = i
+        yield nextval, last
 
 
 _js_quote = dict((c, '\\u%04x' % ord(c)) for c in '&<>')

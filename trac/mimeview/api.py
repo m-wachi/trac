@@ -1146,7 +1146,7 @@ def _group_lines(stream):
                 found_text = True
                 break
     if not found_text:
-        raise StopIteration
+        return
 
     for kind, data, pos in _generate():
         if kind is TEXT and data == '\n':

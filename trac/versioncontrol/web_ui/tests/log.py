@@ -119,7 +119,7 @@ class MockRepository(Repository):
 class MockChangeset(Changeset):
 
     def get_changes(self):
-        raise StopIteration
+        return iter(())
 
 
 class MockNode(Node):
