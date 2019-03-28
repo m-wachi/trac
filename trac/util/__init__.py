@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2003-2009 Edgewall Software
-# Copyright (C) 2003-2006 Jonas Borgström <jonas@edgewall.com>
+# Copyright (C) 2003-2006 Jonas Borgstrom <jonas@edgewall.com>
 # Copyright (C) 2006 Matthew Good <trac@matt-good.net>
 # Copyright (C) 2005-2006 Christian Boos <cboos@edgewall.org>
 # All rights reserved.
@@ -14,7 +14,7 @@
 # individuals. For the exact contribution history, see the revision
 # history and logs, available at http://trac.edgewall.org/log/.
 #
-# Author: Jonas Borgström <jonas@edgewall.com>
+# Author: Jonas Borgstrom <jonas@edgewall.com>
 #         Matthew Good <trac@matt-good.net>
 
 from __future__ import absolute_import
@@ -291,25 +291,36 @@ def create_unique_file(path):
             path = '%s.%d%s' % (parts[0], idx, parts[1])
 
 
-if os.name == 'nt':
-    def touch_file(filename):
-        """Update modified time of the given file. The file is created if
-        missing."""
-        # Use f.truncate() to avoid low resolution of GetSystemTime()
-        # on Windows
-        with open(filename, 'ab') as f:
-            stat = os.fstat(f.fileno())
-            f.truncate(stat.st_size)
-else:
-    def touch_file(filename):
-        """Update modified time of the given file. The file is created if
-        missing."""
-        try:
-            os.utime(filename, None)
-        except OSError as e:
-            if e.errno == errno.ENOENT:
-                with open(filename, 'ab'):
-                    pass
+# m.wachi comment
+#if os.name == 'nt':
+#    def touch_file(filename):
+#        """Update modified time of the given file. The file is created if
+#        missing."""
+#        # Use f.truncate() to avoid low resolution of GetSystemTime()
+#        # on Windows
+#        with open(filename, 'ab') as f:
+#            stat = os.fstat(f.fileno())
+#            f.truncate(stat.st_size)
+#else:
+#    def touch_file(filename):
+#        """Update modified time of the given file. The file is created if
+#        missing."""
+#        try:
+#            os.utime(filename, None)
+#        except OSError as e:
+#            if e.errno == errno.ENOENT:
+#                with open(filename, 'ab'):
+#                    pass
+def touch_file(filename):
+    """Update modified time of the given file. The file is created if
+    missing."""
+    try:
+        os.utime(filename, None)
+    except OSError as e:
+        if e.errno == errno.ENOENT:
+            with open(filename, 'ab'):
+                pass
+
 
 
 def create_zipinfo(filename, mtime=None, dir=False, executable=False, symlink=False,

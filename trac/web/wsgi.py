@@ -20,8 +20,16 @@ from six import add_metaclass
 import socket
 import six
 import sys
+
 from six.moves.BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
-from six.moves.socketserver import ForkingMixIn, ThreadingMixIn
+
+import os
+
+if os.name == 'nt':
+    from six.moves.socketserver import ThreadingMixIn
+else:
+    from six.moves.socketserver import ForkingMixIn, ThreadingMixIn
+
 from six.moves.urllib.parse import unquote
 
 
