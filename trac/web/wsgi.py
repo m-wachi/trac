@@ -282,7 +282,9 @@ class WSGIServer(HTTPServer):
         self.application = application
 
         gateway.wsgi_multithread = isinstance(self, ThreadingMixIn)
-        gateway.wsgi_multiprocess = isinstance(self, ForkingMixIn)
+        if os.name != 'nt':
+            gateway.wsgi_multiprocess = isinstance(self, ForkingMixIn)
+
         self.gateway = gateway
 
         self.environ = {'SERVER_NAME': self.server_name,

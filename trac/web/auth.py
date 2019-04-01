@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2003-2009 Edgewall Software
-# Copyright (C) 2003-2005 Jonas Borgström <jonas@edgewall.com>
+# Copyright (C) 2003-2005 Jonas Borgstrom <jonas@edgewall.com>
 # All rights reserved.
 #
 # This software is licensed as described in the file COPYING, which
@@ -12,7 +12,7 @@
 # individuals. For the exact contribution history, see the revision
 # history and logs, available at http://trac.edgewall.org/log/.
 #
-# Author: Jonas Borgström <jonas@edgewall.com>
+# Author: Jonas Borgstrom <jonas@edgewall.com>
 
 from __future__ import print_function
 
@@ -367,7 +367,7 @@ class BasicAuthentication(PasswordFileAuthentication):
     def do_auth(self, environ, start_response):
         header = environ.get('HTTP_AUTHORIZATION')
         if header and header.startswith('Basic'):
-            auth = b64decode(header[6:]).split(':')
+            auth = b64decode(header[6:].encode()).decode().split(':')
             if len(auth) == 2:
                 user, password = auth
                 if self.test(user, password):
