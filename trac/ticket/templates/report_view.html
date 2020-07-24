@@ -166,19 +166,19 @@
 
                         <!--! generic fields -->
                         <py:when test="col == 'time'">
-                          <td class="date" py:attrs="td_attrs">${format_time(from_utimestamp(long(cell.value))) if cell.value != '' else '--'}
+                          <td class="date" py:attrs="td_attrs">${format_time(from_utimestamp(int(cell.value))) if cell.value != '' else '--'}
                             <hr py:if="fullrow"/>
                           </td>
                         </py:when>
 
                         <py:when test="col in ('date', 'created', 'modified')">
-                          <td class="date" py:attrs="td_attrs">${format_date(from_utimestamp(long(cell.value))) if cell.value != '' else '--'}
+                          <td class="date" py:attrs="td_attrs">${format_date(from_utimestamp(int(cell.value))) if cell.value != '' else '--'}
                             <hr py:if="fullrow"/>
                           </td>
                         </py:when>
 
                         <py:when test="col == 'datetime'">
-                          <td class="date" py:attrs="td_attrs">${format_datetime(from_utimestamp(long(cell.value))) if cell.value != '' else '--'}
+                          <td class="date" py:attrs="td_attrs">${format_datetime(from_utimestamp(int(cell.value))) if cell.value != '' else '--'}
                             <hr py:if="fullrow"/>
                           </td>
                         </py:when>
